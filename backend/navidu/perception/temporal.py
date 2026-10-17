@@ -18,7 +18,9 @@ from navidu.contracts.domain import Observation, Track, TrackRole
 from navidu.contracts.units import frame_id
 from navidu.pipeline.interfaces import PerceptionArtifacts, SemanticSignal
 
-PROMPT_VERSION = "cash-actions-v2"
+from .reflections import validate_reflections
+
+PROMPT_VERSION = "cash-actions-v3-reflections"
 EVENT_KINDS = frozenset({
     "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
     "cash_sorting", "cash_packing", "bag_opened", "bag_integrity_damage",
@@ -37,13 +39,18 @@ separating notes repeatedly or putting notes through a counting machine. Handove
 means visible transfer between two people. A hand movement alone is not counting.
 Report visible facts; do not judge legality or permission. Use at least two frames
 per event. Omit unclear actions. Assign cashier/client/unknown roles only when clear.
+Detected boxes can be mirror or glass reflections. Only when clearly visible, report
+the reflected track and its visible physical source with at least three simultaneous
+supporting frames. List every clearly supported frame index as one contiguous run;
+do not span uncertain frames. Do not infer reflections from similarity or proximity alone.
 If two actions visibly involve the SAME banknote batch in this sequence, link their
 zero-based event indices in same_cash_batches and give supporting frame indices.
 Being performed by the same person is insufficient for this cash-batch link.
 Return only JSON. Schema example (do not copy these example events):
 {"events":[{"kind":"counting_motion","start_frame":0,"end_frame":1,
 "subjects":["p1"],"actor":"p1","recipient":null}],
-"roles":[{"track":"p1","role":"cashier"}],"same_cash_batches":[]}
+"roles":[{"track":"p1","role":"cashier"}],"same_cash_batches":[],
+"reflections":[{"reflected_track":"p3","source_track":"p1","frames":[0,1,2]}]}
 Use [] for missing observations. Handover needs distinct actor and recipient IDs.
 Other recipient fields are null. Never invent a person ID. At most six events.
 """
@@ -88,7 +95,8 @@ def _decode_payload(text: str) -> dict:
         raise RuntimeError("MODEL_OUTPUT_INVALID: временная модель не вернула проверяемый JSON.") from error
     if not isinstance(value, dict) or not isinstance(value.get("events"), list) \
             or not isinstance(value.get("roles", []), list) \
-            or not isinstance(value.get("same_cash_batches", []), list):
+            or not isinstance(value.get("same_cash_batches", []), list) \
+            or not isinstance(value.get("reflections", []), list):
         raise RuntimeError("MODEL_OUTPUT_INVALID: неверная схема временных наблюдений.")
     return value
 
@@ -315,9 +323,17 @@ class TemporalVerifier:
         timestamps = [timestamp for timestamp, _ in frames]
         events, roles = validate_events(payload, frame_tracks, timestamps)
         bind_cash_relations(payload, events, frame_tracks, timestamps, self.model_id)
-        self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles)})
+        reflections = validate_reflections(payload, frame_tracks, timestamps)
+        self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles),
+                                  "accepted_reflection_count": len(reflections)})
         artifacts.semantic_windows_completed += 1
         artifacts.capabilities.update(self.capabilities)
+        for claim in reflections:
+            artifacts.semantic_signals.append(SemanticSignal(
+                kind="reflection", start_sec=claim["start_sec"], end_sec=claim["end_sec"],
+                subjects=(claim["reflected_track"], claim["source_track"]),
+                model_id=self.model_id, prompt_version=PROMPT_VERSION, confidence=None,
+                frame_ids=(frame_id(claim["start_sec"]), frame_id(claim["end_sec"]))))
         for event in events:
             event.pop("_source_index", None)
             event_frames = (frame_id(event["start_sec"]), frame_id(event["end_sec"]))

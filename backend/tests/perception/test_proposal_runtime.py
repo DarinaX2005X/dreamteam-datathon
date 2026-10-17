@@ -162,6 +162,7 @@ def test_proposals_only_schedule_base_verification_and_keep_baseline_tail(monkey
 
         def __init__(self):
             self.proposal, self.windows = Proposer(), []
+            self.last_metrics = {}
 
         def observe(self, frames, tracks, artifacts, *, should_stop):
             self.windows.append([item[0] for item in frames])

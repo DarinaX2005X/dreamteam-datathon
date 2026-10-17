@@ -356,10 +356,17 @@ class LocalPerceptionRuntime:
                     propose_window(list(dense_frames)[-proposal.window_frames:])
                 refine_ready(previous_t, final=True)
             if self._semantic is not None:
+                from .reflections import apply_reflection_filters
                 from .temporal import apply_semantic_roles
 
-                apply_semantic_roles(list(tracks.values()), artifacts.semantic_signals)
-            artifacts.tracks = list(tracks.values())
+                artifacts.tracks = list(tracks.values())
+                reflection_metrics = apply_reflection_filters(artifacts)
+                self._semantic.last_metrics.update({
+                    f"reflection_{key}": value for key, value in reflection_metrics.items()
+                })
+                apply_semantic_roles(artifacts.tracks, artifacts.semantic_signals)
+            else:
+                artifacts.tracks = list(tracks.values())
             artifacts.observations.extend(_object_observations(artifacts.tracks, detector.model_id,
                                           start_index=len(artifacts.observations) + 1,
                                           max_gap_sec=max(0.5, 1.5 / config.analysis_fps)))

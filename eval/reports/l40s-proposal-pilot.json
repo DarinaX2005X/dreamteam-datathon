@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "source_commit": "4c5aa50648558bf1adde78aec6a3b22be1d2fc13",
+  "task": "binary candidate proposal and source-frame localization, not the final normative verdict",
+  "hardware": "NVIDIA L40S",
+  "split": {"train_sources": 24, "validation_sources": 8, "holdout_used": false},
+  "work": {"epochs_completed": 1, "training_windows": 144, "optimizer_steps": 18, "validation_windows_per_pass": 66},
+  "elapsed_seconds": 347.04,
+  "baseline": {"tp": 4, "tn": 1, "fp": 3, "fn": 0, "balanced_accuracy": 0.625, "localization_mae_sec": 12.75, "localization_match_count": 4, "invalid_output_count": 0},
+  "epoch_1": {"tp": 4, "tn": 0, "fp": 4, "fn": 0, "balanced_accuracy": 0.5, "localization_mae_sec": 17.5, "localization_match_count": 4, "invalid_output_count": 0, "mean_training_loss": 0.29908},
+  "selection": {"selected_epoch": null, "stop_reason": "no_paired_validation_gain", "activated_in_application": false},
+  "resources": {"training_peak_allocated_mib": 17840, "training_reserved_mib_observed": 19874, "combined_serving_and_training_used_mib_observed": 30822},
+  "interpretation": "The candidate adapter worsened validation specificity and localization, so it was retained as an experiment and rejected for activation. Eight validation sources do not establish population accuracy. The separate end-to-end smoke also missed a positive development source; candidate metrics are not end-to-end rule metrics."
+}
