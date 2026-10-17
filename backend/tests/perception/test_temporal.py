@@ -39,6 +39,35 @@ def test_a_single_detection_does_not_bind_a_temporal_actor():
     assert _validate(_event(), [{"p1": (), "p2": ()}, {"p2": ()}]) == []
 
 
+def test_event_diagnostics_distinguish_index_and_actor_errors_without_private_values():
+    private = "private-generated-value"
+    payload = {"events": [_event(), _event(start_frame=17, end_frame=18),
+        _event(end_frame=0), _event(start_frame="0"), _event(subjects=[private]),
+        _event(actor=private), _event(kind=private), _event(actor=None),
+        _event(kind="cash_sorting", recipient="p2"), _event(recipient="p1")], "roles": []}
+    frames = [{"p1": (), "p2": ()}] * 2
+    counters = {}
+    result = validate_events(payload, frames, [17.333, 18.367], diagnostics=counters)
+    assert result == validate_events(payload, frames, [17.333, 18.367])
+    assert len(result[0]) == 1
+    assert counters["raw_kind_cash_handover"] == 8
+    assert counters["accepted_kind_cash_handover"] == 1
+    for reason in ("frame_range", "frame_order_or_single", "frame_type", "subject_support",
+                   "actor_support", "kind_or_shape", "action_without_actor",
+                   "unexpected_recipient", "handover_recipient"):
+        assert counters[f"rejected_{reason}"] == 1
+    assert private not in json.dumps(counters)
+    assert all(type(value) is int for value in counters.values())
+
+
+def test_event_diagnostics_count_unprocessed_overflow_without_loosening_limit():
+    counters = {}
+    accepted, _ = validate_events({"events": [_event()] * 26},
+        [{"p1": (), "p2": ()}] * 2, [0., 1.], diagnostics=counters)
+    assert len(accepted) == 24
+    assert counters["events_over_processing_limit"] == 2
+
+
 def test_roles_are_limited_to_visible_tracks_and_supported_categories():
     events, roles = validate_events({"events": [], "roles": [
         {"track": "p1", "role": "cashier"},

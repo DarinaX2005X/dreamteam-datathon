@@ -119,15 +119,33 @@ def _decode_payload(text: str) -> dict:
     return value
 
 
-def validate_events(payload: dict, frame_tracks: list[dict], timestamps: list[float]) -> tuple[list[dict], list[dict]]:
+def validate_events(payload: dict, frame_tracks: list[dict], timestamps: list[float], *,
+                    diagnostics: dict[str, int] | None = None) -> tuple[list[dict], list[dict]]:
     """Reject invented IDs, time ranges and unsupported actions without guessing."""
+    def count(key: str) -> None:
+        if diagnostics is not None:
+            diagnostics[key] = diagnostics.get(key, 0) + 1
+
     events, roles = [], []
+    if diagnostics is not None:
+        diagnostics["events_over_processing_limit"] = max(0, len(payload["events"]) - 24)
     for source_index, value in enumerate(payload["events"][:24]):
         if not isinstance(value, dict) or not isinstance(value.get("kind"), str) \
                 or value["kind"] not in EVENT_KINDS:
+            count("rejected_kind_or_shape")
             continue
+        # Only the fixed vocabulary becomes a diagnostic key. Generated text,
+        # subject IDs and unknown property values are never copied into it.
+        count(f"raw_kind_{value['kind']}")
         start, end = value.get("start_frame"), value.get("end_frame")
-        if type(start) is not int or type(end) is not int or not 0 <= start < end < len(timestamps):
+        if type(start) is not int or type(end) is not int:
+            count("rejected_frame_type")
+            continue
+        if not 0 <= start < len(timestamps) or not 0 <= end < len(timestamps):
+            count("rejected_frame_range")
+            continue
+        if start >= end:
+            count("rejected_frame_order_or_single")
             continue
         # An actor must be actually detected in two or more supporting frames.
         present_counts = {}
@@ -136,26 +154,36 @@ def validate_events(payload: dict, frame_tracks: list[dict], timestamps: list[fl
                 present_counts[track_id] = present_counts.get(track_id, 0) + 1
         allowed = {key for key, count in present_counts.items() if count >= 2}
         subjects = value.get("subjects")
-        if not isinstance(subjects, list) or any(not isinstance(item, str) or item not in allowed for item in subjects):
+        if not isinstance(subjects, list) or any(not isinstance(item, str) for item in subjects):
+            count("rejected_subject_type")
+            continue
+        if any(item not in allowed for item in subjects):
+            count("rejected_subject_support")
             continue
         actor, recipient = value.get("actor"), value.get("recipient")
         if (actor is not None and not isinstance(actor, str)) \
                 or (recipient is not None and not isinstance(recipient, str)):
+            count("rejected_actor_or_recipient_type")
             continue
         if actor is not None and actor not in allowed:
+            count("rejected_actor_support")
             continue
         if value["kind"] in _ACTION_KINDS and actor is None:
+            count("rejected_action_without_actor")
             continue
         if value["kind"] == "cash_handover":
             if recipient not in allowed or recipient == actor:
+                count("rejected_handover_recipient")
                 continue
         elif recipient is not None:
+            count("rejected_unexpected_recipient")
             continue
         bindings = list(dict.fromkeys(subjects + [item for item in (actor, recipient) if item is not None]))
         events.append({"kind": value["kind"], "start_sec": timestamps[start],
                        "end_sec": timestamps[end], "subjects": bindings,
                        "actor_id": actor, "recipient_id": recipient,
                        "_source_index": source_index})
+        count(f"accepted_kind_{value['kind']}")
     known = {key for people in frame_tracks for key in people}
     for value in payload.get("roles", [])[:24]:
         if isinstance(value, dict) and isinstance(value.get("track"), str) \
@@ -346,7 +374,8 @@ class TemporalVerifier:
         frame_tracks = [_samples_at(tracks, timestamp) for timestamp, _ in frames]
         payload = self._infer(frames, frame_tracks, should_stop)
         timestamps = [timestamp for timestamp, _ in frames]
-        events, roles = validate_events(payload, frame_tracks, timestamps)
+        event_validation = {}
+        events, roles = validate_events(payload, frame_tracks, timestamps, diagnostics=event_validation)
         bind_cash_relations(payload, events, frame_tracks, timestamps, self.model_id)
         reflections = validate_reflections(payload, frame_tracks, timestamps)
         self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles),
@@ -355,7 +384,7 @@ class TemporalVerifier:
                                       if event.get("relation_id") is not None})})
         artifacts.diagnostics.setdefault("semantic_windows", []).append({
             "start_sec": timestamps[0], "end_sec": timestamps[-1],
-            "frame_count": len(frames), **self.last_metrics,
+            "frame_count": len(frames), **self.last_metrics, "event_validation": event_validation,
         })
         artifacts.semantic_windows_completed += 1
         artifacts.capabilities.update(self.capabilities)
