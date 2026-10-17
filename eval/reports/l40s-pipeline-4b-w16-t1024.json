@@ -28,6 +28,8 @@
   "semantic_windows_completed": 23,
   "image_patches_total": 307,
   "generated_tokens_total": 8966,
+  "raw_event_total": 143,
+  "accepted_event_total": 71,
   "max_window_peak_cuda_mib": 10222.9,
   "raw_cash_batch_count": 0,
   "bound_cash_batch_count": 0,
