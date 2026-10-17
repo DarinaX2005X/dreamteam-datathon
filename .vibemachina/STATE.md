@@ -6,58 +6,51 @@ Active task: 01.4
 
 ## Сейчас
 
-Реализуется порученный 2026-10-17 продукт Lado. Пользователь явно утвердил основу переданного плана с новым названием латиницей, коротким лендингом и сохранённой айдентикой. Внутренний Python namespace navidu сохранён. Презентация и рекламное видео исключены.
+Работа возобновлена пользователем 2026-10-17. Первый приоритет выполнен: приложение с исходной InternVL3.5-4B bf16 работает на разрешённом Brev `fierce-aquamarine-beaver`, `0.0.0.0:8080`. Пользователь подтвердил, что всё работает через свой NVIDIA-домен. Браузерные и визуальные проверки выполняет только пользователь.
 
-Сервис, движок правил и рабочие экраны собраны. Полная development-пара Х-40/Х-21 на 1B закончена: TP0/FP0/TN1/FN1, оба файла технически успешны, максимум198.232с, подготовка35.144с. Профиль не принят; report в eval/reports/development-pair.*. Числовая диагностика нашла потерю второго человека при подтверждении трека; исправление проверено синтетической последовательностью. Содержательное качество этим не доказано.
+Новое замечание пользователя: убрать «Уточнить зоны сцены» как слишком сложное; нажатие воспроизведения после результата почему-то спрашивает, кто на видео. baseline_preview назначен только на web/: убрать эту настройку и исправить перехват воспроизведения, без браузерной проверки; после этого server_launch обновит статику.
 
-Пользователь оплатил останавливаемый Brev `l40s-48gb.1x`, инстанс `fierce-aquamarine-beaver`, открыл HTTP8080 и разрешил полную настройку. Доступ через WSL Brev CLI работает; прежняя ошибка вызвана неверным разбором CLI-аргументов, повторный вход не нужен. Фактически проверены L40S46068MiB, driver565.57.01, 8vCPU,144GiBRAM и persistent ext4 `/data`250.9GiB. Проект `/data/dreamteam`; чистый source3e4a122 перенесён. Fetch4B+UINT8 и Docker build/API-up запущены в фоне; датасет263833600B передаётся. Обучение ещё не начиналось. Все тяжёлые прогоны только на L40S. Исходники и лёгкие проверки остаются в одном локальном Git.
+API и worker запущены. `/`, `/app`, `/api/ui/health` возвращают HTTP 200; `ready=true`, `analysis_ready=true`, `analysis_mode=experimental`, модель загружена на L40S. Все 20 файлов текущего модельного профиля прошли проверку размера/SHA. Idle GPU-memory после загрузки 9508 MiB. Проверен полный HTTP-путь одного development-ролика: 3032008 B, 14.734 с, upload 201, job done примерно через 15 с (опрос каждые 5 с), error_code=null. Это подтверждает исполнение, но не качество и не скорость длинных записей.
 
-Текущая просьба: запустить фоновое обучение и параллельно рабочее приложение на исходной модели, передать ссылку и команды прогресса/остатка, после чего приостановить активную работу в чате. Сервер при этом продолжает работать. Общий расход VRAM нужно измерить перед одновременным inference/training. Данные и результаты сохраняются на `/data`; сервер не останавливается без прямой команды. Перед будущей ночной остановкой — локальный экспорт результатов; диск оплачивается и на паузе, restart зависит от GPU capacity.
+Экспериментальный режим включается только явным `NAVIDU_EXPERIMENTAL_ANALYSIS=1`. Реальные semantic windows и обычные проверки полноты обязательны; detector-only и all-not-checkable не дают ложный чистый результат. Jury API остаётся закрыт до принятого профиля качества. `models/validation.json` не подделывался. Исходная модель и её качество честно обозначены в UI.
 
-Принято настоящее обучение по существующим binary/time меткам: native PEFT LoRA4B, proposal-задача candidate/frame,24train(12/12),8inner-validation(4/4),8holdout(5/3) только после freeze. Положительные окна содержат размеченное время; отрицательные берутся только из чистых видео. Входы — кадры и относительное время; нет имён/SHA/фолдов. Подготовлены shared helpers и standalone runner:144 окна/эпоху,18 optimizer steps/эпоху, максимум3эпохи/54шага;66 label-blind validation windows за проход. Atomic progress.json и numeric progress.jsonl содержат actual steps/loss/VRAM/измеренный stageETA; checkpoint перед validation. Независимое ревью подтвердило границы train/validation; исправлены ранний failed-status и нормализация неполной группы градиентов,17focusedtests прошли. Обученный proposal направляет более плотную проверку, но не выдумывает события/роли/нормы и не обходит coverage. Native4B16файлов9.481GB pinned; исходные веса приложения и LoRA outputs раздельны. V-COUNT-NO-CONTROLLER отключено до измеренного доказательства контекста/обзора сцены.
+Следующий приоритет — измеренный запуск обучения не дольше 2–3 часов. Кейс перечитан: 25 баллов обнаружение, 15 локализация, 15 типы, 15 нормы, 10 устойчивость/иной ракурс, 10 продукт, 10 техника; максимум 300 с на видео, закрытого списка типов нет. Подготовленный метод: предложение подозрительного момента по binary/time → плотная проверка исходной моделью → факты → нормативные условия. Обученного адаптера пока нет.
 
-F001: обычная загрузка временно закрыта, диагностический worker остановлен. Исправлены отдельная готовность полноценного анализа и запрет публикации diagnostic/unvalidated как обычного результата, preflight/fingerprint и отказ от повторов конфигурационной ошибки. Старые диагностические артефакты и решения сохранены; повтор опубликованной диагностики получает новый check ID. Х-33 относится к holdout: содержимое и semantic результаты для настройки не использованы. Правки интерфейса, лендинга и верхнего каталога норм собраны; 24 web tests, typecheck/build прошли, визуальная приёмка ждёт пользователя.
+## Обучение и данные
 
-## Следующие шаги
+- Разбиение по уникальному SHA: 24 train, 8 inner validation, 8 holdout. Holdout не используется для выбора метода или параметров.
+- Trainer: native PEFT LoRA4B, 16 кадров/2 fps, rank8 q/v, frozen vision/base, bf16, response-only loss, gradient checkpointing. 144 окна/18 optimizer steps в эпохе; максимум 3 эпохи; 66 label-blind validation windows за проход.
+- Positive windows содержат размеченный момент; остальные окна положительного видео не превращаются в отрицательные. Одинаковое число окон на источник. Имена, SHA, folds и целевые времена не входят в модельный prompt.
+- После research/review добавлены: 165 мин бюджет с резервом записи checkpoint; generate-only validation; baseline-validation.json; paired selection без потери любого ранее правильного ответа. Если решения те же, нужно среднее улучшение таймкода ≥0.5 с на тех же положительных источниках. Невалидные ответы запрещают выбор. Нет улучшения в первой эпохе → complete с selected_epoch=null; следующая эпоха допускается только по измеренному времени.
+- Atomic progress.json/numeric progress.jsonl: стадия, шаги, loss, VRAM, stage ETA и остаток бюджета. Checkpoint пишется до validation. SIGTERM сохраняет адаптер на границе optimizer step; точного mid-epoch resume нет. Внешний supervisor должен ограничить запуск 180 мин, сохраняя приложение.
+- Полный архив40 (263833600 B) возобновляется на сервер; малый6development (25098240 B, SHA ba5862dcf34d668d963a20488a582989d46a708bb1daa593b9230fac23ddb8bc) проверен и извлечён обновлённым helper. Transfer manifests теперь разделены по SHA, поэтому subset→full безопасен.
+- Книга `data/annotations/lado-annotation.xlsx` готова и передана ссылкой: 32 unique development/33 имени, 0 holdout, пустые человеческие J:R и отдельные эпизоды. Не перезаписывать существующую книгу. Ручные типы пока не потребляются trainer и не задерживают разрешённый binary/time pilot.
+- `research/training/datasets-and-budget.md`: 8 кандидатов с первичными лицензиями/размерами. CAP близок по ракурсу, HoloAssist/CaptainCook4D — по ошибкам последовательности; немедленная большая загрузка не оправдана. Внешние действия не являются кассовыми юридическими метками. Frozen-feature temporal MIL — резерв после измеренного пилота.
+- `research/norms/expanded-taxonomy.md`: текущие6 не исчерпывают область; ещё5 условных типов, наиболее сильный — выдача без пересчёта при клиенте по п31(4). Новые типы ещё не реализованы; словарь книги v1 не заменён.
 
-- Checkpoints d5ff273, f49b044 и3e4a122 сохранены и отправлены в origin/codex/lado-local-video по прямой просьбе; удалённый SHA3e4a122eebde59846e1455d1d5044afe5b310ff4 подтверждён. Последний:206Python tests,1skip,11subtests,24webtests,lint,TS/build,34цитаты. Приватные видео/веса/артефакты исключены. Новый training launch package готовится к checkpoint.
-- Довести remote baseline на4B, проверяемый API и независимый тренировочный процесс. Качество неподтверждённого профиля не объявлять принятым. После пользовательской паузы остаются actual model comparison,32development/8holdout, integration/review/README.
-- R003 закрыт независимым ревьюером:8deploytests и матрица CPU/4/8/48GiB согласуют fetch/preflight/runtime; optional4B override ещё нужно включить в основной setup перед его выбором production default.
-- Принять сквозной API/UI путь, устойчивость, закончить независимое ревью, исправления и проверенный README. Builder собственного примера реализован; собственной записи пока нет, кнопка примера скрыта.
-- Проверка внешнего вида принадлежит пользователю. Сервер выбран и подключение разрешено; фактические GPU/public проверки впереди.
+## Владельцы и границы
 
-## Проверено
+MAIN один редактирует `.vibemachina/` и выполняет Git writes. Новые работники GPT-5.6 Sol по прямой просьбе пользователя. Старые незавершённые файлы сохранены.
 
-- open.zip: 42 MOV / 40 уникальных SHA256; 22 positive / 20 negative строк. Метки дубликатов Х-4/Х-47 57/68 секунд конфликтуют; разбиение по SHA. Реальные PTS обязательны: video VFR.
-- 34 дословные цитаты норм РК сверены с официальным ЭКБ, 11 аспектов непроверяемы по видео. Каталог не требует выдуманного отдельного помещения; V-OUTSIDER отключён.
-- Контракты Pydantic/OpenAPI/JSON Schema/TS и синтетические fixtures согласованы. API revision 1 неизменен после решений проверяющего; cache сохраняет происхождение и не копирует чужие заметки/роли.
-- Service/engine: actual FFmpeg/PyAV integration, lease recovery, auth/Range/revisions/cache, staged reevaluation, expiry, publication/readiness gates прошли. Последняя общая проверка включает 179 тестов backend/deploy/eval/spike; качество модели отдельно.
-- Frontend: 24 tests, typecheck, format:check, production build. Визуальная приёмка не выполнялась агентами.
-- Ноутбук: i7-1260P, 31.73 GiB RAM, RTX2050 4 GiB. Рабочий runtime probe Python3.10; основной service env Python3.12. Минимум Python3.10 подтверждён.
-- Docker29.4/Compose5.1 доступны; отдельный Python runtime без глобальных зависимостей установлен. Проверка реального CPU-образа и нового удалённого L40S выполняется deploy.
+- server_launch — единственный SSH/GPU/deploy-владелец; smoke завершён, full archive и staging trainer продолжаются. Обучение ещё не запущено; перед запуском измерить совместную память и сохранить доступность приложения.
+- baseline_preview — experimental backend завершён и deployed; теперь владеет web/ для нового замечания о зонах/воспроизведении.
+- dataset_training_research — завершил исследование и независимый review новой selection/budget логики.
+- violation_scope — завершил нормативное исследование.
 
-## Сервисы
+Все банковские видео, кадры и их описания остаются локально или на разрешённом self-hosted сервере. Внешним AI-сервисам их не отправлять. В ответы агента передаются только числовая диагностика, статусы, коды ошибок. Все тяжёлые прогоны и обучение — на L40S. Данные, модельные веса и секреты не коммитить. Презентации, питч и рекламное видео исключены.
 
-Управляющий дашборд: http://127.0.0.1:4177/ — один штатный процесс этой сессии, runtime в .vibemachina/runtime/. Браузер автоматически не открывается.
+## Проверки и ограничения
 
-Local: http://127.0.0.1:8020/
+- Общий checkpoint-check после experimental/trainer/adapter изменений: 255 Python tests passed, 16 environment skips; 24 web tests, Ruff, TypeScript, сборки landing/web прошли. Проверены 34 цитаты и 11 невизуальных условий. Новая UI-правка после этого ещё в работе.
+- Исторический 1B development pair: TP0/FP0/TN1/FN1, максимум198.232с. Это не оценка текущей4B. Принятого профиля качества пока нет.
+- V-COUNT-NO-CONTROLLER отключено до доказательства внутреннего контекста и обзора; V-OUTSIDER не автоматический нормативный положительный класс. Условия сумки/личного предмета/непрерывности нельзя угадывать.
+- F001 остаётся in-progress в TESTING.md: UI-исправления собраны и ждут пользователя; качество модели не закрыто. Последнее чтение TESTING не выявило новых записей.
+- Для финального завершения всего продукта остаются полноценная model evaluation, проверка trained proposal в конвейере, freeze/holdout, Jury API readiness, скорость на длинных видео, автономный прогон, интеграционное review и актуальный README. HTTP-smoke не закрывает эти пункты.
 
-Продукт реально отвечает HTTP200 на / и health. После F001 работает API-only на8020; последний отчёт deploy:launcherPID198204 (перед изменением сверять принадлежность). Health ready=false, UI с исправлениями F001/норм доступен. Для первой удалённой проверки запрошен SSH forward127.0.0.1:8021→remote8080; пока не подтверждён. HTTP8080 открыт пользователем в Brev, публичный рабочий адрес ещё не получен.
+## Сервисы и сохранение
 
-## Работники
+Разрешённый сервер: NVIDIA L40S46068MiB,8CPU,144GiBRAM, ext4 /data250.9GiB. Проект `/data/dreamteam`, образ `lado-local:0.1.0`; API hostnetwork8080, worker GPU reservation1. Исходная база SOURCE_COMMIT=e274672e62b9ce67ac8867b794552ec44a0da9af плюс overlay backend/navidu и contracts. Модель4B лежит отдельно от будущих adapters. Не останавливать сервер и не удалять дубликаты/части весов без проверки.
 
-MAIN владеет .vibemachina/, Git и checkpoint scripts. Новые исполнители GPT-5.6 Sol по запросу пользователя; ранее запущенные продолжают свою работу.
+Доступ: Windows PowerShell → WSL Ubuntu `/home/user/.local/bin/brev exec fierce-aquamarine-beaver` с одной строкой команды либо `@/mnt/c/.../script.sh`. Не передавать PowerShell-interpolated `$()`; использовать literal script. Rsync через `/home/user/.brev/ssh_config` с `--partial --append-verify` работает. Не конкурировать за SSH и не перезапускать авторизацию без оснований.
 
-- contracts_service: contracts/, backend/navidu/contracts/, service/, tests/contracts/, tests/service/, pyproject.toml, Makefile. Исправлены cache source rebinding, effective loaded version, staging/dry-run и immutable media revisions; 48 tests на3.10 с actualFFmpeg/PyAVположительнымintegration,47+1runtime skipна3.12. Завершается structuredlogging.
-- model_probe: perception runtime, tests/perception/, research/spike/ и общий models/manifest.json, scripts/fetch_models.py. Настоящий semantic adapter запущен наCUDA, текущий риск quality/performance. Fingerprint включает код/prompt/weights/config.
-- model_download: только models/internvl3_5-1b/ и research/spike/downloads/, public weights. Завершено 14 файлов,2.138GB; SHA проверен. Optional deletion2.13GBtemporaryparts blocked by toolpolicy, части оставлены.
-- engine: ingest/scene/facts/rules/evidence/pipeline, tests/engine, rules/catalog/calibration. Исправлены purestaging reevaluate, samplingcadence, robustdwellpost, coverage иparticipant/cashbinding. Добавляется observeddeparture person_left_zone + scopedrelation_id по явномуlocalmodelrelation.
-- deploy: deploy/, Dockerfile/Compose/env, scripts/run_local/setup/preflight/smoke. Реальный diagnosticHTTPsmoke прошёл. Исправляет .env loading, Dockerassets/GPUcommands и проверяет самостоятельное окружение без глобальных Python-зависимостей.
-- frontend: web/, root package/lock. F001:22tests/typecheck/format/buildpassed; этапы/elapsed, таблица наблюдений, высота видео/реальные bbox, retry нового ID и readiness исправлены. По уточнению из чата верхняя таблица норм меняется на раскрываемый список. Visual QA user-owned.
-- landing_identity: landing/ и lado logo assets. Код передан; original art/mark сохранены.
-- dataset: research/dataset/, eval/. Evalrunner/metrics/resume/holdoutfreeze подготовлены,20tests. Ждёт stableactualsemanticruntime, не конкурирует заGPU; ручная COCO-разметка не выдумана.
-- norms: rules/sources/, research/norms/. Поставка принята.
-
-## Передача
-
-Рабочая папка C:/Users/user/Desktop/dreamteam, origin https://github.com/DarinaX2005X/dreamteam-datathon.git. Checkpoint3e4a122 уже в origin/codex/lado-local-video; Git только у MAIN. Инстанс приобретён, настройка разрешена; банковские данные допустимы только в local/self-hosted inference, не во внешнем AI API и не в ответах модели-агента. Сохраняются семь этапов и цель всего продукта. Ближайшая граница — живые серверные приложение/обучение с прогрессом, затем запрошенная пауза чата; полноценное окончание продукта этим не объявляется.
+Управляющий dashboard: http://127.0.0.1:4177/; local product8020 остаётся API-only без готового semantic профиля. Рабочая папка C:/Users/user/Desktop/dreamteam. Origin https://github.com/DarinaX2005X/dreamteam-datathon.git, branch codex/lado-local-video. Последний отправленный checkpoint e274672. Текущие preview/trainer/annotation/research изменения ещё требуют нового coherent checkpoint; данные/веса исключаются.

@@ -22,7 +22,8 @@ from .readiness import (
     PREPARING_MESSAGE,
     analysis_ready,
     explicit_diagnostic,
-    published_analysis_valid,
+    usable_analysis_result,
+    usable_run,
     validated_run,
 )
 
@@ -148,7 +149,7 @@ class Store:
 
     def complete(self, check_id: str, token: str, artifacts: AnalysisArtifacts, *,
                  cached_from_check_id=None, analyzed_at=None):
-        if not validated_run(artifacts.run):
+        if not usable_run(artifacts.run):
             raise ServiceError(409, "ANALYSIS_NOT_PERFORMED", NOT_PERFORMED_MESSAGE)
         if artifacts.run.check_id != check_id:
             raise ValueError("Pipeline returned artifacts for a different check.")
@@ -197,7 +198,8 @@ class Store:
                 time.time(), artifacts.model_dump_json(), artifacts.model_dump_json(),
                 cached_from_check_id, analyzed_at if analyzed_at is not None else time.time(), check_id
             ))
-            db.execute("UPDATE checks SET analysis_ready=1,analysis_mode='validated' WHERE id=?", (check_id,))
+            db.execute("UPDATE checks SET analysis_ready=?,analysis_mode=? WHERE id=?", (
+                int(artifacts.run.analysis_ready), artifacts.run.analysis_mode, check_id))
         if staging.parent == destination and staging.name == "attempt-" + token:
             shutil.rmtree(staging)
 
@@ -274,7 +276,7 @@ class Store:
 
     def retry(self, check_id: str):
         previous = self.get(check_id)
-        if previous["artifacts_json"] and not published_analysis_valid(previous):
+        if previous["artifacts_json"] and not usable_analysis_result(previous):
             return self._retry_unvalidated_publication(previous)
         with self.connection(transaction=True) as db:
             row = db.execute("SELECT * FROM checks WHERE id=?", (check_id,)).fetchone()
@@ -349,7 +351,7 @@ class Store:
             raise ServiceError(404, "NOT_FOUND", "Запись не найдена.")
         if check["is_example"] and not allow_example:
             raise ServiceError(409, "READ_ONLY_EXAMPLE", "Изменения в примере можно только предпросмотреть.")
-        if check["status"] == "done" and not published_analysis_valid(dict(check)):
+        if check["status"] == "done" and not usable_analysis_result(dict(check)):
             raise ServiceError(409, "ANALYSIS_NOT_PERFORMED", NOT_PERFORMED_MESSAGE)
         row = db.execute("SELECT json FROM finding_sets WHERE check_id=? ORDER BY revision DESC LIMIT 1", (check_id,)).fetchone()
         if not row or check["status"] != "done":

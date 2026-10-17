@@ -9,11 +9,26 @@ INCOMPLETE_MESSAGE = "Для этой записи не удалось пров�
 
 def analysis_ready(status):
     return (status.get("model_status") == "ready" and status.get("analysis_ready") is True
-            and status.get("analysis_mode") == "validated")
+            and status.get("analysis_mode") in {"validated", "experimental"})
 
 
 def validated_run(run):
     return run.analysis_ready is True and run.analysis_mode == "validated"
+
+
+def usable_run(run):
+    return run.analysis_ready is True and run.analysis_mode in {"validated", "experimental"}
+
+
+def usable_analysis_result(row):
+    raw = row.get("automatic_artifacts_json") or row.get("artifacts_json")
+    if not raw:
+        return False
+    try:
+        run = json.loads(raw).get("run", {})
+    except (ValueError, TypeError):
+        return False
+    return run.get("analysis_ready") is True and run.get("analysis_mode") in {"validated", "experimental"}
 
 
 def published_analysis_valid(row):

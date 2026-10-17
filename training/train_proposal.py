@@ -55,11 +55,19 @@ def _request_stop(_signum: int, _frame: Any) -> None:
 class ProgressReporter:
     """Persist aggregate, sanitized progress for detached training supervision."""
 
-    def __init__(self, output_dir: Path) -> None:
+    def __init__(self, output_dir: Path, max_wall_minutes: float = 165) -> None:
         self.output_dir = output_dir
         self.started = time.time()
+        if not math.isfinite(max_wall_minutes) or not 1 <= max_wall_minutes <= 180:
+            raise TrainingError("wall time budget must be between 1 and 180 minutes")
+        self.deadline = self.started + max_wall_minutes * 60
         self.stage_started = self.started
         self.stage = "initializing"
+
+    def should_stop(self) -> bool:
+        # Leave time for an adapter-only checkpoint; the launch supervisor also
+        # enforces the user's hard wall-clock ceiling.
+        return time.time() >= self.deadline - 60
 
     def begin(self, stage: str, torch_module: Any | None = None) -> None:
         self.stage = stage
@@ -82,6 +90,7 @@ class ProgressReporter:
             "epoch": fields.pop("epoch", None),
             "started_at_unix": round(self.started, 3),
             "elapsed_seconds": round(now - self.started, 3),
+            "budget_remaining_seconds": round(max(0.0, self.deadline - now), 3),
             "stage_elapsed_seconds": round(stage_elapsed, 3),
             "completed": completed,
             "total": total,
@@ -195,6 +204,27 @@ def choose_video_proposal(proposals: Iterable[Any]) -> tuple[bool, float | None]
     return (bool(positive_times), min(positive_times) if positive_times else None)
 
 
+def checkpoint_improves(candidate: dict[str, Any], reference: dict[str, Any]) -> bool:
+    """Accept a paired gain without sacrificing any previously correct source."""
+    if candidate.get("invalid_output_count", 0) or candidate.get("no_valid_source_output_count", 0):
+        return False
+    current = {item["sample_id"]: item for item in candidate.get("per_source", [])}
+    previous = {item["sample_id"]: item for item in reference.get("per_source", [])}
+    if not current or current.keys() != previous.keys():
+        return False
+    if any(previous[key]["correct"] and not current[key]["correct"] for key in current):
+        return False
+    if any(current[key]["correct"] and not previous[key]["correct"] for key in current):
+        return True
+    # With identical decisions, compare time errors on the same true positives.
+    current_errors = {key: row["localization_error_sec"] for key, row in current.items()
+                      if row.get("localization_error_sec") is not None}
+    previous_errors = {key: row["localization_error_sec"] for key, row in previous.items()
+                       if row.get("localization_error_sec") is not None}
+    return bool(current_errors) and current_errors.keys() == previous_errors.keys() \
+        and (sum(previous_errors.values()) - sum(current_errors.values())) / len(current_errors) >= 0.5
+
+
 def adapter_state(model: Any, torch_module: Any) -> dict[str, Any]:
     return {
         name: parameter.detach().to(device="cpu", dtype=torch_module.float32).clone()
@@ -236,7 +266,7 @@ def evaluate(
 ) -> dict[str, Any]:
     from navidu.perception.proposal_task import decode_proposal, encode_proposal
 
-    from training.data import decode_window, make_inference_windows, supervised_target
+    from training.data import decode_window, make_inference_windows
 
     windows = make_inference_windows(
         samples,
@@ -246,11 +276,12 @@ def evaluate(
     )
     by_sample: dict[str, list[Any]] = {sample.sample_id: [] for sample in samples}
     cache: dict[Any, Any] = {}
-    losses: list[float] = []
     invalid_outputs = 0
     model.eval()
     with torch_module.inference_mode():
         for completed, spec in enumerate(windows, start=1):
+            if _STOP_REQUESTED or (reporter is not None and reporter.should_stop()):
+                raise TrainingError("validation stopped before completion; checkpoint is not selected")
             frames = decode_window(
                 spec, frame_count=recipe.frame_count, fps=recipe.fps, cache=cache
             )
@@ -271,12 +302,6 @@ def evaluate(
             except RuntimeError:
                 invalid_outputs += 1
 
-            target = supervised_target(spec, frames)
-            if target is not None:
-                labeled = move_batch(encode_proposal(processor, frames, target=target), "cuda")
-                loss = model(**labeled).loss
-                if torch_module.isfinite(loss):
-                    losses.append(float(loss.detach().cpu()))
             if reporter is not None:
                 reporter.write(
                     torch_module,
@@ -285,14 +310,13 @@ def evaluate(
                     total=len(windows),
                     validation_completed=completed,
                     validation_total=len(windows),
-                    mean_loss=sum(losses) / len(losses) if losses else None,
-                    latest_loss=losses[-1] if losses else None,
                 )
 
     truth: list[bool] = []
     predicted: list[bool] = []
     localization_errors: list[float] = []
     no_valid_output_count = 0
+    per_source = []
     for sample in samples:
         proposals = by_sample[sample.sample_id]
         if not proposals:
@@ -301,20 +325,28 @@ def evaluate(
             no_valid_output_count += 1
             truth.append(bool(sample.has_violation))
             predicted.append(not bool(sample.has_violation))
+            per_source.append({"sample_id": sample.sample_id, "correct": False,
+                               "candidate": None, "time_sec": None,
+                               "localization_error_sec": None})
             continue
         candidate, time_sec = choose_video_proposal(proposals)
         truth.append(bool(sample.has_violation))
         predicted.append(candidate)
+        error = None
         if candidate and sample.has_violation and sample.time_supervision and time_sec is not None:
-            localization_errors.append(abs(time_sec - float(sample.time_sec)))
+            error = abs(time_sec - float(sample.time_sec))
+            localization_errors.append(error)
+        per_source.append({"sample_id": sample.sample_id,
+                           "correct": candidate == bool(sample.has_violation),
+                           "candidate": candidate, "time_sec": time_sec,
+                           "localization_error_sec": error})
     metrics = binary_metrics(truth, predicted)
     metrics.update(
         {
             "window_count": len(windows),
             "invalid_output_count": invalid_outputs,
             "no_valid_source_output_count": no_valid_output_count,
-            "supervised_window_loss": sum(losses) / len(losses) if losses else None,
-            "supervised_window_count": len(losses),
+            "per_source": per_source,
             "localization_mae_sec": (
                 sum(localization_errors) / len(localization_errors)
                 if localization_errors
@@ -370,7 +402,9 @@ def train_epoch(
         numeric_loss = float(loss.detach().cpu())
         losses.append(numeric_loss)
         accumulated_losses.append(numeric_loss)
-        if len(accumulated_losses) == recipe.gradient_accumulation_steps:
+        budget_exhausted = reporter is not None and reporter.should_stop()
+        if len(accumulated_losses) == recipe.gradient_accumulation_steps or budget_exhausted or _STOP_REQUESTED:
+            rescale_partial_gradients(model, len(accumulated_losses), recipe.gradient_accumulation_steps)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             optimizer_steps += 1
@@ -392,10 +426,10 @@ def train_epoch(
                     mean_loss=sum(losses) / len(losses),
                     latest_loss=numeric_loss,
                     skipped_unsupervised_windows=skipped_unsupervised,
-                    stop_requested=_STOP_REQUESTED,
+                    stop_requested=_STOP_REQUESTED or budget_exhausted,
                 )
             accumulated_losses.clear()
-            if _STOP_REQUESTED:
+            if _STOP_REQUESTED or budget_exhausted:
                 break
     if accumulated_losses:
         rescale_partial_gradients(
@@ -435,7 +469,7 @@ def train_epoch(
         "optimizer_steps": optimizer_steps,
         "skipped_unsupervised_windows": skipped_unsupervised,
         "optimizer_step_metrics": optimizer_step_losses,
-        "stop_requested": _STOP_REQUESTED,
+        "stop_requested": _STOP_REQUESTED or (reporter is not None and reporter.should_stop()),
     }
 
 
@@ -474,14 +508,14 @@ def write_json_atomic(path: Path, value: Any) -> None:
     os.replace(temporary, path)
 
 
-def initialize_progress(output_dir: Path) -> ProgressReporter:
+def initialize_progress(output_dir: Path, max_wall_minutes: float = 165) -> ProgressReporter:
     """Claim a new/empty run directory without altering an existing run."""
     global _OWNED_OUTPUT_DIR
     if output_dir.exists() and any(output_dir.iterdir()):
         raise TrainingError(f"output directory must be empty: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
     _OWNED_OUTPUT_DIR = output_dir.resolve()
-    reporter = ProgressReporter(output_dir)
+    reporter = ProgressReporter(output_dir, max_wall_minutes)
     reporter.write(state="running", completed=0, total=0)
     return reporter
 
@@ -530,7 +564,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     global _OWNED_OUTPUT_DIR, _STOP_REQUESTED
     _STOP_REQUESTED = False
     _OWNED_OUTPUT_DIR = None
-    reporter = initialize_progress(args.output_dir)
+    reporter = initialize_progress(args.output_dir, args.max_wall_minutes)
     recipe = Recipe(
         seed=args.seed,
         epochs=args.epochs,
@@ -551,6 +585,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from training.data import make_training_windows
 
     host = enforce_training_host(torch)
+    if not math.isfinite(args.cuda_memory_fraction) or not 0 < args.cuda_memory_fraction <= 1:
+        raise TrainingError("CUDA allocator fraction must be in (0, 1]")
+    torch.cuda.set_per_process_memory_fraction(args.cuda_memory_fraction, device=0)
+    host["cuda_allocator_fraction"] = args.cuda_memory_fraction
     seed_everything(recipe.seed, torch)
 
     models_dir = args.models_dir or args.base_model.parent
@@ -598,6 +636,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     baseline = evaluate(
         model, processor, validation_samples, recipe, torch, reporter=reporter, epoch=0
     )
+    baseline_seconds = time.time() - reporter.stage_started
+    write_json_atomic(args.output_dir / "baseline-validation.json", baseline)
 
     lora = LoraConfig(
         r=recipe.rank,
@@ -626,8 +666,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     history = []
     best_epoch = None
-    best_score = -math.inf
+    best_metrics = baseline
+    stop_reason = "epochs_complete"
     for epoch in range(1, recipe.epochs + 1):
+        epoch_started = time.time()
         reporter.begin("training", torch)
         training_metrics = train_epoch(
             model, processor, windows, recipe, epoch, optimizer, torch, reporter=reporter
@@ -703,7 +745,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "artifacts": artifacts,
                 },
                 "selected_epoch": best_epoch,
-                "selection_metric": "validation_balanced_accuracy",
+                "selection_metric": "paired_no_regression_then_localization",
                 "elapsed_seconds": round(time.time() - reporter.started, 3),
             },
         )
@@ -717,9 +759,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             reporter=reporter,
             epoch=epoch,
         )
-        score = float(validation_metrics["balanced_accuracy"])
-        if score > best_score:
-            best_score = score
+        if checkpoint_improves(validation_metrics, best_metrics):
+            best_metrics = validation_metrics
             best_epoch = epoch
         history.append(
             {
@@ -751,10 +792,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "baseline_validation": baseline,
             "epochs": history,
             "selected_epoch": best_epoch,
-            "selection_metric": "validation_balanced_accuracy",
+            "selection_metric": "paired_no_regression_then_localization",
             "elapsed_seconds": round(time.time() - reporter.started, 3),
         }
         write_json_atomic(args.output_dir / "run-manifest.json", partial_manifest)
+        epoch_seconds = time.time() - epoch_started
+        # Continue only if there is evidence of improvement and room for a
+        # complete next epoch plus validation and checkpoint reserve.
+        if best_epoch is None:
+            stop_reason = "no_paired_validation_gain"
+            break
+        if epoch < recipe.epochs and time.time() + max(epoch_seconds, baseline_seconds) + 60 >= reporter.deadline:
+            stop_reason = "next_epoch_exceeds_budget"
+            break
 
     result = {
         "schema_version": 1,
@@ -774,7 +824,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "baseline_validation": baseline,
         "epochs": history,
         "selected_epoch": best_epoch,
-        "selection_metric": "validation_balanced_accuracy",
+        "selection_metric": "paired_no_regression_then_localization",
+        "stop_reason": stop_reason,
+        "baseline_validation_seconds": round(baseline_seconds, 3),
         "elapsed_seconds": round(time.time() - reporter.started, 3),
     }
     write_json_atomic(args.output_dir / "run-manifest.json", result)
@@ -782,11 +834,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     reporter.write(
         torch,
         state="complete",
-        epoch=recipe.epochs,
-        completed=recipe.epochs,
+        epoch=len(history),
+        completed=len(history),
         total=recipe.epochs,
         selected_epoch=best_epoch,
-        selected_balanced_accuracy=best_score,
+        selected_balanced_accuracy=best_metrics["balanced_accuracy"] if best_epoch else None,
+        stop_reason=stop_reason,
     )
     return result
 
@@ -805,6 +858,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=1729)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=8)
+    parser.add_argument("--max-wall-minutes", type=float, default=165)
+    parser.add_argument("--cuda-memory-fraction", type=float, default=0.70)
     return parser.parse_args(argv)
 
 
@@ -825,7 +880,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "baseline_balanced_accuracy": result["baseline_validation"]["balanced_accuracy"],
                 "selected_balanced_accuracy": result["epochs"][result["selected_epoch"] - 1][
                     "validation"
-                ]["balanced_accuracy"],
+                ]["balanced_accuracy"] if result["selected_epoch"] else None,
                 "output_dir": str(args.output_dir),
             }
         ),

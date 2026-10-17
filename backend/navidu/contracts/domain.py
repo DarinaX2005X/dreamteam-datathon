@@ -34,7 +34,7 @@ DecisionValue = Literal["confirmed", "rejected", "not_visible"]
 CoverageScope = Literal["cashier", "client", "desk", "storage", "whole"]
 CoverageReason = Literal["out_of_frame", "occluded", "low_light", "motion_blur"]
 Source = Literal["auto", "reviewer"]
-AnalysisMode = Literal["validated", "unvalidated", "diagnostic"]
+AnalysisMode = Literal["validated", "experimental", "unvalidated", "diagnostic"]
 BBox = tuple[Coordinate, Coordinate, Coordinate, Coordinate]
 
 

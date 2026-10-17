@@ -1,12 +1,17 @@
 """Point supervision never supplies negative labels for unannotated windows."""
 
 from dataclasses import replace
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
 
 from eval.training import TrainingSample
-from training.data import make_inference_windows, make_training_windows, supervised_target
+from training.data import (
+    make_inference_windows,
+    make_training_windows,
+    supervised_target,
+)
 
 
 def _sample(positive=True, *, time_sec=17.0):
@@ -47,7 +52,7 @@ def test_validation_windows_are_independent_of_targets_and_cover_the_source():
         [(window.start_sec, window.end_sec) for window in negative_windows]
     assert positive_windows[0].start_sec == 0
     assert positive_windows[-1].end_sec == positive.duration_sec
-    assert all(left.end_sec >= right.start_sec for left, right in zip(positive_windows, positive_windows[1:]))
+    assert all(left.end_sec >= right.start_sec for left, right in pairwise(positive_windows))
 
 
 def test_ambiguous_positive_time_cannot_be_used_for_point_crop_training():

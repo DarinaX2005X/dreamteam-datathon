@@ -35,6 +35,7 @@
       "default": "unvalidated",
       "enum": [
         "validated",
+        "experimental",
         "unvalidated",
         "diagnostic"
       ],

@@ -539,6 +539,7 @@
             "default": "unvalidated",
             "enum": [
               "validated",
+              "experimental",
               "unvalidated",
               "diagnostic"
             ],
@@ -2168,6 +2169,7 @@
             "default": "unvalidated",
             "enum": [
               "validated",
+              "experimental",
               "unvalidated",
               "diagnostic"
             ],
@@ -2438,6 +2440,11 @@
           "diagnostic_only": {
             "default": false,
             "title": "Diagnostic Only",
+            "type": "boolean"
+          },
+          "experimental_analysis": {
+            "default": false,
+            "title": "Experimental Analysis",
             "type": "boolean"
           }
         },
@@ -2939,6 +2946,7 @@
             "default": "unvalidated",
             "enum": [
               "validated",
+              "experimental",
               "unvalidated",
               "diagnostic"
             ],

@@ -6,6 +6,7 @@ normative explanation. Only validated event fields can leave this adapter.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -167,7 +168,8 @@ def bind_cash_relations(payload: dict, events: list[dict], frame_tracks: list[di
         known = {person for value in support for person in frame_tracks[value]}
         if any(person not in known for event in selected for person in event["subjects"]):
             continue
-        relation = f"rel:{model_id}:{round(timestamps[0] * 1000):09d}-{round(timestamps[-1] * 1000):09d}:{index}"
+        window_hash = hashlib.sha256(json.dumps(timestamps, separators=(",", ":")).encode("ascii")).hexdigest()[:12]
+        relation = f"rel:{model_id}:{round(timestamps[0] * 1000):09d}-{round(timestamps[-1] * 1000):09d}:{window_hash}:{index}"
         for event in selected:
             event["relation_id"] = relation
         claimed.update(indices)
@@ -204,6 +206,7 @@ class TemporalVerifier:
             dtype=self.dtype, attn_implementation="sdpa",
         ).to(self.device).eval()
         self._image_features = OrderedDict()
+        self.proposal = None
         self.last_metrics: dict = {}
         # Runtime enables each feature only from a matching measured validation
         # report. Loading weights does not establish semantic accuracy.
@@ -214,12 +217,13 @@ class TemporalVerifier:
         }
 
     def _infer(self, frames: list[tuple], frame_tracks: list[dict], should_stop: Callable[[], bool]) -> dict:
-        import hashlib
-
         import numpy as np
         import torch
         from PIL import Image, ImageDraw, ImageFont
         from transformers import StoppingCriteria, StoppingCriteriaList
+
+        if self.proposal is not None:
+            self.proposal.disable()
 
         class Cancelled(StoppingCriteria):
             def __call__(self, input_ids, scores, **kwargs):

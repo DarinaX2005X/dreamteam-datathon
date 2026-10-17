@@ -1,0 +1,82 @@
+{
+  "acceptance": {
+    "checkable_negative_scope": "Both clean sources must be actual no_violation predictions with at least one no_violation or partly_checkable rule; empty or all-not-checkable rule sets do not qualify.",
+    "completed_unique_sources": 6,
+    "failed_unique_sources": 0,
+    "latency_scope": "Complete warm per-video analyze wall time, including decoding, inference, rules and evidence. Cold model preparation is measured separately.",
+    "max_false_positive_rate_clean": 0.0,
+    "max_p90_time_error_sec": 5.0,
+    "max_per_video_analysis_latency_sec": 300.0,
+    "min_precision": 0.8,
+    "min_recall": 0.75,
+    "min_timing_match_count": 1,
+    "missing_unique_sources": 0,
+    "required_true_negatives_with_checkable_rules": 2,
+    "selected_unique_sources": 6
+  },
+  "candidate": {
+    "analysis_fps": 3,
+    "cpu_threads": 6,
+    "detection_threshold": 0.45,
+    "detector_model": "rfdetr-nano-onnx",
+    "device_requested": "auto",
+    "diagnostic_only": true,
+    "expected_aggregate_report": "eval/reports/brev-l40s-4b-development-six.json",
+    "expected_effective_device": "cpu+cuda",
+    "output_root": "eval/runs/brev-l40s-4b-cpu-detector",
+    "runtime_binding": "Record actual algorithm_fingerprint and hardware_fingerprint only after remote runtime preparation. App and evaluator must use identical algorithm parameters and source code; evaluation publication purpose is separate.",
+    "runtime_label": "brev-l40s-4b-cpu-detector",
+    "semantic_dtype": "bf16",
+    "semantic_fps": 1,
+    "semantic_max_new_tokens": 384,
+    "semantic_max_patches": 1,
+    "semantic_model": "internvl3_5-4b",
+    "semantic_window_frames": 8,
+    "trained_adapter_enabled": false
+  },
+  "dataset_fingerprint": "e35f46baf71bb3c00ffac14b80ed4d8a1a908ef157266707ca98510bd30c67e8",
+  "declared_at": "2026-10-17T11:16:10.937816+00:00",
+  "kind": "predeclared_small_development_profile_permission_smoke",
+  "measured_result": null,
+  "model_manifest_sha256": "c08c800f849859d55c5e2861e5f27fd693ce012a1c4ccb5a1d73a48f70fb67ff",
+  "protocol": {
+    "all_conditions_must_pass_before_explicit_acceptance": true,
+    "do_not_change_selection_or_thresholds_after_results": true,
+    "holdout_fold": 0,
+    "holdout_unique_sources_reserved": 8,
+    "initial_pair_is_smoke_only": true,
+    "keep_complete_pair_outcomes_when_extending_to_six": true,
+    "plan_itself_does_not_enable_analysis_readiness": true,
+    "scope_limit": "Small provisional profile permission for user testing; not a general accuracy claim, not per-rule validation, and not the final heldout quality result.",
+    "training_supervision": "Proceed with existing organizer binary/time targets; no new type-annotation task is required."
+  },
+  "schema_version": 1,
+  "selection": {
+    "ambiguous_timing_sources": 0,
+    "clean_sources": 2,
+    "duration_sec": 122.633021,
+    "positive_sources": 4,
+    "rationale": "Original five planned development sources plus the user-reported positive source; both smoke-pair outcomes are retained before new results are inspected.",
+    "reserved_holdout_sources": 0,
+    "source_sha256": [
+      "0378b8026b2e6afd1775a5d0fdd12dd09c491785b626e9c20428f7dc6bd59364",
+      "21468fcef4ea5f45ce7d465e620f84e09c8b50314f4ecdc06f69224c701b3a5b",
+      "6a81739ced0efdcd4a4feb76ea16562a20ceb53a2232a801528716c450366c9f",
+      "8911a9219b9433091824e553a70bb80335f075fd8ac982d2062d2ecf023c16bc",
+      "9932ae0a10d3b9371bf52ea558dc19092fcf47adcd275a73a52a56b95464bca6",
+      "efd876a04224cac781ac64bf5d6e107ded67340b7b7715fd9ca3408b240a1075"
+    ],
+    "split": "development",
+    "unique_sources": 6,
+    "video_ids": [
+      "X-1",
+      "X-2",
+      "Х-3",
+      "Х-17",
+      "Х-21",
+      "Х-40"
+    ]
+  },
+  "source_checkpoint": "e274672e62b9ce67ac8867b794552ec44a0da9af",
+  "state": "planned_not_measured"
+}

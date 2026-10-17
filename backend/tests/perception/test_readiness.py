@@ -67,6 +67,31 @@ def test_required_semantic_must_be_loaded(tmp_path, monkeypatch):
     assert status.analysis_mode == "unvalidated"
 
 
+def test_loaded_semantic_is_explicitly_usable_as_unmeasured_baseline(tmp_path, monkeypatch):
+    config = _config(tmp_path, monkeypatch, semantic=True).model_copy(
+        update={"experimental_analysis": True})
+    runtime = LocalPerceptionRuntime()
+    runtime._prepared_key = runtime._configuration_key(config)
+    runtime._pipeline_version = "test+runtime.loaded"
+    runtime._detector = SimpleNamespace(device="cpu")
+    runtime._semantic = SimpleNamespace(device="cpu")
+    status = runtime.runtime_status(config)
+    assert status.model_status == "ready" and status.analysis_ready is True
+    assert status.analysis_mode == "experimental"
+    assert "Исходная модель: качество ещё не оценено." in status.limitations
+
+
+def test_experimental_flag_never_promotes_detector_only_mode(tmp_path, monkeypatch):
+    config = _config(tmp_path, monkeypatch).model_copy(update={"experimental_analysis": True})
+    runtime = LocalPerceptionRuntime()
+    runtime._prepared_key = runtime._configuration_key(config)
+    runtime._pipeline_version = "test+runtime.loaded"
+    runtime._detector = SimpleNamespace(device="cpu")
+    status = runtime.runtime_status(config)
+    assert status.analysis_ready is False
+    assert status.analysis_mode == "diagnostic"
+
+
 def test_public_readiness_requires_every_enabled_core_semantic_capability(tmp_path, monkeypatch):
     config = _config(tmp_path, monkeypatch, semantic=True)
     runtime = LocalPerceptionRuntime()

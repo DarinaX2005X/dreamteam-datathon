@@ -53,6 +53,11 @@
       "default": false,
       "title": "Diagnostic Only",
       "type": "boolean"
+    },
+    "experimental_analysis": {
+      "default": false,
+      "title": "Experimental Analysis",
+      "type": "boolean"
     }
   },
   "required": [

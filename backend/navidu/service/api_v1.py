@@ -15,6 +15,8 @@ async def accept_upload(request: Request, file: UploadFile | None, *, priority: 
     health = store.health()
     if not health["ready"]:
         raise ServiceError(503, "NOT_READY", PREPARING_MESSAGE)
+    if priority == "api" and health["analysis_mode"] != "validated":
+        raise ServiceError(503, "NOT_READY", PREPARING_MESSAGE)
     check_id, name, path, checksum, meta = await persist_upload(
         file, store.settings, request.app.state.probe
     )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
+from collections import deque
 from collections.abc import Callable, Iterable
 from typing import Any
 
@@ -41,6 +42,13 @@ def _settings() -> tuple[str, str, bool]:
     )
 
 
+def _selected_ids(detector_id: str, semantic_id: str, require_semantic: bool) -> list[str]:
+    adapter_id = os.getenv("NAVIDU_PROPOSAL_ADAPTER", "").strip()
+    if adapter_id and not require_semantic:
+        raise ModelAssetsError("INVALID_CONFIG: адаптер предложений требует базовую временную модель.")
+    return [detector_id] + ([semantic_id] if require_semantic else []) + ([adapter_id] if adapter_id else [])
+
+
 class LocalPerceptionRuntime:
     def __init__(self):
         self._lock = threading.RLock()
@@ -61,17 +69,18 @@ class LocalPerceptionRuntime:
         detector_id, semantic_id, require_semantic = _settings()
         manifest = read_manifest(config.models_dir)
         entries = [model_entry(manifest, model_id)
-                   for model_id in [detector_id] + ([semantic_id] if require_semantic else [])]
+                   for model_id in _selected_ids(detector_id, semantic_id, require_semantic)]
         snapshot = configuration_snapshot(config, entries, require_semantic=require_semantic)
         return str(config.models_dir.resolve()), snapshot_hash(snapshot)
 
     def runtime_status(self, config: PipelineConfig) -> RuntimeStatus:
         detector_id, semantic_id, require_semantic = _settings()
         limitations = []
-        analysis_mode = "diagnostic" if config.diagnostic_only or not require_semantic else "unvalidated"
+        analysis_mode = ("diagnostic" if config.diagnostic_only or not require_semantic else
+                         "experimental" if config.experimental_analysis else "unvalidated")
         try:
             manifest = read_manifest(config.models_dir)
-            for model_id in [detector_id] + ([semantic_id] if require_semantic else []):
+            for model_id in _selected_ids(detector_id, semantic_id, require_semantic):
                 entry = model_entry(manifest, model_id)
                 absent = missing_files(config.models_dir, entry)
                 if absent:
@@ -101,17 +110,22 @@ class LocalPerceptionRuntime:
         device = self._detector.device if self._detector is not None else config.device
         if self._semantic is not None and self._semantic.device != device:
             device = f"{device}+{self._semantic.device}"
+        validated = (bool(self._required_semantic_capabilities)
+                     and all(self._validated_capabilities.get(name, False)
+                             for name in self._required_semantic_capabilities))
         analysis_ready = (state == "ready" and require_semantic and not config.diagnostic_only
-                          and bool(self._required_semantic_capabilities)
-                          and all(self._validated_capabilities.get(name, False)
-                                  for name in self._required_semantic_capabilities))
+                          and (validated or config.experimental_analysis))
         if require_semantic:
-            limitations.extend(self._validation_limitations or (
-                ["Проверка качества анализа действий ещё не завершена."] if not analysis_ready else []))
+            if config.experimental_analysis:
+                limitations.append("Исходная модель: качество ещё не оценено.")
+            else:
+                limitations.extend(self._validation_limitations or (
+                    ["Проверка качества анализа действий ещё не завершена."] if not analysis_ready else []))
         return RuntimeStatus(model_status=state, device=device, limitations=limitations,
                              pipeline_version=self._pipeline_version if state == "ready" else config.pipeline_version,
                              analysis_ready=analysis_ready,
-                             analysis_mode="validated" if analysis_ready else analysis_mode)
+                             analysis_mode=("experimental" if config.experimental_analysis and analysis_ready else
+                                            "validated" if analysis_ready and validated else analysis_mode))
 
     def prepare(self, config: PipelineConfig) -> None:
         detector_id, semantic_id, require_semantic = _settings()
@@ -128,6 +142,12 @@ class LocalPerceptionRuntime:
                 semantic_entry = model_entry(manifest, semantic_id) if require_semantic else None
                 if semantic_entry:
                     versions[semantic_id] = verify_model(config.models_dir, semantic_entry)
+                adapter_id = os.getenv("NAVIDU_PROPOSAL_ADAPTER", "").strip()
+                adapter_entry = model_entry(manifest, adapter_id) if adapter_id else None
+                if adapter_entry:
+                    if config.analysis_fps < 2:
+                        raise ModelAssetsError("INVALID_CONFIG: для адаптера нужна частота анализа не ниже 2 кадров/с.")
+                    versions[adapter_id] = verify_model(config.models_dir, adapter_entry)
                 from .detector import RfDetrOnnx
 
                 detector = RfDetrOnnx(config.models_dir, detector_entry, config.device)
@@ -136,8 +156,14 @@ class LocalPerceptionRuntime:
                     from .temporal import TemporalVerifier
 
                     semantic = TemporalVerifier(config.models_dir, semantic_entry, config.device)
+                    if adapter_entry:
+                        from .proposal import ProposalVerifier
+
+                        semantic.proposal = ProposalVerifier(semantic, config.models_dir, adapter_entry,
+                                                            semantic_entry, versions[semantic_id])
                 snapshot = configuration_snapshot(config,
-                    [detector_entry] + ([semantic_entry] if semantic_entry else []),
+                    [detector_entry] + ([semantic_entry] if semantic_entry else [])
+                    + ([adapter_entry] if adapter_entry else []),
                     require_semantic=require_semantic)
                 devices = {"detector": detector.device,
                            "semantic": semantic.device if semantic is not None else "disabled",
@@ -156,7 +182,7 @@ class LocalPerceptionRuntime:
                     # published as ready by the pipeline or service.
                     semantic.capabilities = (
                         dict.fromkeys(SEMANTIC_CAPABILITIES, True)
-                        if config.diagnostic_only else capabilities
+                        if config.diagnostic_only or config.experimental_analysis else capabilities
                     )
                 self._detector, self._semantic = detector, semantic
                 self._versions, self._prepared_key = versions, key
@@ -198,18 +224,49 @@ class LocalPerceptionRuntime:
             semantic_frames = []
             next_semantic_t = 0.0
             last_semantic_end = -1.0
+            proposal = getattr(self._semantic, "proposal", None)
+            dense_frames = deque(maxlen=48)
+            proposal_frames = []
+            next_proposal_t, last_proposal_end = 0.0, -1.0
+            pending_centers = []
+            refined_intervals = []
 
-            def observe_window(window):
+            def observe_window(window, *, baseline=True):
                 nonlocal last_semantic_end
                 previous = {item.obs_id: item.model_dump_json() for item in artifacts.observations}
                 self._semantic.observe(window, list(tracks.values()), artifacts,
                                        should_stop=should_stop)
-                last_semantic_end = window[-1][0]
+                if baseline:
+                    last_semantic_end = window[-1][0]
                 changed = [item for item in artifacts.observations
                            if previous.get(item.obs_id) != item.model_dump_json()]
-                emit(PipelineEvent(phase="perception", processed_until_sec=window[-1][0],
+                emit(PipelineEvent(phase="perception", processed_until_sec=previous_t,
                     observations_delta=changed,
                     message="Обработан следующий фрагмент записи."))
+
+            def propose_window(window):
+                nonlocal last_proposal_end
+                candidate = proposal.propose(window, should_stop=should_stop)
+                last_proposal_end = window[-1][0]
+                if candidate.candidate and candidate.time_sec is not None \
+                        and not any(start <= candidate.time_sec <= end for start, end in refined_intervals) \
+                        and candidate.time_sec not in pending_centers:
+                    pending_centers.append(candidate.time_sec)
+
+            def refine_ready(timestamp, *, final=False):
+                from .proposal import refinement_window
+
+                for center in list(pending_centers):
+                    if not final and timestamp < center + (proposal.window_frames - 1) / (2 * proposal.sample_fps):
+                        continue
+                    pending_centers.remove(center)
+                    if any(start <= center <= end for start, end in refined_intervals):
+                        continue
+                    window = refinement_window(list(dense_frames), center, proposal.window_frames)
+                    # This is the unchanged base verifier. A learned candidate
+                    # itself never becomes an observation, role or capability.
+                    observe_window(window, baseline=False)
+                    refined_intervals.append((window[0][0], window[-1][0]))
 
             for timestamp, rgb in frames:
                 if should_stop():
@@ -268,14 +325,25 @@ class LocalPerceptionRuntime:
                             bbox=tuple(float(x) for x in box), score=float(confidence),
                             model_id=detector.model_id, track_id=assigned_ids.get(int(source_index)),
                         ))
-                # Retain bounded temporal input at 1 fps. Native frame PTS are kept,
-                # and the verifier works on overlapping windows, never one cover.
+                # Keep the ordinary base-model sweep even when an optional
+                # learned proposer requests denser context around a candidate.
                 if self._semantic is not None and timestamp + 1e-7 >= next_semantic_t:
                     semantic_frames.append((round(timestamp, 3), rgb.copy()))
-                    next_semantic_t = timestamp + 1.0 / self._semantic.sample_fps
+                    while next_semantic_t <= timestamp + 1e-7:
+                        next_semantic_t += 1.0 / self._semantic.sample_fps
                     if len(semantic_frames) >= self._semantic.window_frames:
                         observe_window(semantic_frames)
                         semantic_frames = semantic_frames[-2:]
+                if proposal is not None and timestamp + 1e-7 >= next_proposal_t:
+                    dense_frame = (round(timestamp, 3), rgb.copy())
+                    dense_frames.append(dense_frame)
+                    proposal_frames.append(dense_frame)
+                    while next_proposal_t <= timestamp + 1e-7:
+                        next_proposal_t += 1.0 / proposal.sample_fps
+                    if len(proposal_frames) >= proposal.window_frames:
+                        propose_window(proposal_frames)
+                        proposal_frames = proposal_frames[-(proposal.window_frames - proposal.stride_frames):]
+                    refine_ready(timestamp)
                 if timestamp - last_emit >= 5.0:
                     emit(PipelineEvent(phase="perception", processed_until_sec=timestamp,
                                        message="Анализируются последовательные кадры записи."))
@@ -283,6 +351,10 @@ class LocalPerceptionRuntime:
             if (self._semantic is not None and len(semantic_frames) >= 2
                     and semantic_frames[-1][0] > last_semantic_end):
                 observe_window(semantic_frames)
+            if proposal is not None:
+                if len(dense_frames) >= 2 and dense_frames[-1][0] > last_proposal_end:
+                    propose_window(list(dense_frames)[-proposal.window_frames:])
+                refine_ready(previous_t, final=True)
             if self._semantic is not None:
                 from .temporal import apply_semantic_roles
 

@@ -23,7 +23,7 @@ export type AnalysisRun = {
   "pipeline_version": string;
   "analysis_fps": number;
   "analysis_ready"?: boolean;
-  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
+  "analysis_mode"?: "validated" | "experimental" | "unvalidated" | "diagnostic";
   "model_versions"?: {
   [key: string]: string;
 };
@@ -174,7 +174,7 @@ export type FindingSet = {
 export type HealthResponse = {
   "ready": boolean;
   "analysis_ready"?: boolean;
-  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
+  "analysis_mode"?: "validated" | "experimental" | "unvalidated" | "diagnostic";
   "queue": QueueCounts;
   "pipeline_version": string;
   "model_status": "loading" | "ready" | "missing" | "error";
@@ -260,6 +260,7 @@ export type PipelineConfig = {
   "evidence_overlay"?: boolean;
   "max_duration_sec"?: number;
   "diagnostic_only"?: boolean;
+  "experimental_analysis"?: boolean;
 };
 
 export type PipelineEvent = {
@@ -352,7 +353,7 @@ export type RuntimeStatus = {
   "limitations"?: Array<string>;
   "pipeline_version": string;
   "analysis_ready"?: boolean;
-  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
+  "analysis_mode"?: "validated" | "experimental" | "unvalidated" | "diagnostic";
 };
 
 export type SceneLayout = {

@@ -165,8 +165,9 @@ class RealPipeline:
             raise RuntimeError(
                 f"PERCEPTION_RUNTIME_NOT_READY: {prepared_status.model_status}"
             )
+        allowed_mode = "experimental" if config.experimental_analysis else "validated"
         if not config.diagnostic_only and (
-            not prepared_status.analysis_ready or prepared_status.analysis_mode != "validated"
+            not prepared_status.analysis_ready or prepared_status.analysis_mode != allowed_mode
         ):
             raise AnalysisNotValidated(
                 "ANALYSIS_NOT_PERFORMED: нет измеренных возможностей анализа."

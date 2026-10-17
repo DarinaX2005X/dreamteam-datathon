@@ -173,6 +173,16 @@ def test_normal_analysis_refuses_unvalidated_runtime_but_diagnostic_is_marked(tm
     assert artifacts.run.analysis_ready is False
     assert artifacts.run.analysis_mode == "diagnostic"
 
+    runtime.runtime_status = lambda config: RuntimeStatus(
+        model_status="ready", device="cpu", pipeline_version="test",
+        analysis_ready=True, analysis_mode="experimental",
+    )
+    experimental = pipeline.analyze(video, work_dir=tmp_path / "experimental",
+        config=PipelineConfig(**base, experimental_analysis=True), emit=lambda event: None,
+        should_stop=lambda: False)
+    assert experimental.run.analysis_ready is True
+    assert experimental.run.analysis_mode == "experimental"
+
 
 def test_validated_runtime_cannot_publish_when_video_semantics_did_not_run(tmp_path):
     video = tmp_path / "source.mov"

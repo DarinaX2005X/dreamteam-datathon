@@ -131,6 +131,7 @@ class Worker:
                 device=self.settings.device, analysis_fps=self.settings.analysis_fps,
                 evidence_overlay=self.settings.evidence_overlay,
                 max_duration_sec=self.settings.max_duration_sec,
+                experimental_analysis=self.settings.experimental_analysis,
             )
             cached = self.store.cached_artifacts(check_id, token, staging)
             if cached is not None:

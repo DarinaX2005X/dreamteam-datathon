@@ -19,7 +19,7 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from eval.dataset import dataset_fingerprint, file_sha256, load_sources  # noqa: E402
+from eval.dataset import dataset_fingerprint, file_sha256, load_sources, select_sources  # noqa: E402
 from eval.training import build_training_manifest  # noqa: E402
 
 MANIFEST_MEMBER = "eval/runs/transfer-manifest.json"
@@ -45,11 +45,12 @@ def _add_bytes(archive: tarfile.TarFile, name: str, data: bytes) -> None:
     archive.addfile(info, io.BytesIO(data))
 
 
-def prepare(output: Path | None, dataset_dir: Path) -> dict:
+def prepare(output: Path | None, dataset_dir: Path, video_ids: list[str] | None = None) -> dict:
     tables = [ROOT / "research/dataset/inventory.csv", ROOT / "eval/labels.csv", ROOT / "eval/folds.csv"]
-    sources = load_sources(*tables)
+    all_sources = load_sources(*tables)
+    sources = select_sources(all_sources, "development", video_ids) if video_ids else all_sources
     table_hash = dataset_fingerprint(tables)
-    expected_training = build_training_manifest(sources, table_hash)
+    expected_training = build_training_manifest(all_sources, table_hash)
     training_path = ROOT / "eval/training-splits.json"
     if not training_path.is_file() or json.loads(training_path.read_text(encoding="utf-8")) != expected_training:
         raise ValueError("Generate the current development training manifest before archiving")
@@ -67,13 +68,18 @@ def prepare(output: Path | None, dataset_dir: Path) -> dict:
                  "kind": "original_video" if name in video_paths else "supervision_metadata"}
                 for name, path in sorted(paths.items())]
     manifest = {"schema_version": 1, "dataset_fingerprint": table_hash,
+                "transfer_scope": "development_subset" if video_ids else "all_sources",
+                "metadata_scope_unique_sources": len(all_sources),
+                "metadata_scope_annotation_rows": sum(len(source.rows) for source in all_sources),
                 "unique_video_sources": len(video_paths), "source_annotation_rows": sum(len(source.rows) for source in sources),
                 "development_video_sources": sum(source.fold != 0 for source in sources),
                 "reserved_final_holdout_video_sources": sum(source.fold == 0 for source in sources),
                 "holdout_policy": "Transfer is not evaluation permission: training readers only consume development; reserved fold 0 is evaluated once after the final model is frozen.",
                 "derived_frames_included": False, "model_outputs_included": False,
                 "payload_size_bytes": sum(item["size_bytes"] for item in payloads), "files": payloads}
-    output = (output or ROOT / "eval/runs/transfer" / f"dataset-40sha-{table_hash[:12]}.tar").resolve()
+    scope_hash = hashlib.sha256("\n".join(sorted(source.sha256 for source in sources)).encode("ascii")).hexdigest()[:12]
+    default_name = f"dataset-{len(sources)}sha-{table_hash[:12]}" + (f"-{scope_hash}" if video_ids else "") + ".tar"
+    output = (output or ROOT / "eval/runs/transfer" / default_name).resolve()
     if output.is_relative_to(ROOT) and not output.is_relative_to(ROOT / "eval/runs"):
         raise ValueError("Private transfer archives inside the repository must stay in ignored eval/runs/")
     if output.exists():
@@ -134,6 +140,8 @@ def verify(path: Path) -> dict:
         if len(video_hashes) != len(set(video_hashes)) or len(video_hashes) != manifest["unique_video_sources"]:
             raise ValueError("Video sources are not deduplicated by SHA256")
         return {"event": "transfer_verified", "dataset_fingerprint": manifest["dataset_fingerprint"],
+                "transfer_scope": manifest.get("transfer_scope", "all_sources"),
+                "metadata_scope_unique_sources": manifest.get("metadata_scope_unique_sources", manifest["unique_video_sources"]),
                 "unique_video_sources": len(video_hashes), "payload_files": len(expected),
                 "source_annotation_rows": manifest["source_annotation_rows"],
                 "development_video_sources": manifest["development_video_sources"],
@@ -146,6 +154,7 @@ def extract(path: Path, destination: Path) -> dict:
     verified = verify(path)
     root = destination.resolve()
     root.mkdir(parents=True, exist_ok=True)
+    manifest_relative = PurePosixPath("eval/runs/transfer/manifests") / f"{file_sha256(path)}.json"
     created, reused = 0, 0
     with tarfile.open(path, mode="r:") as archive:
         manifest = json.load(archive.extractfile(MANIFEST_MEMBER))
@@ -154,7 +163,10 @@ def extract(path: Path, destination: Path) -> dict:
         # files are never overwritten, including metadata from another split.
         targets = []
         for member in archive.getmembers():
-            target = (root / Path(*_safe_relative(member.name).parts)).resolve()
+            # A small priority subset and a later complete archive have distinct
+            # manifests. Preserve both by archive identity, never overwrite one.
+            relative = manifest_relative if member.name == MANIFEST_MEMBER else _safe_relative(member.name)
+            target = (root / Path(*relative.parts)).resolve()
             if not target.is_relative_to(root):
                 raise ValueError("Transfer destination escapes the chosen workspace")
             source = archive.extractfile(member)
@@ -173,7 +185,8 @@ def extract(path: Path, destination: Path) -> dict:
                     output.write(block)
             target.chmod(0o600)
             created += 1
-    return {**verified, "event": "transfer_extracted", "created_files": created, "reused_identical_files": reused}
+    return {**verified, "event": "transfer_extracted", "created_files": created, "reused_identical_files": reused,
+            "manifest_relative_file": manifest_relative.as_posix()}
 
 
 def main() -> int:
@@ -181,14 +194,17 @@ def main() -> int:
     parser.add_argument("command", choices=["prepare", "verify", "extract"])
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--dataset-dir", type=Path, default=ROOT / "data/dataset")
+    parser.add_argument("--video-id", action="append", help="Prepare only selected development originals, retaining all four exact metadata files")
     parser.add_argument("--destination", type=Path)
     args = parser.parse_args()
     if args.command != "prepare" and args.archive is None:
         parser.error("--archive is required for verify/extract")
     if args.command == "extract" and args.destination is None:
         parser.error("--destination is required for extract")
+    if args.video_id and args.command != "prepare":
+        parser.error("--video-id is only valid for prepare")
     if args.command == "prepare":
-        result = prepare(args.archive, args.dataset_dir)
+        result = prepare(args.archive, args.dataset_dir, args.video_id)
     elif args.command == "verify":
         result = verify(args.archive)
     else:

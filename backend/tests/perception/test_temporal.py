@@ -86,3 +86,16 @@ def test_invented_or_single_frame_relation_is_rejected(batch):
 def test_malformed_top_level_collection_is_not_a_clean_output(field):
     with pytest.raises(RuntimeError, match="MODEL_OUTPUT_INVALID"):
         _decode_payload(json.dumps({"events": [], "roles": [], "same_cash_batches": [], field: {}}))
+
+
+def test_cash_relations_do_not_collide_when_dense_context_has_same_endpoints():
+    relations = []
+    for times in ([0., 1., 2.], [0., .5, 2.]):
+        payload = {"events": [_event(end_frame=2),
+            _event(kind="counting_motion", actor="p2", recipient=None, end_frame=2)],
+            "same_cash_batches": [{"events": [0, 1], "frames": [0, 2]}]}
+        frames = [{"p1": (), "p2": ()}] * 3
+        events, _ = validate_events(payload, frames, times)
+        bind_cash_relations(payload, events, frames, times, "base")
+        relations.append(events[0]["relation_id"])
+    assert relations[0] != relations[1]

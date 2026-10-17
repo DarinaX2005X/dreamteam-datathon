@@ -35,6 +35,7 @@ class PipelineConfig(ContractModel):
     evidence_overlay: bool = True
     max_duration_sec: float = Field(default=600, gt=0)
     diagnostic_only: bool = False
+    experimental_analysis: bool = False
 
     @classmethod
     def from_env(cls, *, check_id: str | None = None) -> "PipelineConfig":
@@ -48,6 +49,8 @@ class PipelineConfig(ContractModel):
             analysis_fps=float(os.getenv("NAVIDU_ANALYSIS_FPS", "3")),
             evidence_overlay=os.getenv("NAVIDU_EVIDENCE_OVERLAY", "1").lower() in {"1", "true", "yes"},
             max_duration_sec=float(os.getenv("NAVIDU_MAX_DURATION_SEC", "600")),
+            experimental_analysis=os.getenv("NAVIDU_EXPERIMENTAL_ANALYSIS", "0").lower()
+            in {"1", "true", "yes"},
         )
 
 

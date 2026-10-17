@@ -98,6 +98,8 @@ class TrainingRunnerTests(unittest.TestCase):
         )
         self.assertEqual(args.epochs, 3)
         self.assertEqual(args.seed, 1729)
+        self.assertEqual(args.cuda_memory_fraction, 0.70)
+        self.assertEqual(args.max_wall_minutes, 165)
 
     def test_dependency_versions_are_pinned(self) -> None:
         versions = {
@@ -190,6 +192,45 @@ class TrainingRunnerTests(unittest.TestCase):
         model = SimpleNamespace(parameters=lambda: [SimpleNamespace(grad=gradient)])
         train_proposal.rescale_partial_gradients(model, microbatch_count=2, target_count=8)
         self.assertEqual(gradient.value, 1.0)
+
+    def test_checkpoint_selection_rejects_traded_errors_and_unparseable_output(self) -> None:
+        def measurement(correct, errors=(None, None)):
+            return {"invalid_output_count": 0, "no_valid_source_output_count": 0,
+                    "per_source": [{"sample_id": str(index), "correct": value,
+                                    "localization_error_sec": errors[index]}
+                                   for index, value in enumerate(correct)]}
+
+        baseline = measurement([True, False])
+        self.assertFalse(train_proposal.checkpoint_improves(measurement([False, True]), baseline))
+        self.assertFalse(train_proposal.checkpoint_improves(measurement([True, False]), baseline))
+        improved = measurement([True, True])
+        self.assertTrue(train_proposal.checkpoint_improves(improved, baseline))
+        self.assertFalse(train_proposal.checkpoint_improves(
+            {**improved, "invalid_output_count": 1}, baseline))
+        self.assertFalse(train_proposal.checkpoint_improves({"per_source": []}, baseline))
+
+    def test_time_improvement_requires_the_same_paired_sources(self) -> None:
+        baseline = {"per_source": [{"sample_id": "a", "correct": True,
+                                    "localization_error_sec": 5.0}]}
+        improved = {"per_source": [{"sample_id": "a", "correct": True,
+                                    "localization_error_sec": 3.0}]}
+        different = {"per_source": [{"sample_id": "b", "correct": True,
+                                     "localization_error_sec": 1.0}]}
+        self.assertTrue(train_proposal.checkpoint_improves(improved, baseline))
+        self.assertFalse(train_proposal.checkpoint_improves(different, baseline))
+        negligible = {"per_source": [{"sample_id": "a", "correct": True,
+                                      "localization_error_sec": 4.99}]}
+        self.assertFalse(train_proposal.checkpoint_improves(negligible, baseline))
+
+    def test_budget_preserves_checkpoint_time_and_is_capped_at_three_hours(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.object(train_proposal.time, "time", return_value=100):
+                reporter = train_proposal.ProgressReporter(Path(directory), max_wall_minutes=3)
+                self.assertFalse(reporter.should_stop())
+            with mock.patch.object(train_proposal.time, "time", return_value=221):
+                self.assertTrue(reporter.should_stop())
+            with self.assertRaisesRegex(train_proposal.TrainingError, "180"):
+                train_proposal.ProgressReporter(Path(directory), max_wall_minutes=181)
 
 
 if __name__ == "__main__":

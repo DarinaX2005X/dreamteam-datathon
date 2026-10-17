@@ -22,9 +22,10 @@ _OPTIONS = {
     "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": "512",
     "NAVIDU_SEMANTIC_MAX_PATCHES": "1",
     "NAVIDU_SEMANTIC_DTYPE": "auto",
+    "NAVIDU_PROPOSAL_ADAPTER": "",
 }
 _PACKAGES = ("numpy", "pillow", "av", "supervision", "onnxruntime", "onnxruntime-gpu",
-             "torch", "torchvision", "transformers", "safetensors", "tokenizers")
+             "torch", "torchvision", "transformers", "safetensors", "tokenizers", "peft", "accelerate")
 _IMPLEMENTATION = ("perception", "ingest", "scene", "facts", "rules", "evidence", "pipeline", "contracts")
 
 
@@ -68,12 +69,14 @@ def configuration_snapshot(config: PipelineConfig, entries: list[dict], *, requi
         "base_version": base_version(config.pipeline_version),
         "models": [{"id": item["id"], "runtime": item.get("runtime"),
                     "revision": item.get("revision"),
+                    "base_model": item.get("base_model"), "task": item.get("task"),
                     "files": [{key: file[key] for key in ("path", "size_bytes", "sha256")}
                               for file in sorted(item["files"], key=lambda file: file["path"])]}
                    for item in entries],
         "require_semantic": require_semantic,
         "analysis_fps": config.analysis_fps,
         "diagnostic_only": config.diagnostic_only,
+        "experimental_analysis": config.experimental_analysis,
         "device_requested": config.device,
         "evidence_overlay": config.evidence_overlay,
         "max_duration_sec": config.max_duration_sec,

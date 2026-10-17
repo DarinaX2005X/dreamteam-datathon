@@ -17,7 +17,7 @@ from navidu.contracts.ui_api import CheckDetail, CheckProgress, CheckSummary
 
 from .evidence import artifact_frame_path
 from .exceptions import ServiceError
-from .readiness import NOT_PERFORMED_MESSAGE, published_analysis_valid
+from .readiness import NOT_PERFORMED_MESSAGE, published_analysis_valid, usable_analysis_result
 from .store import Store, utc
 
 
@@ -53,7 +53,7 @@ def evidence_path(store: Store, check_id: str, frame_id: str, overlay: bool,
 
 def summary(store: Store, row) -> CheckSummary:
     status = row["status"]
-    if status == "done" and not published_analysis_valid(row):
+    if status == "done" and not usable_analysis_result(row):
         status = "failed"
     finding_set = store.finding_set(row["id"]) if status == "done" else None
     meta = VideoMeta.model_validate_json(row["video_meta_json"])

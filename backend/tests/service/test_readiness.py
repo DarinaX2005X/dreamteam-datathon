@@ -30,6 +30,21 @@ def test_loaded_assets_without_validated_analysis_cannot_accept_or_acquire(clien
     assert len(list(app.state.store.settings.checks_dir.iterdir())) == 1
 
 
+def test_experimental_worker_accepts_ui_and_never_jury_upload_or_result(client, app, pipeline):
+    pipeline.analysis_mode = "experimental"
+    pipeline.analysis_ready = True
+    assert app.state.test_worker.refresh_status()
+    assert client.get("/api/ui/health").json()["analysis_mode"] == "experimental"
+    assert upload(client, api=True).status_code == 503
+    check_id = upload(client).json()["check"]["id"]
+    assert app.state.test_worker.run_once()
+    row = app.state.store.get(check_id)
+    assert row["status"] == "done" and row["analysis_mode"] == "experimental"
+    assert client.get(f"/api/ui/checks/{check_id}").json()["check"]["status"] == "done"
+    jury = client.get(f"/api/v1/jobs/{check_id}", headers={"X-API-Key": "test-secret-key"}).json()
+    assert jury["status"] == "failed" and jury["error"]["code"] == "ANALYSIS_NOT_PERFORMED"
+
+
 def test_diagnostic_artifacts_cannot_be_published_even_from_ready_worker(client, app, pipeline, monkeypatch):
     original = pipeline.analyze
 
