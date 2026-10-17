@@ -45,11 +45,16 @@ for directory in ("training", "eval"):
 @setup_app.function(image=image, cpu=(2, 2), memory=(4096, 4096), timeout=1800,
               retries=0, max_containers=1, min_containers=0, scaledown_window=2,
               volumes={"/models": models})
-def prepare_models() -> dict:
+def prepare_models(profile: str = "baseline") -> dict:
+    selections = {"baseline": ["internvl3_5-4b", "rfdetr-nano-onnx"],
+                  "qwen": ["qwen3-vl-4b"]}
+    if profile not in selections:
+        raise ValueError("Unknown model preparation profile")
     shutil.copyfile("/workspace/model-manifest.json", "/models/manifest.json")
+    selection_args = [part for model_id in selections[profile] for part in ("--model", model_id)]
     subprocess.run([sys.executable, "scripts/fetch_models.py", "--models-dir", "/models",
-                    "--manifest", "/models/manifest.json", "--model", "internvl3_5-4b",
-                    "--model", "rfdetr-nano-onnx", "--workers", "8", "--retries", "2"],
+                    "--manifest", "/models/manifest.json", *selection_args,
+                    "--workers", "8", "--retries", "2"],
                    check=True, timeout=1700)
     models.commit()
     return {"models_ready": True, "gpu_allocated": False}
@@ -127,12 +132,12 @@ def train(run_id: str) -> dict:
 
 @setup_app.local_entrypoint()
 def setup(stage: str = "models"):
-    if stage == "models":
-        print(json.dumps(prepare_models.remote()))
+    if stage in {"models", "qwen"}:
+        print(json.dumps(prepare_models.remote("qwen" if stage == "qwen" else "baseline")))
     elif stage == "data":
         print(json.dumps(prepare_data.remote()))
     else:
-        raise ValueError("Setup stage must be models or data")
+        raise ValueError("Setup stage must be models, qwen or data")
 
 
 @app.local_entrypoint()

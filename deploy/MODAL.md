@@ -70,6 +70,11 @@ npm run build
 One L4 container owns API, worker and SQLite; min_containers=0, max_containers=1,
 90-second idle window. The website currently uses the original 4B model with an
 explicit experimental label. A trained adapter is not enabled automatically.
+`NAVIDU_ALLOW_EXPERIMENTAL_API=1` explicitly enables the current model's actual results
+through the required jury routes. The exact response JSON stays unchanged;
+`X-Analysis-Mode: experimental` identifies the unvalidated quality status. Diagnostic,
+incomplete and failed analyses still cannot produce a successful verdict.
+The cold container waits for its own worker to become ready before accepting HTTP.
 
 A successful POST starts a bounded queue-wait input so accepted jobs can continue if
 the browser closes. After readiness the intake page stops background health polling;

@@ -29,6 +29,7 @@ class Settings:
     analysis_fps: float = 3
     pipeline_version: str = "0.1.0"
     experimental_analysis: bool = False
+    allow_experimental_api: bool = False
     ffprobe: str = "ffprobe"
     lease_seconds: float = 90
     heartbeat_seconds: float = 30
@@ -69,6 +70,7 @@ class Settings:
             analysis_fps=float(os.getenv("NAVIDU_ANALYSIS_FPS", "3")),
             pipeline_version=os.getenv("NAVIDU_PIPELINE_VERSION", "0.1.0"),
             experimental_analysis=_bool("NAVIDU_EXPERIMENTAL_ANALYSIS", False),
+            allow_experimental_api=_bool("NAVIDU_ALLOW_EXPERIMENTAL_API", False),
             ffprobe=os.getenv("NAVIDU_FFPROBE", "ffprobe"),
         )
         result.validate()

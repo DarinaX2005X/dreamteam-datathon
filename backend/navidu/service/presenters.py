@@ -117,7 +117,10 @@ def jury_response(store: Store, row):
         return JobFailed(job_id=check_id, error=JobError(
             code=value.get("code", "ANALYSIS_FAILED"), message=value.get("message", "Анализ не завершён.")
         ))
-    if not published_analysis_valid(row):
+    api_result_allowed = published_analysis_valid(row) or (
+        store.settings.allow_experimental_api and usable_analysis_result(row)
+    )
+    if not api_result_allowed:
         return JobFailed(job_id=check_id, error=JobError(
             code="ANALYSIS_NOT_PERFORMED", message=NOT_PERFORMED_MESSAGE,
         ))

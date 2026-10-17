@@ -155,7 +155,14 @@ class LocalPerceptionRuntime:
                 if semantic_entry:
                     from .temporal import TemporalVerifier
 
-                    semantic = TemporalVerifier(config.models_dir, semantic_entry, config.device)
+                    verifier = TemporalVerifier
+                    if semantic_entry.get("runtime") == "transformers-qwen3-vl":
+                        from .qwen import QwenTemporalVerifier
+
+                        if adapter_entry:
+                            raise ModelAssetsError("INVALID_CONFIG: InternVL proposal weights cannot be used with Qwen.")
+                        verifier = QwenTemporalVerifier
+                    semantic = verifier(config.models_dir, semantic_entry, config.device)
                     if adapter_entry:
                         from .proposal import ProposalVerifier
 

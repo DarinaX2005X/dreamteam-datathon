@@ -41,6 +41,7 @@ image = (
             "NAVIDU_WORKERS": "1",
             "NAVIDU_REQUIRE_SEMANTIC": "true",
             "NAVIDU_EXPERIMENTAL_ANALYSIS": "1",
+            "NAVIDU_ALLOW_EXPERIMENTAL_API": "1",
             "NAVIDU_DETECTOR_MODEL": "rfdetr-nano-onnx",
             "NAVIDU_SEMANTIC_MODEL": "internvl3_5-4b",
             "NAVIDU_SEMANTIC_WINDOW_FRAMES": "16",
@@ -76,12 +77,35 @@ class LadoService:
 
     @modal.enter()
     def start_worker(self) -> None:
+        from navidu.service.config import Settings
+        from navidu.service.readiness import analysis_ready
+        from navidu.service.store import Store
+
+        store = Store(Settings.from_env())
+        # This deployment has exactly one writer. Old container heartbeats must
+        # not make a new cold instance appear ready before its own model loads.
+        with store.connection(transaction=True) as db:
+            db.execute("DELETE FROM worker_state")
         env = os.environ.copy()
         self.processes = [
             subprocess.Popen(
                 ["python", "-m", "navidu.service.worker"], cwd="/app", env=env
             )
         ]
+        # A cold POST must reach a prepared worker, rather than immediately
+        # failing with NOT_READY while the model is still loading.
+        deadline = time.monotonic() + 180
+        while time.monotonic() < deadline:
+            if self.processes[0].poll() is not None:
+                raise RuntimeError("Analysis worker exited during startup")
+            with store.connection() as db:
+                state = db.execute("SELECT * FROM worker_state WHERE worker_id=?",
+                                   (f"worker-{self.processes[0].pid}",)).fetchone()
+            if state is not None and analysis_ready({**dict(state), "analysis_ready": bool(state["analysis_ready"])}):
+                return
+            time.sleep(1)
+        self.processes[0].terminate()
+        raise RuntimeError("Analysis worker did not become ready within 180 seconds")
 
     @modal.asgi_app()
     def web(self):

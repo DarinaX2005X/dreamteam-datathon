@@ -12,9 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from eval.dataset import dataset_fingerprint, load_sources
-from eval.prepare_transfer import MANIFEST_MEMBER, _add_bytes, verify
-from eval.training import build_training_manifest
+from eval.dataset import dataset_fingerprint, load_sources  # noqa: E402
+from eval.prepare_transfer import MANIFEST_MEMBER, _add_bytes, verify  # noqa: E402
+from eval.training import build_training_manifest  # noqa: E402
 
 
 def prepare(source: Path, destination: Path) -> dict:

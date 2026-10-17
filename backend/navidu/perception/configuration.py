@@ -23,6 +23,8 @@ _OPTIONS = {
     "NAVIDU_SEMANTIC_MAX_PATCHES": "1",
     "NAVIDU_SEMANTIC_DTYPE": "auto",
     "NAVIDU_SEMANTIC_STRUCTURED_OUTPUT": "0",
+    "NAVIDU_QWEN_MAX_PIXELS": "451584",
+    "NAVIDU_SEMANTIC_PROMPT_VARIANT": "v5",
     "NAVIDU_PROPOSAL_ADAPTER": "",
 }
 _PACKAGES = ("numpy", "pillow", "av", "supervision", "onnxruntime", "onnxruntime-gpu",

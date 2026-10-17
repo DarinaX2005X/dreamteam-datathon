@@ -1,6 +1,7 @@
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 
 import pytest
 from navidu.contracts.domain import Observation
@@ -43,6 +44,45 @@ def test_experimental_worker_accepts_ui_and_never_jury_upload_or_result(client, 
     assert client.get(f"/api/ui/checks/{check_id}").json()["check"]["status"] == "done"
     jury = client.get(f"/api/v1/jobs/{check_id}", headers={"X-API-Key": "test-secret-key"}).json()
     assert jury["status"] == "failed" and jury["error"]["code"] == "ANALYSIS_NOT_PERFORMED"
+
+
+def test_explicit_experimental_api_serves_actual_result_with_unchanged_schema(client, app, pipeline):
+    app.state.store.settings = replace(app.state.store.settings, allow_experimental_api=True)
+    pipeline.analysis_mode = "experimental"
+    pipeline.analysis_ready = True
+    assert app.state.test_worker.refresh_status()
+    accepted = upload(client, api=True)
+    assert accepted.status_code == 200
+    assert accepted.headers["X-Analysis-Mode"] == "experimental"
+    assert set(accepted.json()) == {"job_id", "status"}
+    check_id = accepted.json()["job_id"]
+    assert app.state.test_worker.run_once()
+    result = client.get(f"/api/v1/jobs/{check_id}", headers={"X-API-Key": "test-secret-key"})
+    assert result.status_code == 200 and result.headers["X-Analysis-Mode"] == "experimental"
+    body = result.json()
+    assert set(body) == {"job_id", "status", "verdict", "violations"}
+    assert body["status"] == "done" and body["verdict"] == "violation"
+    assert len(body["violations"]) == 2
+    for violation in body["violations"]:
+        assert set(violation) == {"type", "timecode_sec", "description", "evidence_frames"}
+        assert 1 <= len(violation["evidence_frames"]) <= 3
+    assert app.state.store.get(check_id)["analysis_mode"] == "experimental"
+
+
+@pytest.mark.parametrize("mode", ["diagnostic", "unvalidated"])
+def test_experimental_api_permission_never_allows_incomplete_analysis(client, app, pipeline, done, mode):
+    app.state.store.settings = replace(app.state.store.settings, allow_experimental_api=True)
+    pipeline.analysis_mode = mode
+    pipeline.analysis_ready = True
+    assert not app.state.test_worker.refresh_status()
+    assert upload(client, api=True).status_code == 503
+    row = app.state.store.get(done["id"])
+    artifact = json.loads(row["automatic_artifacts_json"])
+    artifact["run"]["analysis_mode"] = mode
+    with app.state.store.connection() as db:
+        db.execute("UPDATE checks SET automatic_artifacts_json=? WHERE id=?", (json.dumps(artifact), done["id"]))
+    result = client.get(f"/api/v1/jobs/{done['id']}", headers={"X-API-Key": "test-secret-key"}).json()
+    assert result["status"] == "failed" and "verdict" not in result
 
 
 def test_diagnostic_artifacts_cannot_be_published_even_from_ready_worker(client, app, pipeline, monkeypatch):

@@ -60,6 +60,53 @@ Use [] for missing observations. Handover needs distinct actor and recipient IDs
 Other recipient fields are null. Never invent a person ID. At most six events.
 """
 
+_EVIDENCE_INSTRUCTIONS = """Extract visible cash-handling facts from these ordered frames.
+Yellow boxes labelled p1, p2, etc. identify tracked people, not their roles.
+
+Check the sequence in this order:
+1. Identify recognizable banknotes and their visible holder. Receipts, documents,
+   an empty hand, or an obscured object do not establish cash.
+2. Compare successive frames. A transfer needs the same visible cash moving from
+   one person's control to a DIFFERENT person's control. Reaching is insufficient.
+   Counting needs repeated separation of banknotes or visible use of a counting
+   machine. Merely moving a stack, sorting papers, or touching cash is insufficient.
+3. Assign cashier/client roles only from visible operational positions and actions.
+   Use unknown if the role is ambiguous. Do not infer authorization or legality.
+4. Keep only events supported by at least two distinct frames and known person IDs.
+   Report one interval per continuing action. Prefer clear cash actions to incidental
+   objects when more than six observations are available.
+
+Allowed kinds: cash_in_hands, cash_on_desk, cash_handover, counting_motion,
+cash_sorting, cash_packing, bag_opened, bag_integrity_damage,
+personal_item_identified, camera_device_visible, phone_visible, bag_present.
+A visible phone alone does not establish that it is a prohibited personal item.
+Bag damage needs visible physical damage; opening a bag is a separate observation.
+
+Return ONLY a JSON object with these four arrays:
+- events: objects with kind, start_frame, end_frame, subjects, actor, recipient.
+  start_frame/end_frame are zero-based INTEGER indices in this window, NOT seconds.
+  subjects is an array of visible p-IDs. Actions require an actor. cash_handover
+  requires a distinct recipient; all other recipients are null.
+- roles: objects with track and role (cashier, client, unknown).
+- same_cash_batches: objects with events (indices into your events array) and frames
+  (supporting frame indices). Link at least two events only if the SAME physical
+  banknote batch is visibly traceable between them. Same person or location is not
+  enough. Give at least two frames, including support inside every linked interval.
+- reflections: objects with reflected_track, source_track, frames. Require a visible
+  physical person and its mirror/glass image, supported by at least three simultaneous
+  frames in one contiguous run. Similar appearance or nearby positions are not enough.
+Use empty arrays when evidence is absent. Do not fill fields from assumptions.
+At most six events. Never invent a track, a hidden action, or supporting frame.
+"""
+
+
+def prompt_profile(variant: str) -> tuple[str, str]:
+    if variant == "v5":
+        return PROMPT_VERSION, _INSTRUCTIONS
+    if variant == "v6-evidence":
+        return "cash-actions-v6-evidence-order", _EVIDENCE_INSTRUCTIONS
+    raise RuntimeError("INVALID_CONFIG: unknown semantic prompt variant.")
+
 
 class TemporalOutputError(RuntimeError):
     code = "MODEL_OUTPUT_INVALID"
@@ -230,13 +277,49 @@ def bind_cash_relations(payload: dict, events: list[dict], frame_tracks: list[di
         claimed.update(indices)
 
 
+def visual_request(frames: list[tuple], frame_tracks: list[dict], variant: str = "v5") -> tuple[list, list[dict]]:
+    """The same marked frames and question are used by each candidate model."""
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
+
+    _, instructions = prompt_profile(variant)
+    content, images = [], []
+    for index, ((timestamp, rgb), people) in enumerate(zip(frames, frame_tracks)):
+        image = Image.fromarray(rgb)
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default(size=max(28, round(image.height / 26)))
+        for track_id, box in people.items():
+            x1, y1, x2, y2 = [round(value * size) for value, size in
+                               zip(box, (image.width, image.height, image.width, image.height))]
+            draw.rectangle((x1, y1, x2, y2), outline=(255, 225, 55), width=2)
+            draw.text((x1 + 2, y1 + 2), track_id, font=font, fill=(255, 225, 55),
+                      stroke_width=1, stroke_fill=(0, 0, 0))
+        images.append(np.array(image, copy=True))
+        content.extend([{"type": "text", "text": f"\nFrame {index}:\n"}, {"type": "image"}])
+    content.append({"type": "text", "text": "\n" + instructions +
+        f"\nThis window has {len(frames)} frames. The only allowed frame indices are "
+        f"0 through {len(frames) - 1}. Every start_frame, end_frame and frames entry "
+        "must use these indices. Use start_frame < end_frame for every event. "
+        "Combine a continuing action into one interval; do not emit one event per frame.\n"})
+    return images, content
+
+
 class TemporalVerifier:
+    prompt_version = PROMPT_VERSION
+    @staticmethod
+    def model_class():
+        from transformers import InternVLForConditionalGeneration
+
+        return InternVLForConditionalGeneration
+
     def __init__(self, directory: Path, entry: dict, device: str):
         import torch
-        from transformers import AutoProcessor, InternVLForConditionalGeneration
+        from transformers import AutoProcessor
 
         torch.set_num_threads(max(1, int(os.getenv("NAVIDU_CPU_THREADS", "6"))))
         self.model_id = entry["id"]
+        self.prompt_variant = os.getenv("NAVIDU_SEMANTIC_PROMPT_VARIANT", "v5")
+        self.prompt_version, _ = prompt_profile(self.prompt_variant)
         self.window_frames = int(os.getenv("NAVIDU_SEMANTIC_WINDOW_FRAMES", "8"))
         self.sample_fps = float(os.getenv("NAVIDU_SEMANTIC_FPS", "1"))
         self.max_new_tokens = int(os.getenv("NAVIDU_SEMANTIC_MAX_NEW_TOKENS", "512"))
@@ -268,7 +351,7 @@ class TemporalVerifier:
             except ImportError as error:
                 raise RuntimeError("INVALID_CONFIG: установите optional dependency structured.") from error
             self._structured_tokenizer_data = build_token_enforcer_tokenizer_data(self.processor.tokenizer)
-        self.model = InternVLForConditionalGeneration.from_pretrained(
+        self.model = self.model_class().from_pretrained(
             str(path), local_files_only=True, trust_remote_code=False,
             dtype=self.dtype, attn_implementation="sdpa",
         ).to(self.device).eval()
@@ -284,9 +367,7 @@ class TemporalVerifier:
         }
 
     def _infer(self, frames: list[tuple], frame_tracks: list[dict], should_stop: Callable[[], bool]) -> dict:
-        import numpy as np
         import torch
-        from PIL import Image, ImageDraw, ImageFont
         from transformers import StoppingCriteria, StoppingCriteriaList
 
         if self.proposal is not None:
@@ -296,26 +377,7 @@ class TemporalVerifier:
             def __call__(self, input_ids, scores, **kwargs):
                 return should_stop()
 
-        content = []
-        images = []
-        for index, ((timestamp, rgb), people) in enumerate(zip(frames, frame_tracks)):
-            image = Image.fromarray(rgb)
-            draw = ImageDraw.Draw(image)
-            font = ImageFont.load_default(size=max(28, round(image.height / 26)))
-            for track_id, box in people.items():
-                x1, y1, x2, y2 = [round(value * size) for value, size in
-                                   zip(box, (image.width, image.height, image.width, image.height))]
-                draw.rectangle((x1, y1, x2, y2), outline=(255, 225, 55), width=2)
-                draw.text((x1 + 2, y1 + 2), track_id, font=font, fill=(255, 225, 55),
-                          stroke_width=1, stroke_fill=(0, 0, 0))
-            images.append(np.array(image, copy=True))
-            content.extend([{"type": "text", "text": f"\nFrame {index}:\n"},
-                            {"type": "image"}])
-        content.append({"type": "text", "text": "\n" + _INSTRUCTIONS +
-            f"\nThis window has {len(frames)} frames. The only allowed frame indices are "
-            f"0 through {len(frames) - 1}. Every start_frame, end_frame and frames entry "
-            "must use these indices. Use start_frame < end_frame for every event. "
-            "Combine a continuing action into one interval; do not emit one event per frame.\n"})
+        images, content = visual_request(frames, frame_tracks, self.prompt_variant)
         prompt = self.processor.apply_chat_template([{"role": "user", "content": content}],
                                                    add_generation_prompt=True, tokenize=False)
         image_options = {"crop_to_patches": self.max_patches > 1,
@@ -421,7 +483,7 @@ class TemporalVerifier:
             artifacts.semantic_signals.append(SemanticSignal(
                 kind="reflection", start_sec=claim["start_sec"], end_sec=claim["end_sec"],
                 subjects=(claim["reflected_track"], claim["source_track"]),
-                model_id=self.model_id, prompt_version=PROMPT_VERSION, confidence=None,
+                model_id=self.model_id, prompt_version=self.prompt_version, confidence=None,
                 frame_ids=(frame_id(claim["start_sec"]), frame_id(claim["end_sec"]))))
         for event in events:
             event.pop("_source_index", None)
@@ -429,7 +491,7 @@ class TemporalVerifier:
             artifacts.semantic_signals.append(SemanticSignal(
                 kind=event["kind"], start_sec=event["start_sec"], end_sec=event["end_sec"],
                 subjects=tuple(event["subjects"]), model_id=self.model_id,
-                prompt_version=PROMPT_VERSION, confidence=None,
+                prompt_version=self.prompt_version, confidence=None,
                 relation_id=event.get("relation_id"), frame_ids=event_frames))
             existing = next((item for item in artifacts.observations if event.get("relation_id") is not None
                 and item.relation_id == event.get("relation_id") and item.kind == event["kind"]
@@ -448,7 +510,7 @@ class TemporalVerifier:
             artifacts.semantic_signals.append(SemanticSignal(
                 kind=f"role:{role['role']}", start_sec=timestamps[0], end_sec=timestamps[-1],
                 subjects=(role["track"],), model_id=self.model_id,
-                prompt_version=PROMPT_VERSION, confidence=None,
+                prompt_version=self.prompt_version, confidence=None,
                 frame_ids=(frame_id(timestamps[0]), frame_id(timestamps[-1]))))
 
 
