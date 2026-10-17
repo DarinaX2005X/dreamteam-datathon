@@ -18,7 +18,11 @@ API и worker запущены. `/`, `/app`, `/api/ui/health` возвращаю
 
 Сейчас устраняются ошибки сквозного анализа на тех же 8 inner-validation видео. Профиль v3/w16 завершил 6/8: TP0/TN3/FP0/FN3 и 2 технические ошибки. Prompt v4 при лимите512 токенов завершил1/8: обрезался JSON. Лимит1024 и типизированная MODEL_OUTPUT_INVALID устранили сбои: текущий8/8 завершён, TP0/TN4/FP0/FN4, опросные времена10.1–75.2с. 23окна выдали деньги/сортировку, но ни одной передачи/пересчёта/связи партии. Числовой отчёт eval/reports/l40s-pipeline-4b-w16-t1024.json. Исправлена также client_window: зона устойчивого пребывания вместо всего пути клиента.
 
-Идёт контролируемый max_patches4 A/B на том же коде3e84e50/w16/t1024. На первом positive smoke90.235с, 3реальных patches/кадр, max12150.5MiB; raw42events, accepted7. MAIN подготовил числовые причины отбраковки без изменения acceptance(8fc7772). После full8p4 server_launch развернёт diagnostics+исправление qualitybinding324c354 и повторит тот же smoke. Проверяется путаница индексов кадров/участников; до диагностики новая модель не включается. UI-качество и отражения проверяет пользователь.
+Контролируемый max_patches4 A/B завершён на тех же восьми видео: TP0/TN4/FP0/FN4, 23 окна, 921 фактический patch, 156 сырых и 84 принятых события, ни одной связи партии денег. Числовой отчёт eval/reports/l40s-pipeline-4b-patches4.json. Повтор первого positive с диагностикой выявил 35 отклонённых событий из-за индексов кадров вне окна. Prompt v5 убирает абсолютные секунды из подписей кадров и явно задаёт локальный диапазон: тот же smoke85.223с, принятых событий7→29, ошибок диапазона35→0, итог остаётся FN. Полный v5 на коде695d9bc завершил8/8, TP0/TN4/FP0/FN4, ошибок диапазона0, raw119/accepted69, counting1/handover0/batches0. Отчёт eval/reports/l40s-pipeline-4b-local-frames.json, runtime1916acd68675128db578.
+
+Синтетическая проверка native forward против ручной вставки тех же batched visual embeddings дала нулевое расхождение logits. Runtime per-patch BF16 имеет max0.421875/mean0.04242 при совпавшем argmax; это чувствительность к форме вычисления, а не доказательство семантического качества. Загружается pinned8B при продолжающей работать4B и свободных202GB. После SHA-проверки — один bounded smoke с измерением VRAM/времени, затем те же восемь development-видео, если модель укладывается в300с. Код695d9bc/w16/t1024/p4 и остальные настройки сохраняются. Это сравнение исходных моделей; новые обучения не запускаются без полезного сигнала. Holdout остаётся закрыт. UI-качество и отражения проверяет пользователь.
+
+Опциональный structured decoding подготовлен в28366d2: LM Format Enforcer0.11.3, динамические enum кадров/ID, ограниченные массивы, существующие семантические валидаторы сохранены. NAVIDU_SEMANTIC_STRUCTURED_OUTPUT=0 по умолчанию. Helper и native-tokenizer prefix проверены без загрузки тяжёлой модели; нулевые person-ID используют обычное декодирование из-за ограничения maxItems=0 в LMFE. В текущий серверный A/B helper не развёрнут и не активирован.
 
 ## Обучение и данные
 
@@ -38,9 +42,9 @@ API и worker запущены. `/`, `/app`, `/api/ui/health` возвращаю
 
 MAIN один редактирует `.vibemachina/` и выполняет Git writes. Новые работники GPT-5.6 Sol по прямой просьбе пользователя. Старые незавершённые файлы сохранены.
 
-- server_launch — единственный SSH/GPU/deploy-владелец; оба обучения завершены, UI/reflection/geometry/JSON исправления развёрнуты. Измеряет8HTTP-вердиктов w16/t1024, затем max_patches4 при соблюдении времени/VRAM. Holdout не используется.
-- baseline_preview — UI/reflection/geometry и аудит правил завершены. Готовит опциональный helper структурированного декодирования с LM Format Enforcer: только новый structured_output.py, его tests и optional dependency в pyproject. MAIN интегрирует после диагностики; принятие событий не ослабляется.
-- dataset_training_research — завершил новые training/temporal_head.py, train_temporal.py, tests/test_temporal_head.py и review-исправления; файлы frozen. Runtime-интеграция только после измеренного улучшения.
+- server_launch — единственный SSH/GPU/deploy-владелец; оба обучения и v4/p4 A/B завершены. Измеряет8HTTP-вердиктов v5/w16/t1024/p4, затем synthetic parity и при отсутствии улучшения исходную8B. Holdout не используется.
+- baseline_preview — UI/reflection/geometry, аудит правил и опциональный grammar helper завершены; файлы frozen. MAIN интегрировал helper с default OFF; принятие событий не ослабляется.
+- dataset_training_research — завершил обучение temporal head, исследование датасетов и pinned8B candidate; файлы frozen. Ни один обученный checkpoint не принят.
 - violation_scope — завершил нормативное исследование.
 
 Все банковские видео, кадры и их описания остаются локально или на разрешённом self-hosted сервере. Внешним AI-сервисам их не отправлять. В ответы агента передаются только числовая диагностика, статусы, коды ошибок. Все тяжёлые прогоны и обучение — на L40S. Данные, модельные веса и секреты не коммитить. Презентации, питч и рекламное видео исключены.
@@ -52,7 +56,7 @@ MAIN один редактирует `.vibemachina/` и выполняет Git w
 - Исторический 1B development pair: TP0/FP0/TN1/FN1, максимум198.232с. Это не оценка текущей4B. Принятого профиля качества пока нет.
 - V-COUNT-NO-CONTROLLER отключено до доказательства внутреннего контекста и обзора; V-OUTSIDER не автоматический нормативный положительный класс. Условия сумки/личного предмета/непрерывности нельзя угадывать.
 - Статический audit:5enabledrules, текущим runtime достижимы COUNT-ABSENT/LEFT-POST/PERSONAL. CASH-UNSECURED/BAG заблокированы отсутствующим producer continuous_desk/collector_visibility. Для их включения нужны реальные наблюдения обзора; флаг нельзя просто переключить.
-- InternVL3.5-8B добавлена как неактивный candidate с18пинами, Apache2,17.073GB. Метаданные совместимы с native4.57.6, runtimeнепроверен. Веса не скачаны, текущая4B остаётся активной; сначала проверяется формат её событий.
+- InternVL3.5-8B добавлена как candidate с18пинами, Apache2,17.073GB. Метаданные совместимы с native4.57.6; начата загрузка, runtime ещё не проверен, текущая4B остаётся активной до проверки всех SHA и idle очереди.
 - F001 остаётся in-progress в TESTING.md: UI-исправления собраны и ждут пользователя; качество модели не закрыто. Последнее чтение TESTING не выявило новых записей.
 - Для финального завершения всего продукта остаются полноценная model evaluation, проверка trained proposal в конвейере, freeze/holdout, Jury API readiness, скорость на длинных видео, автономный прогон, интеграционное review и актуальный README. HTTP-smoke не закрывает эти пункты.
 
@@ -62,4 +66,4 @@ MAIN один редактирует `.vibemachina/` и выполняет Git w
 
 Доступ: Windows PowerShell → WSL Ubuntu `/home/user/.local/bin/brev exec fierce-aquamarine-beaver` с одной строкой команды либо `@/mnt/c/.../script.sh`. Не передавать PowerShell-interpolated `$()`; использовать literal script. Rsync через `/home/user/.brev/ssh_config` с `--partial --append-verify` работает. Не конкурировать за SSH и не перезапускать авторизацию без оснований.
 
-Управляющий dashboard: http://127.0.0.1:4177/; local product8020 остаётся API-only без готового semantic профиля. Рабочая папка C:/Users/user/Desktop/dreamteam. Origin https://github.com/DarinaX2005X/dreamteam-datathon.git, branch codex/lado-local-video. Последний отправленный checkpoint3e84e50. Данные/веса исключаются. Приватные runs: training/runs/pilot-4c5aa506-r2 и training/runs/temporal-pilot-1; progress и веса сохранены, оба selected_epoch=null.
+Управляющий dashboard: http://127.0.0.1:4177/; local product8020 остаётся API-only без готового semantic профиля. Рабочая папка C:/Users/user/Desktop/dreamteam. Origin https://github.com/DarinaX2005X/dreamteam-datathon.git, branch codex/lado-local-video. Последний код grammar28366d2, числовые отчёты4edd4ab; активный серверный snapshot695d9bc. Данные/веса исключаются. Приватные runs: training/runs/pilot-4c5aa506-r2 и training/runs/temporal-pilot-1; progress и веса сохранены, оба selected_epoch=null.

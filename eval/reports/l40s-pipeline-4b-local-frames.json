@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "source_commit": "695d9bc",
+  "pipeline_version": "0.1.0+runtime.1916acd68675128db578",
+  "task": "complete HTTP/UI pipeline, automatic normative verdict",
+  "quality_accepted": false,
+  "analysis_mode": "experimental",
+  "hardware": "NVIDIA L40S",
+  "model_id": "internvl3_5-4b",
+  "proposal_adapter_active": false,
+  "configuration": {
+    "semantic_dtype": "bf16",
+    "semantic_window_frames": 16,
+    "semantic_fps": 1,
+    "semantic_max_new_tokens": 1024,
+    "semantic_max_patches": 4,
+    "prompt_version": "cash-actions-v5-local-frame-indices",
+    "structured_output_active": false
+  },
+  "partition": "inner_validation",
+  "holdout_used": false,
+  "selected_unique_sources": 8,
+  "completed_unique_sources": 8,
+  "failed_unique_sources": 0,
+  "confusion": {"tp": 0, "tn": 4, "fp": 0, "fn": 4},
+  "http_poll_observed_elapsed_seconds": [85.2, 20.1, 35.1, 20.1, 25.1, 15.1, 85.2, 35.1],
+  "semantic_windows_completed": 23,
+  "image_patches_total": 921,
+  "generated_tokens_total": 7703,
+  "max_window_peak_cuda_mib": 12129.7,
+  "raw_event_total": 119,
+  "accepted_event_total": 69,
+  "event_rejections": {
+    "frame_range": 0,
+    "frame_order_or_single": 36,
+    "subject_support": 8,
+    "unexpected_recipient": 6
+  },
+  "raw_cash_batch_count": 0,
+  "bound_cash_batch_count": 0,
+  "accepted_semantic_event_counts": {
+    "bag_integrity_damage": 4,
+    "bag_opened": 2,
+    "cash_in_hands": 21,
+    "cash_on_desk": 1,
+    "cash_sorting": 40,
+    "counting_motion": 1
+  },
+  "rule_status_counts": {"no_violation": 24, "not_checkable": 32},
+  "followup_synthetic_integration_check": {
+    "bank_media_used": false,
+    "synthetic_rgb_frames": 2,
+    "native_vs_manual_same_batched_image_features": {
+      "finite": true,
+      "argmax_equal": true,
+      "max_abs_last_token_logit_diff": 0,
+      "mean_abs_last_token_logit_diff": 0
+    },
+    "native_batched_vs_runtime_per_patch_image_features": {
+      "finite": true,
+      "argmax_equal": true,
+      "max_abs_last_token_logit_diff": 0.421875,
+      "mean_abs_last_token_logit_diff": 0.04242
+    },
+    "process_peak_allocated_mib": 9355.9,
+    "inference_seconds": 0.527,
+    "interpretation": "Manual image embedding insertion matches native forward exactly with identical batched features. Per-patch BF16 vision execution changes logits; its equal argmax on this synthetic input does not establish equivalence on other inputs or semantic accuracy."
+  },
+  "limitations": [
+    "Only eight development sources; this is not held-out quality evidence.",
+    "The prompt eliminates out-of-range frame indices, but no positive source was detected.",
+    "No handover or cash-batch relation was accepted.",
+    "HTTP times are polling observations, not exact worker execution measurements.",
+    "Synthetic numerical checks do not establish video-understanding accuracy."
+  ]
+}
