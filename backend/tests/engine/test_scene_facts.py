@@ -72,6 +72,40 @@ def test_cashier_post_uses_dwell_cluster_and_excludes_excursion():
     assert departure[0].end_sec == 4
 
 
+def test_client_window_dwell_cluster_preserves_visibly_observed_exit():
+    cashier = _track("p1", "person", (0.65, 0.2, 0.9, 0.9), end=8)
+    client = Track(track_id="p2", kind="person", first_sec=1, last_sec=5, samples=[
+        TrackSample(t=t, bbox=box, score=0.9) for t, box in [
+            (1, (0.08, 0.2, 0.28, 0.9)), (2, (0.09, 0.2, 0.29, 0.9)),
+            (3, (0.08, 0.2, 0.28, 0.9)), (4, (0.48, 0.2, 0.68, 0.9)),
+            (5, (0.7, 0.2, 0.9, 0.9)),
+        ]
+    ])
+    layout = infer_layout([cashier, client])
+    window = next(zone for zone in layout.zones if zone.kind == "client_window")
+    assert max(point[0] for point in window.polygon) < 0.5
+    observations = derive_observations([cashier, client], layout,
+                                       {"p1": "cashier", "p2": "client"}, max_gap_sec=1.5)
+    departures = [item for item in observations if item.kind == "person_left_zone"
+                  and item.subjects == ["p2"] and item.zones == [window.zone_id]]
+    assert [(item.start_sec, item.end_sec) for item in departures] == [(3, 4)]
+
+
+def test_client_window_requires_repeated_observed_dwell_samples():
+    cashier = _track("p1", "person", (0.65, 0.2, 0.9, 0.9), end=8)
+    one_point = Track(track_id="p2", kind="person", first_sec=2, last_sec=2, samples=[
+        TrackSample(t=2, bbox=(0.1, 0.2, 0.3, 0.9), score=0.9),
+    ])
+    missing = Track(track_id="p3", kind="person", first_sec=2, last_sec=2, samples=[])
+    for client in (one_point, missing):
+        layout = infer_layout([cashier, client])
+        assert not any(zone.kind == "client_window" for zone in layout.zones)
+        observations = derive_observations([cashier, client], layout,
+                                           {"p1": "cashier", client.track_id: "client"})
+        assert not any(item.kind == "person_left_zone" and
+                       item.subjects == [client.track_id] for item in observations)
+
+
 def test_one_fps_samples_form_observation_when_cadence_is_configured():
     person = _track("p1", "person", (0.1, 0.2, 0.3, 0.9), end=3)
     visitor = _track("p2", "person", (0.7, 0.2, 0.9, 0.9), start=1, end=2)

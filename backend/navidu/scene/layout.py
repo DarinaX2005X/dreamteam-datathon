@@ -91,7 +91,10 @@ def infer_layout(tracks: Iterable[Track]) -> SceneLayout:
             explicit_clients = [track for track in visitors if track.role and
                                 track.role.value == "client"]
             visitor = max(explicit_clients or visitors, key=lambda item: len(item.samples))
-            window = _envelope(visitor, margin=0.04) if stable_relation else None
+            # The service position is the visitor's dominant dwell cluster, not
+            # the envelope of their full trajectory. A later, continuously
+            # observed excursion can therefore support a real departure fact.
+            window = _dwell_envelope(visitor) if stable_relation else None
             if window:
                 zones.append(Zone(zone_id="z-client_window-1", kind="client_window",
                                   polygon=window))
