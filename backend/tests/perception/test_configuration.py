@@ -78,6 +78,15 @@ def test_effective_precision_is_part_of_loaded_cache_and_quality_identity():
     assert validation_binding(snapshot, devices=fp16) != validation_binding(snapshot, devices=bf16)
 
 
+def test_structured_generation_requires_a_new_quality_profile(tmp_path, monkeypatch):
+    config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
+    monkeypatch.setenv("NAVIDU_SEMANTIC_STRUCTURED_OUTPUT", "0")
+    original = configuration_snapshot(config, [], require_semantic=True)
+    monkeypatch.setenv("NAVIDU_SEMANTIC_STRUCTURED_OUTPUT", "1")
+    constrained = configuration_snapshot(config, [], require_semantic=True)
+    assert validation_binding(original) != validation_binding(constrained)
+
+
 def test_opt_in_adapter_and_task_metadata_require_their_own_quality_profile(tmp_path, monkeypatch):
     config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
     monkeypatch.delenv("NAVIDU_PROPOSAL_ADAPTER", raising=False)

@@ -22,10 +22,12 @@ _OPTIONS = {
     "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": "512",
     "NAVIDU_SEMANTIC_MAX_PATCHES": "1",
     "NAVIDU_SEMANTIC_DTYPE": "auto",
+    "NAVIDU_SEMANTIC_STRUCTURED_OUTPUT": "0",
     "NAVIDU_PROPOSAL_ADAPTER": "",
 }
 _PACKAGES = ("numpy", "pillow", "av", "supervision", "onnxruntime", "onnxruntime-gpu",
-             "torch", "torchvision", "transformers", "safetensors", "tokenizers", "peft", "accelerate")
+             "torch", "torchvision", "transformers", "safetensors", "tokenizers", "peft", "accelerate",
+             "lm-format-enforcer")
 _IMPLEMENTATION = ("perception", "ingest", "scene", "facts", "rules", "evidence", "pipeline", "contracts")
 
 

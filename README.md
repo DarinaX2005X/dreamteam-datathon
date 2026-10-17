@@ -211,16 +211,24 @@ NAVIDU_DETECTOR_MODEL=rfdetr-nano-onnx
 NAVIDU_SEMANTIC_MODEL=internvl3_5-4b
 NAVIDU_SEMANTIC_DTYPE=bf16
 NAVIDU_REQUIRE_SEMANTIC=true
-NAVIDU_SEMANTIC_MAX_PATCHES=1
-NAVIDU_SEMANTIC_MAX_NEW_TOKENS=384
-NAVIDU_SEMANTIC_WINDOW_FRAMES=8
+NAVIDU_SEMANTIC_MAX_PATCHES=4
+NAVIDU_SEMANTIC_MAX_NEW_TOKENS=1024
+NAVIDU_SEMANTIC_WINDOW_FRAMES=16
 NAVIDU_SEMANTIC_FPS=1
+NAVIDU_SEMANTIC_STRUCTURED_OUTPUT=0
 NAVIDU_DETECTION_THRESHOLD=0.45
 NAVIDU_CPU_THREADS=6
 HF_HUB_OFFLINE=1
 TRANSFORMERS_OFFLINE=1
 HF_HUB_DISABLE_TELEMETRY=1
 ```
+
+Опциональный `NAVIDU_SEMANTIC_STRUCTURED_OUTPUT=1` требует установки
+`backend[structured]` (`lm-format-enforcer==0.11.3`). Он ограничивает JSON и
+допустимые индексы/ID участников; проверка реальных фактов остаётся обязательной.
+Этот режим пока не оценён на банковских видео и по умолчанию выключен. В окнах
+без распознанных участников сохраняется обычное декодирование: текущая версия
+библиотеки не обеспечивает ограничение массива до нуля элементов.
 
 Для нативного запуска оставьте `NAVIDU_DATA_DIR`, `NAVIDU_MODELS_DIR`,
 `NAVIDU_RULES_DIR` и `NAVIDU_WEB_DIST` незаданными: будут использованы каталоги

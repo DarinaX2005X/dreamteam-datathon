@@ -241,6 +241,9 @@ class TemporalVerifier:
         self.sample_fps = float(os.getenv("NAVIDU_SEMANTIC_FPS", "1"))
         self.max_new_tokens = int(os.getenv("NAVIDU_SEMANTIC_MAX_NEW_TOKENS", "512"))
         self.max_patches = int(os.getenv("NAVIDU_SEMANTIC_MAX_PATCHES", "1"))
+        self.structured_output = os.getenv("NAVIDU_SEMANTIC_STRUCTURED_OUTPUT", "0").lower() in {
+            "1", "true", "yes",
+        }
         if not 3 <= self.window_frames <= 16 or not 0.5 <= self.sample_fps <= 5 \
                 or not 64 <= self.max_new_tokens <= 2048 or not 1 <= self.max_patches <= 4:
             raise RuntimeError("INVALID_CONFIG: неверный размер временного окна или бюджет модели.")
@@ -256,6 +259,15 @@ class TemporalVerifier:
         if not path.is_relative_to(directory.resolve()):
             raise RuntimeError("MODEL_MANIFEST_INVALID: неверный каталог временной модели.")
         self.processor = AutoProcessor.from_pretrained(str(path), local_files_only=True, trust_remote_code=False)
+        self._structured_tokenizer_data = None
+        if self.structured_output:
+            try:
+                from lmformatenforcer.integrations.transformers import (
+                    build_token_enforcer_tokenizer_data,
+                )
+            except ImportError as error:
+                raise RuntimeError("INVALID_CONFIG: установите optional dependency structured.") from error
+            self._structured_tokenizer_data = build_token_enforcer_tokenizer_data(self.processor.tokenizer)
         self.model = InternVLForConditionalGeneration.from_pretrained(
             str(path), local_files_only=True, trust_remote_code=False,
             dtype=self.dtype, attn_implementation="sdpa",
@@ -309,6 +321,17 @@ class TemporalVerifier:
         image_options = {"crop_to_patches": self.max_patches > 1,
                          "min_patches": 1, "max_patches": self.max_patches}
         inputs = self.processor(images=images, text=prompt, return_tensors="pt", **image_options)
+        generation_options = {}
+        known_track_ids = sorted({track_id for people in frame_tracks for track_id in people})
+        if self.structured_output and known_track_ids:
+            from .structured_output import build_prefix, build_schema
+
+            generation_options["prefix_allowed_tokens_fn"] = build_prefix(
+                self.processor.tokenizer, build_schema(len(frames), known_track_ids),
+                tokenizer_data=self._structured_tokenizer_data,
+            )
+        # LMFE 0.11.3 cannot enforce maxItems=0. Windows without known people
+        # use the ordinary verifier and its unchanged post-validation.
         patch_counts = [self.processor.image_processor.get_number_of_image_patches(
             image.shape[0], image.shape[1], image_options) for image in images]
         if sum(patch_counts) != inputs["pixel_values"].shape[0]:
@@ -351,7 +374,7 @@ class TemporalVerifier:
                 attention_mask=inputs["attention_mask"], do_sample=False, num_beams=1,
                 max_new_tokens=self.max_new_tokens, use_cache=True, max_time=120.0,
                 pad_token_id=self.processor.tokenizer.eos_token_id,
-                stopping_criteria=StoppingCriteriaList([Cancelled()]))
+                stopping_criteria=StoppingCriteriaList([Cancelled()]), **generation_options)
         if should_stop():
             raise RuntimeError("ANALYSIS_CANCELLED")
         text = self.processor.decode(output[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True)
@@ -359,6 +382,7 @@ class TemporalVerifier:
             "generation_sec": round(time.perf_counter() - started - vision_sec, 4),
             "input_tokens": inputs["input_ids"].shape[1],
             "image_patches": sum(patch_counts),
+            "structured_output_active": bool(generation_options),
             "generated_tokens": output.shape[1] - inputs["input_ids"].shape[1],
             "max_new_tokens": self.max_new_tokens,
             "token_limit_reached": output.shape[1] - inputs["input_ids"].shape[1] >= self.max_new_tokens,
