@@ -277,7 +277,7 @@ def markdown_report(report: dict) -> str:
         lines.extend([f"Профиль машины: `{report.get('runtime_label') or 'не задан'}`. Hardware fingerprint: `{report.get('hardware_fingerprint', 'unknown')}`.",
                       f"ОС: `{hardware['os']} {hardware['os_release']}`. Архитектура: `{hardware['architecture']}`.",
                       f"CPU: `{hardware['cpu']}`. Логических CPU: `{hardware['logical_cpu_count']}`. RAM, байт: `{hardware['memory_bytes']}`.",
-                      f"Python: `{hardware['python_implementation']} {hardware['python_version']}`. CUDA runtime: `{hardware.get('cuda_runtime')}`."])
+                      f"Python: `{hardware['python_implementation']} {hardware['python_version']}`. CUDA runtime: `{hardware.get('cuda_runtime')}`. CUDA driver API: `{hardware.get('cuda_driver_api_version')}`."])
         for accelerator in hardware.get("accelerators", []):
             lines.append(f"GPU: `{accelerator['name']}`. Память, байт: `{accelerator['memory_bytes']}`. Compute capability: `{accelerator['compute_capability']}`.")
     else:

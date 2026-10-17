@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from eval.dataset import file_sha256
 from eval.run_pipeline import (
@@ -14,6 +15,7 @@ from eval.run_pipeline import (
     freeze_profile,
     guard_holdout,
     hardware_fingerprint,
+    hardware_snapshot,
     require_combined_report_scope,
     save_profile,
 )
@@ -21,6 +23,20 @@ from eval.test_metrics import FINGERPRINT, prediction, source
 
 
 class CacheTests(unittest.TestCase):
+    def test_cpu_metadata_does_not_touch_cuda_and_onnx_metadata_needs_no_torch(self) -> None:
+        with patch.dict("sys.modules", {"torch": None}), patch("eval.run_pipeline.cuda_driver_metadata") as probe:
+            cpu = hardware_snapshot("cpu")
+            self.assertEqual(cpu["accelerators"], [])
+            probe.assert_not_called()
+            accelerator = {"type": "cuda", "index": 0, "name": "test-only-gpu",
+                           "memory_bytes": 1024, "compute_capability": "0.0"}
+            probe.return_value = (accelerator, 12000)
+            onnx = hardware_snapshot("cuda")
+            self.assertEqual(onnx["accelerators"], [accelerator])
+            self.assertIsNone(onnx["cuda_runtime"])
+            self.assertEqual(onnx["cuda_driver_api_version"], 12000)
+            probe.assert_called_once_with()
+
     def test_cache_profile_rejects_different_or_unknown_hardware(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "profile.json"

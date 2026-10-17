@@ -5,18 +5,22 @@
   "requires_visible": ["cashier", "whole"],
   "requires_capabilities": ["counting_action", "handover_direction", "continuous_other_positions_visibility"],
   "anchor": {"any": [
-    {"observation": {"kind": "counting_motion"}},
-    {"observation": {"kind": "cash_sorting"}},
-    {"observation": {"kind": "cash_packing"}}
+    {"observation": {"kind": "counting_motion", "actor_role": "cashier"}},
+    {"observation": {"kind": "cash_sorting", "actor_role": "cashier"}},
+    {"observation": {"kind": "cash_packing", "actor_role": "cashier"}}
   ]},
   "condition": {"all": [
     {"absent": {"predicate": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "within_sec": 60}},
     {"absent": {"predicate": {"handover": {"actor_role": "cashier", "recipient_role": "client"}}, "within_sec": 60}},
-    {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "controller"}}}}
+    {"absent": {"predicate": {"any": [
+      {"observation": {"kind": "person_in_zone", "role": "controller"}},
+      {"observation": {"kind": "person_in_zone", "role": "unknown"}}
+    ]}}}
   ]},
   "timecode_policy": "onset",
-  "what_seen": "Пересчёт, сортировка или упаковка идут вне видимой операции приёма или выдачи клиенту; контролёр не виден.",
-  "why_may_violate": "Внутренние операции пересчёта, сортировки и упаковки выполняются в присутствии контролирующего работника.",
-  "not_claimed": "Должность присутствующего человека и невидимые участки помещения не устанавливаются.",
-  "strength": "strong"
+  "what_seen": "Кассир выполняет пересчёт, сортировку или упаковку вне видимой операции с клиентом; другой работник в наблюдаемой области не установлен.",
+  "why_may_violate": "Это может относиться к внутренней операции, для которой предусмотрено присутствие контролирующего работника.",
+  "not_claimed": "Назначение операции, должность другого человека и невидимые участки помещения не устанавливаются.",
+  "strength": "moderate",
+  "enabled": false
 }

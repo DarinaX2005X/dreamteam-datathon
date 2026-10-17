@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 from navidu.contracts.domain import Coverage, Observation
@@ -159,3 +160,31 @@ def test_p42_excludes_client_receipt_and_unknown_is_not_outsider():
     findings, _ = evaluate(observations, [], roles, CATALOG, caps)
     assert not any(item.rule.rule_id == "V-COUNT-NO-CONTROLLER" for item in findings)
     assert not any(item.rule.rule_id == "V-OUTSIDER" for item in findings)
+
+
+def test_p42_visible_unknown_worker_blocks_controller_absence():
+    observations = [
+        obs(1, "cash_packing", 10, 12, subjects=("p1", "o1"), actor="p1"),
+        obs(2, "person_in_zone", 10, 12, subjects=("p2",), zones=("z-post-2",)),
+    ]
+    roles = {"p1": "cashier", "p2": "unknown", "o1": "unknown"}
+    caps = {"counting_action": True, "handover_direction": True,
+            "continuous_other_positions_visibility": True}
+    rule = replace(next(item for item in CATALOG
+                        if item.rule_id == "V-COUNT-NO-CONTROLLER"), enabled=True)
+    findings, _ = evaluate(observations, [], roles, [rule], caps)
+    assert not any(item.rule.rule_id == "V-COUNT-NO-CONTROLLER" for item in findings)
+
+    findings, _ = evaluate(observations[:1], [], roles, [rule], caps)
+    assert any(item.rule.rule_id == "V-COUNT-NO-CONTROLLER" for item in findings)
+
+    ungrounded = [obs(3, "cash_packing", 10, 12, subjects=("p1", "o1"))]
+    findings, _ = evaluate(ungrounded, [], roles, [rule], caps)
+    assert not findings
+
+
+def test_p42_stays_not_checkable_until_grounded_context_producer_is_enabled():
+    findings, statuses = evaluate([], [], {}, CATALOG, {})
+    assert not any(item.rule.rule_id == "V-COUNT-NO-CONTROLLER" for item in findings)
+    status = next(item for item in statuses if item.rule_id == "V-COUNT-NO-CONTROLLER")
+    assert status.status == "not_checkable"

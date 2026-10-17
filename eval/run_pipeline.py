@@ -97,11 +97,41 @@ def failure_code(error: BaseException) -> str:
     return match.group(1) if match else type(error).__name__
 
 
+def cuda_driver_metadata() -> tuple[dict, int]:
+    """Describe ONNX Runtime's default CUDA ordinal without loading PyTorch.
+
+    The detector selects CUDAExecutionProvider without a device_id override, so
+    its device is ordinal 0 in the process's visible CUDA devices. Driver queries
+    allocate no model tensors and do not run inference.
+    """
+    import ctypes
+
+    try:
+        driver = ctypes.WinDLL("nvcuda.dll") if os.name == "nt" else ctypes.CDLL("libcuda.so.1")
+
+        def checked(name: str, *arguments) -> None:
+            if getattr(driver, name)(*arguments) != 0:
+                raise RuntimeError("HARDWARE_METADATA_UNAVAILABLE: CUDA driver metadata query failed")
+
+        device, major, minor, driver_version = (ctypes.c_int() for _ in range(4))
+        name, memory = ctypes.create_string_buffer(256), ctypes.c_size_t()
+        checked("cuInit", 0)
+        checked("cuDeviceGet", ctypes.byref(device), 0)
+        checked("cuDeviceGetName", name, len(name), device)
+        checked("cuDeviceTotalMem_v2", ctypes.byref(memory), device)
+        checked("cuDeviceComputeCapability", ctypes.byref(major), ctypes.byref(minor), device)
+        checked("cuDriverGetVersion", ctypes.byref(driver_version))
+        return {"type": "cuda", "index": 0, "name": name.value.decode("utf-8"),
+                "memory_bytes": memory.value, "compute_capability": f"{major.value}.{minor.value}"}, driver_version.value
+    except (OSError, AttributeError, UnicodeDecodeError) as error:
+        raise RuntimeError("HARDWARE_METADATA_UNAVAILABLE: CUDA driver metadata is unavailable") from error
+
+
 def hardware_snapshot(runtime_device: str) -> dict:
     """Public machine characteristics only; no hostname, paths or user identity.
 
-    Called after the pipeline has prepared its runtime. Inspect only an already
-    loaded torch module, and never initialize CUDA merely to describe a CPU run.
+    Called after the pipeline has prepared its runtime. Prefer an already loaded
+    torch module, and never initialize CUDA merely to describe a CPU run.
     """
     processor = platform.processor() or platform.machine()
     if sys.platform.startswith("linux"):
@@ -120,23 +150,27 @@ def hardware_snapshot(runtime_device: str) -> dict:
     except ImportError:
         pass
     accelerators = []
+    cuda_runtime, cuda_driver_api_version = None, None
     torch = sys.modules.get("torch")
     if "cuda" in runtime_device:
-        if torch is None or not torch.cuda.is_initialized():
-            raise RuntimeError("HARDWARE_METADATA_UNAVAILABLE: prepared CUDA runtime is unavailable")
-        # The runtime currently uses one CUDA device. Record the actual selected
-        # device rather than every unrelated adapter visible on the machine.
-        device = torch.cuda.current_device()
-        properties = torch.cuda.get_device_properties(device)
-        accelerators.append({"type": "cuda", "index": device, "name": properties.name,
-                             "memory_bytes": properties.total_memory,
-                             "compute_capability": f"{properties.major}.{properties.minor}"})
+        if torch is not None and torch.cuda.is_initialized():
+            # The runtime currently uses one CUDA device. Record the actual
+            # selected device, not unrelated adapters visible on the machine.
+            device = torch.cuda.current_device()
+            properties = torch.cuda.get_device_properties(device)
+            accelerators.append({"type": "cuda", "index": device, "name": properties.name,
+                                 "memory_bytes": properties.total_memory,
+                                 "compute_capability": f"{properties.major}.{properties.minor}"})
+            cuda_runtime = torch.version.cuda
+        else:
+            accelerator, cuda_driver_api_version = cuda_driver_metadata()
+            accelerators.append(accelerator)
     return {"schema_version": 1, "os": platform.system(), "os_release": platform.release(),
             "architecture": platform.machine(), "cpu": processor,
             "logical_cpu_count": os.cpu_count(), "memory_bytes": memory_bytes,
             "python_implementation": platform.python_implementation(),
             "python_version": platform.python_version(),
-            "cuda_runtime": torch.version.cuda if accelerators else None,
+            "cuda_runtime": cuda_runtime, "cuda_driver_api_version": cuda_driver_api_version,
             "accelerators": accelerators}
 
 

@@ -18,10 +18,10 @@ function run(command, args, cwd = root) {
 
 const commands = {
   lint() {
-    run(lintPython, ['-m', 'ruff', 'check', '--config', 'backend/pyproject.toml', 'backend/navidu', 'backend/tests', 'scripts', 'deploy', 'eval', 'research/spike/tests']);
+    run(lintPython, ['-m', 'ruff', 'check', '--config', 'backend/pyproject.toml', 'backend/navidu', 'backend/tests', 'scripts', 'deploy', 'eval', 'training', 'research/spike/tests']);
   },
   domain() {
-    run(python, ['-m', 'pytest', 'backend/tests', 'deploy/tests', 'eval', 'research/spike/tests', '-q']);
+    run(python, ['-m', 'pytest', 'backend/tests', 'deploy/tests', 'eval', 'training/tests', 'research/spike/tests', '-q']);
   },
   sources() {
     run(python, ['-X', 'utf8', 'research/norms/verify_sources.py', '--schema']);
