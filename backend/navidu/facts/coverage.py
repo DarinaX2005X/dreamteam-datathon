@@ -22,7 +22,7 @@ def derive_coverage(
     if not values:
         return [Coverage(start_sec=0, end_sec=duration_sec, scope="whole", reason="out_of_frame")]
     result: list[Coverage] = []
-    gap_limit = max(expected_period_sec * 2.5, 0.5)
+    gap_limit = max(expected_period_sec * 1.5, 0.5)
     if values[0] > gap_limit:
         result.append(Coverage(start_sec=0, end_sec=values[0], scope="whole",
                                reason="out_of_frame"))

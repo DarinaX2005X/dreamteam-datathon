@@ -48,6 +48,11 @@
       "exclusiveMinimum": 0,
       "title": "Max Duration Sec",
       "type": "number"
+    },
+    "diagnostic_only": {
+      "default": false,
+      "title": "Diagnostic Only",
+      "type": "boolean"
     }
   },
   "required": [

@@ -1,7 +1,6 @@
 from dataclasses import replace
 
 from fastapi.testclient import TestClient
-
 from navidu.contracts.api_v1 import JobDone
 from navidu.contracts.ui_api import CheckDetailResponse, HealthResponse
 from navidu.service.app import create_app
@@ -42,7 +41,8 @@ def test_upload_validation_and_cleanup(client, app):
 def test_real_file_limit_without_allocating_300mb(settings, pipeline):
     settings = replace(settings, max_upload_mb=0.001)
     app = create_app(settings, pipeline=pipeline, probe=fake_probe)
-    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1")
+    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1",
+                                 analysis_ready=True, analysis_mode="validated")
     with TestClient(app) as client:
         assert upload(client, payload=b"x" * 2048).status_code == 413
         assert not list(settings.checks_dir.iterdir())
@@ -52,7 +52,8 @@ def test_real_file_limit_without_allocating_300mb(settings, pipeline):
 def test_chunked_upload_limit(settings, pipeline):
     settings = replace(settings, max_upload_mb=0.001)
     app = create_app(settings, pipeline=pipeline, probe=fake_probe)
-    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1")
+    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1",
+                                 analysis_ready=True, analysis_mode="validated")
 
     def chunks():
         yield b'--test\r\nContent-Disposition: form-data; name="file"; filename="video.mov"\r\nContent-Type: video/quicktime\r\n\r\n'
@@ -180,8 +181,14 @@ def test_retention_video_then_results(client, app, done):
     store = app.state.store
     check_id = done["id"]
     finished = store.get(check_id)["finished_at"]
+    assert done["video_available"] is True and done["video_expires_at"] is not None
     cleanup(store, now=finished + 25 * 3600)
     assert client.get(f"/api/ui/checks/{check_id}/video").status_code == 410
+    detail = client.get(f"/api/ui/checks/{check_id}").json()["check"]
+    assert detail["video_available"] is False and detail["video_expires_at"] == done["video_expires_at"]
+    assert client.post(f"/api/ui/checks/{check_id}/reevaluate", json={
+        "base_revision": 1, "role_overrides": [], "zone_overrides": [], "dry_run": True,
+    }).status_code == 410
     frame = done["finding_set"]["findings"][0]["evidence"][0]["frame_id"]
     assert client.get(f"/api/ui/checks/{check_id}/frames/{frame}.jpg").status_code == 200
     cleanup(store, now=finished + 8 * 86400)
@@ -191,7 +198,8 @@ def test_retention_video_then_results(client, app, done):
 def test_queue_limits_are_enforced(settings, pipeline):
     settings = replace(settings, queue_max=2, ui_max_active_per_ip=1)
     app = create_app(settings, pipeline=pipeline, probe=fake_probe)
-    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1")
+    app.state.store.worker_state("test", model_status="ready", device="test", limitations=[], pipeline_version="test-v1",
+                                 analysis_ready=True, analysis_mode="validated")
     with TestClient(app) as client:
         assert upload(client).status_code == 201
         response = upload(client)
@@ -247,8 +255,20 @@ def test_cache_clones_automatic_revision_without_review_context(client, app, don
 
 
 def test_cache_requires_matching_pipeline_version(client, app, done, pipeline):
-    app.state.store.worker_state("test-new", model_status="ready", device="test", limitations=[], pipeline_version="test-v2")
+    pipeline.version = "test-v2"
+    assert app.state.test_worker.prepare()
     duplicate = upload(client).json()["check"]["id"]
     assert app.state.test_worker.run_once()
     assert pipeline.calls == 2
     assert client.get(f"/api/ui/checks/{duplicate}").json()["check"]["analysis_origin"] == "local"
+
+
+def test_queued_job_binds_prepared_runtime_before_cache_lookup(client, app, done, pipeline):
+    duplicate = upload(client).json()["check"]["id"]
+    assert app.state.store.get(duplicate)["pipeline_version"] == "test-v1"
+    pipeline.version = "test-v2"
+    assert app.state.test_worker.prepare()
+    assert app.state.test_worker.run_once()
+    assert pipeline.calls == 2
+    assert app.state.store.get(duplicate)["pipeline_version"] == "test-v2"
+    assert app.state.store.artifacts(duplicate).run.pipeline_version == "test-v2"

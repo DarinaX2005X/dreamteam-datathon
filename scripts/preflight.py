@@ -130,20 +130,41 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
             platform.machine().lower() in {"amd64", "x86_64"},
             platform.machine(),
         ),
-        check("python", sys.version_info >= (3, 11), platform.python_version()),
-        check(
-            "ffmpeg",
-            shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None,
-            f"ffmpeg={shutil.which('ffmpeg')}, ffprobe={shutil.which('ffprobe')}",
-        ),
-        check(
-            "backend",
-            importlib.util.find_spec("navidu") is not None,
-            "navidu importable"
-            if importlib.util.find_spec("navidu")
-            else "install backend with service extras",
-        ),
+        check("python", sys.version_info >= (3, 10), platform.python_version()),
     ]
+    if args.host_only:
+        docker_ok, docker_text = command_output(
+            ["docker", "version", "--format", "{{.Server.Version}}"]
+        )
+        compose_ok, compose_text = command_output(
+            ["docker", "compose", "version", "--short"]
+        )
+        checks.extend(
+            [
+                check("docker", docker_ok, docker_text or "Docker Engine unavailable"),
+                check(
+                    "compose", compose_ok, compose_text or "Docker Compose unavailable"
+                ),
+            ]
+        )
+    else:
+        checks.extend(
+            [
+                check(
+                    "ffmpeg",
+                    shutil.which("ffmpeg") is not None
+                    and shutil.which("ffprobe") is not None,
+                    f"ffmpeg={shutil.which('ffmpeg')}, ffprobe={shutil.which('ffprobe')}",
+                ),
+                check(
+                    "backend",
+                    importlib.util.find_spec("navidu") is not None,
+                    "navidu importable"
+                    if importlib.util.find_spec("navidu")
+                    else "install backend with service/runtime extras",
+                ),
+            ]
+        )
     total_memory = memory_gib()
     checks.append(
         check(
@@ -186,7 +207,11 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
             "gpu", gpu_ok, gpu_text or "nvidia-smi unavailable", required=gpu_required
         )
     )
-    if args.device == "cuda" and importlib.util.find_spec("torch"):
+    if (
+        not args.host_only
+        and args.device == "cuda"
+        and importlib.util.find_spec("torch")
+    ):
         try:
             import torch
 
@@ -195,7 +220,7 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
         except (ImportError, OSError, RuntimeError) as exc:
             cuda_ok, detail = False, repr(exc)
         checks.append(check("torch_cuda", cuda_ok, detail))
-    if args.device == "cuda":
+    if not args.host_only and args.device == "cuda":
         if importlib.util.find_spec("onnxruntime"):
             try:
                 import onnxruntime
@@ -211,6 +236,9 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
             ort_ok, ort_detail = False, "onnxruntime-gpu is not installed"
         checks.append(check("onnxruntime_cuda", ort_ok, ort_detail))
 
+    if args.host_only:
+        return checks
+
     manifest, manifest_detail = load_manifest(models_dir)
     checks.append(
         check(
@@ -221,6 +249,31 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
         )
     )
     if manifest is not None:
+        configured_ids = [os.getenv("NAVIDU_DETECTOR_MODEL", "rfdetr-nano-onnx")]
+        if os.getenv("NAVIDU_REQUIRE_SEMANTIC", "1").lower() not in {
+            "0",
+            "false",
+            "no",
+        }:
+            configured_ids.append(os.getenv("NAVIDU_SEMANTIC_MODEL", "internvl3_5-1b"))
+        available_ids = {
+            model.get("id")
+            for model in manifest.get("models", [])
+            if isinstance(model, dict) and isinstance(model.get("id"), str)
+        }
+        missing_ids = [
+            model_id for model_id in configured_ids if model_id not in available_ids
+        ]
+        checks.append(
+            check(
+                "configured_models",
+                not missing_ids,
+                "configured model IDs present"
+                if not missing_ids
+                else "missing manifest IDs: " + ", ".join(missing_ids),
+                required=args.require_models,
+            )
+        )
         listed = manifest_files(manifest)
         missing = [
             str(path) for path, _, _ in listed if not (models_dir / path).is_file()
@@ -270,6 +323,11 @@ def main() -> int:
     parser.add_argument("--min-disk-gib", type=float, default=10)
     parser.add_argument("--min-vram-gib", type=float, default=0)
     parser.add_argument("--require-models", action="store_true")
+    parser.add_argument(
+        "--host-only",
+        action="store_true",
+        help="Check the fresh Docker host; skip in-image backend, FFmpeg, and model checks.",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     checks = run_checks(args)

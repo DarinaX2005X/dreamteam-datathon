@@ -20,6 +20,7 @@ from .config import Settings
 from .exceptions import ServiceError
 from .retention import cleanup
 from .store import Store
+from .structured_log import log_exception
 from .uploads import probe_video
 
 logger = logging.getLogger("lado.http")
@@ -105,8 +106,8 @@ def create_app(settings: Settings | None = None, *, pipeline=None, probe=probe_v
             while not stopped.is_set():
                 try:
                     cleanup(store)
-                except Exception:
-                    logger.exception("Retention cleanup failed")
+                except Exception as exc:
+                    log_exception(logger, exc, code="RETENTION_FAILED", phase="retention")
                 stopped.wait(300)
 
         maintenance = threading.Thread(target=maintain_storage, name="retention", daemon=True)
@@ -143,7 +144,7 @@ def create_app(settings: Settings | None = None, *, pipeline=None, probe=probe_v
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception):
-        logger.exception(json.dumps({"request_id": request.state.request_id, "error_type": type(exc).__name__}))
+        log_exception(logger, exc, code="INTERNAL", request_id=request.state.request_id)
         return error_response(ServiceError(500, "INTERNAL", "Не удалось выполнить действие. Повторите попытку."),
                               request.state.request_id)
 

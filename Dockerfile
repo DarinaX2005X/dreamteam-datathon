@@ -5,8 +5,12 @@ COPY package.json package-lock.json ./
 COPY web/package.json web/package.json
 COPY landing/package.json landing/package.json
 RUN npm ci
+# The lock was generated on Windows; npm omits the Linux Rollup optional binary metadata.
+RUN npm install --no-save --ignore-scripts @rollup/rollup-linux-x64-gnu@4.64.7
 COPY web web
 COPY landing landing
+COPY identity identity
+COPY contracts contracts
 RUN npm run build
 
 # PyTorch 2.6 CUDA 12.4 runtime is pinned to the x86_64 manifest verified for the L40S target.
@@ -35,8 +39,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY backend /tmp/backend
-COPY deploy/requirements-common.txt deploy/requirements-gpu.txt /tmp/deploy/
-RUN python -m pip install --no-cache-dir -r /tmp/deploy/requirements-gpu.txt '/tmp/backend[service]' \
+RUN python -m pip install --no-cache-dir '/tmp/backend[service,runtime,cuda]' \
     && rm -rf /tmp/backend
 COPY rules rules
 COPY contracts contracts

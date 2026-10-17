@@ -7,8 +7,9 @@ x-runtime: &runtime
     dockerfile: Dockerfile
   env_file:
     - path: .env
-      required: true
+      required: false
   environment:
+    NAVIDU_ENV: production
     NAVIDU_HOST: 0.0.0.0
     NAVIDU_PORT: 8000
     NAVIDU_DATA_DIR: /app/data
@@ -40,7 +41,7 @@ services:
 
   worker:
     <<: *runtime
-    command: ["python", "-m", "navidu.service.worker"]
+    command: ["sh", "-c", "python scripts/preflight.py --device $${NAVIDU_DEVICE:-auto} --require-models && exec python -m navidu.service.worker"]
     healthcheck:
       disable: true
 

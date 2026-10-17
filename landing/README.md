@@ -6,10 +6,10 @@
 import { Landing, type LandingRule } from "@lado/landing";
 import "@lado/landing/styles.css";
 
-<Landing dashboardHref="/app" rules={rules} onNavigate={handleNavigate} />
+<Landing dashboardHref="/app" normsHref="/app/norms" rules={rules} onNavigate={handleNavigate} />
 ```
 
-`onNavigate` получает целевой `href` и исходное событие ссылки. Если обработчик не передан или не вызывает `preventDefault()`, работает обычный переход браузера. `rules` соответствует контракту `LandingRule { ruleId, typeLabel, visibleSign, normShort }`.
+`normsHref` необязателен и по умолчанию равен `/app/norms`. `onNavigate` получает целевой `href` и исходное событие ссылки. Если обработчик не передан или не вызывает `preventDefault()`, работает обычный переход браузера. `rules` соответствует контракту `LandingRule { ruleId, typeLabel, visibleSign, normShort }`.
 
 ```powershell
 npm --workspace landing run dev

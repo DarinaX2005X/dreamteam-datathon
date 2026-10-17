@@ -7,7 +7,7 @@ name = "lado-local"
 version = "0.1.0"
 description = "Local video evidence review for cash operations"
 requires-python = ">=3.10"
-dependencies = ["pydantic>=2.10,<3"]
+dependencies = ["pydantic==2.14.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "ruff>=0.11,<1", "httpx>=0.28,<1", "Pillow>=11,<14"]
@@ -20,6 +20,9 @@ runtime = [
   "torch==2.6.0",
   "torchvision==0.21.0",
   "transformers==4.57.6",
+  "safetensors==0.5.3",
+  "tokenizers==0.22.2",
+  "huggingface-hub==0.36.2",
 ]
 cpu = ["onnxruntime==1.23.2"]
 cuda = ["onnxruntime-gpu==1.23.2"]

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type {
   DecisionValue,
   Finding,
@@ -22,15 +22,17 @@ import {
   FactStrip,
   InlineNotice,
   ModalSurface,
-  PhaseList,
   SegmentedChoice,
   VideoStage,
 } from "../../ui";
 import { errors, formatTimecode } from "../../i18n/ru";
 import {
   decisionPayload,
+  buildReevaluateRequest,
+  evidenceSource,
   mergeRoleOverrides,
   type DecisionDraft,
+  type PreviewFrames,
 } from "./domain";
 import { phaseLabels, roleLabels } from "./strings";
 
@@ -52,13 +54,21 @@ export function CheckPage() {
   const [role, setRole] = useState<Role>("unknown");
   const [diff, setDiff] = useState<string[]>([]);
   const [frame, setFrame] = useState<{ finding: Finding; index: number }>();
+  const [frameOverlay, setFrameOverlay] = useState(true);
   const [zoneDraft, setZoneDraft] = useState<Zone[] | null>(null);
   const [pollGeneration, setPollGeneration] = useState(0);
+  const [previewFrames, setPreviewFrames] = useState<PreviewFrames>({});
+  const [previewActive, setPreviewActive] = useState(false);
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   const selectedRef = useRef("");
   const pollAbortRef = useRef<AbortController>();
+  const persistedCheckRef = useRef<UiCheck>();
 
   const applyCheck = useCallback((next: UiCheck) => {
+    persistedCheckRef.current = next;
     setCheck(next);
+    setPreviewFrames({});
+    setPreviewActive(false);
     setLoadError("");
     setPollRetry(undefined);
     const findings = next.finding_set?.findings ?? [];
@@ -102,10 +112,15 @@ export function CheckPage() {
     setCheck(undefined);
     setSelected("");
     selectedRef.current = "";
+    setVideoLoadFailed(false);
   }, [id]);
 
   const findingSet = check?.finding_set;
   const duration = check?.video?.duration_sec ?? 1;
+  const evidenceRevision = previewActive
+    ? (persistedCheckRef.current?.finding_set?.revision ?? 1)
+    : (findingSet?.revision ?? 1);
+  const videoAvailable = (check?.video_available ?? true) && !videoLoadFailed;
   const reviewedVerdict = useMemo(
     () =>
       findingSet?.findings.some((item) => item.decision?.value !== "rejected")
@@ -220,12 +235,16 @@ export function CheckPage() {
         track_id: roleTrack,
         role,
       });
-      const response = await api.reevaluate(id, {
-        base_revision: findingSet.revision,
-        role_overrides: roleOverrides,
-        zone_overrides: check.layout?.zones ?? [],
-        dry_run: check.is_example ?? false,
-      });
+      const response = await api.reevaluate(
+        id,
+        buildReevaluateRequest({
+          persistedRevision: persistedCheckRef.current?.finding_set?.revision,
+          displayedRevision: findingSet.revision,
+          roleOverrides,
+          zoneOverrides: check.layout?.zones ?? [],
+          dryRun: Boolean(check.is_example),
+        }),
+      );
       setCheck(
         (current) =>
           current && {
@@ -238,6 +257,9 @@ export function CheckPage() {
             finding_set: normalizeFindingSet(response.finding_set),
           },
       );
+      setPreviewFrames(response.preview_frames ?? {});
+      setPreviewActive(Boolean(check.is_example));
+      selectAvailableFinding(response.finding_set.findings ?? []);
       setDiff(diffMessages(response.diff));
       setRoleTrack("");
       if (!check.is_example) await refresh();
@@ -253,12 +275,16 @@ export function CheckPage() {
     if (!findingSet || !zoneDraft || !check) return;
     setSaving("zones");
     try {
-      const response = await api.reevaluate(id, {
-        base_revision: findingSet.revision,
-        role_overrides: findingSet.role_overrides,
-        zone_overrides: zoneDraft,
-        dry_run: check.is_example ?? false,
-      });
+      const response = await api.reevaluate(
+        id,
+        buildReevaluateRequest({
+          persistedRevision: persistedCheckRef.current?.finding_set?.revision,
+          displayedRevision: findingSet.revision,
+          roleOverrides: findingSet.role_overrides,
+          zoneOverrides: zoneDraft,
+          dryRun: Boolean(check.is_example),
+        }),
+      );
       setCheck(
         (current) =>
           current && {
@@ -269,6 +295,9 @@ export function CheckPage() {
             finding_set: normalizeFindingSet(response.finding_set),
           },
       );
+      setPreviewFrames(response.preview_frames ?? {});
+      setPreviewActive(Boolean(check.is_example));
+      selectAvailableFinding(response.finding_set.findings ?? []);
       setDiff(diffMessages(response.diff));
       setZoneDraft(null);
       if (!check.is_example) await refresh();
@@ -278,6 +307,25 @@ export function CheckPage() {
     } finally {
       setSaving("");
     }
+  };
+
+  const selectAvailableFinding = (findings: Finding[]) => {
+    if (findings.some((item) => item.finding_id === selectedRef.current))
+      return;
+    const first = findings[0];
+    selectedRef.current = first?.finding_id ?? "";
+    setSelected(selectedRef.current);
+    if (first) seek(first.timecode_sec);
+  };
+
+  const resetExamplePreview = () => {
+    const persisted = persistedCheckRef.current;
+    if (!persisted) return;
+    setCheck(persisted);
+    setPreviewFrames({});
+    setPreviewActive(false);
+    setDiff([]);
+    selectAvailableFinding(persisted.finding_set?.findings ?? []);
   };
 
   if (!check) {
@@ -292,7 +340,11 @@ export function CheckPage() {
       </div>
     );
   }
-  if (["queued", "processing", "failed", "cancelled"].includes(check.status)) {
+  const resultReady =
+    check.status === "done" &&
+    check.progress.phase === "done" &&
+    Boolean(check.finding_set);
+  if (!resultReady) {
     return (
       <Processing
         check={check}
@@ -322,34 +374,36 @@ export function CheckPage() {
         </InlineNotice>
       )}
       {loadError && <InlineNotice tone="danger">{loadError}</InlineNotice>}
+      {check.video_available === false && (
+        <InlineNotice tone="warning">
+          Исходная запись удалена по сроку хранения. Кадры-доказательства,
+          результат и решения проверяющего сохранены.
+        </InlineNotice>
+      )}
       <header
         className={`verdict ${reviewedVerdict === "violation" ? "is-alert" : "is-clear"}`}
       >
         <div>
           <p>
-            {check.file_name} · {formatTimecode(duration)} ·{" "}
-            {check.analysis_origin === "cache"
-              ? "повторно использован локальный результат"
-              : "локальный анализ"}
+            {check.file_name} · {formatTimecode(duration)}
           </p>
           <h1>
             {reviewedVerdict === "violation"
               ? "Обнаружены признаки возможных нарушений"
               : "Нарушение не обнаружено"}
           </h1>
-          <small>
-            Текущая ревизия {findingSet?.revision}; основание:{" "}
-            {findingSet?.basis === "reviewer"
-              ? "уточнения проверяющего"
-              : "автоматический анализ"}
-            .
-            {check.automatic_verdict &&
-              ` Автоматический вердикт: ${check.automatic_verdict === "violation" ? "обнаружены признаки" : "нарушение не обнаружено"}.`}
-          </small>
+          {findingSet?.basis === "reviewer" && (
+            <small>Результат уточнён проверяющим.</small>
+          )}
         </div>
         <Link className="button button--quiet" to={`/app/checks/${id}/sheet`}>
           Лист проверки
         </Link>
+        {check.is_example && previewActive && (
+          <Button variant="quiet" onClick={resetExamplePreview}>
+            Сбросить предпросмотр
+          </Button>
+        )}
       </header>
       {diff.length > 0 && (
         <InlineNotice tone="success">{diff.join(". ")}.</InlineNotice>
@@ -362,18 +416,30 @@ export function CheckPage() {
             fps={check.video?.fps_nominal}
             width={check.video?.width}
             height={check.video?.height}
+            available={check.video_available ?? true}
             tracks={check.tracks}
             time={time}
             seekToken={seekToken}
             onTime={setTime}
-            onTrack={(trackId) => {
-              setRoleTrack(trackId);
-              setRole(
-                check.tracks.find((item) => item.track_id === trackId)?.role
-                  ?.value ?? "unknown",
-              );
-            }}
+            onAvailabilityChange={(available) => setVideoLoadFailed(!available)}
+            onTrack={
+              videoAvailable
+                ? (trackId) => {
+                    setRoleTrack(trackId);
+                    setRole(
+                      check.tracks.find((item) => item.track_id === trackId)
+                        ?.role?.value ?? "unknown",
+                    );
+                  }
+                : undefined
+            }
           />
+          {videoAvailable && check.video_expires_at && (
+            <p className="coverage-note">
+              Исходная запись доступна до{" "}
+              {new Date(check.video_expires_at).toLocaleString("ru")}.
+            </p>
+          )}
           <FactStrip
             duration={duration}
             observations={check.observations}
@@ -406,6 +472,8 @@ export function CheckPage() {
               <FindingCard
                 key={finding.finding_id}
                 checkId={id}
+                revision={evidenceRevision}
+                previewFrames={previewFrames}
                 finding={finding}
                 index={index}
                 selected={selected === finding.finding_id}
@@ -417,6 +485,7 @@ export function CheckPage() {
                 onSave={(change) => void saveDecision(finding, change)}
                 onFrame={(frameIndex) => {
                   seek(finding.evidence[frameIndex].timestamp_sec);
+                  setFrameOverlay(true);
                   setFrame({ finding, index: frameIndex });
                 }}
               />
@@ -451,6 +520,10 @@ export function CheckPage() {
               .map((item) => (
                 <button
                   key={item.track_id}
+                  disabled={!videoAvailable}
+                  title={
+                    !videoAvailable ? "Исходная запись недоступна" : undefined
+                  }
                   onClick={() => {
                     setRoleTrack(item.track_id);
                     setRole(item.role?.value ?? "unknown");
@@ -464,6 +537,8 @@ export function CheckPage() {
           {(check.layout?.zones ?? []).length > 0 && (
             <Button
               variant="quiet"
+              disabled={!videoAvailable}
+              title={!videoAvailable ? "Исходная запись недоступна" : undefined}
               onClick={() =>
                 setZoneDraft(cloneZones(check.layout?.zones ?? []))
               }
@@ -535,11 +610,37 @@ export function CheckPage() {
         onClose={() => setFrame(undefined)}
       >
         {frame && (
-          <img
-            className="dialog-image"
-            src={api.frame(id, frame.finding.evidence[frame.index].frame_id)}
-            alt="Кадр-доказательство с разметкой"
-          />
+          <>
+            <div className="modal-body action-row">
+              <Button
+                variant={frameOverlay ? "primary" : "quiet"}
+                onClick={() => setFrameOverlay(true)}
+              >
+                С разметкой
+              </Button>
+              <Button
+                variant={!frameOverlay ? "primary" : "quiet"}
+                onClick={() => setFrameOverlay(false)}
+              >
+                Без разметки
+              </Button>
+            </div>
+            <img
+              className="dialog-image"
+              src={evidenceSource(
+                id,
+                frame.finding.evidence[frame.index].frame_id,
+                evidenceRevision,
+                previewFrames,
+                frameOverlay,
+              )}
+              alt={
+                frameOverlay
+                  ? "Кадр-доказательство с разметкой"
+                  : "Кадр-доказательство без разметки"
+              }
+            />
+          </>
         )}
       </Dialog>
     </div>
@@ -548,6 +649,8 @@ export function CheckPage() {
 
 function FindingCard({
   checkId,
+  revision,
+  previewFrames,
   finding,
   index,
   selected,
@@ -560,6 +663,8 @@ function FindingCard({
   onFrame,
 }: {
   checkId: string;
+  revision: number;
+  previewFrames: PreviewFrames;
   finding: Finding;
   index: number;
   selected: boolean;
@@ -602,7 +707,12 @@ function FindingCard({
             {finding.evidence.map((item, frameIndex) => (
               <button key={item.frame_id} onClick={() => onFrame(frameIndex)}>
                 <img
-                  src={api.frame(checkId, item.frame_id)}
+                  src={evidenceSource(
+                    checkId,
+                    item.frame_id,
+                    revision,
+                    previewFrames,
+                  )}
                   alt={`Кадр ${formatTimecode(item.timestamp_sec)}`}
                 />
                 <span>{formatTimecode(item.timestamp_sec)}</span>
@@ -788,14 +898,36 @@ function Processing({
   pollError: string;
   retryMs?: number;
 }) {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const terminal = ["failed", "cancelled"].includes(check.status);
+  const awaitingResult = check.status === "done";
+  const phases = ["decode", "perception", "facts", "rules", "evidence"];
+  const currentIndex = phases.indexOf(check.progress.phase);
+  const createdAt = new Date(check.created_at).getTime();
+  const elapsedSeconds = Number.isFinite(createdAt)
+    ? Math.max(0, Math.floor((now - createdAt) / 1000))
+    : null;
+  useEffect(() => {
+    if (terminal) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [terminal]);
   const act = async () => {
     setBusy(true);
     setActionError("");
     try {
-      terminal ? await api.retry(check.id) : await api.cancel(check.id);
+      if (terminal) {
+        const response = await api.retry(check.id);
+        if (response.check.id !== check.id) {
+          navigate(`/app/checks/${response.check.id}`, { replace: true });
+          return;
+        }
+      } else {
+        await api.cancel(check.id);
+      }
       restartPolling();
     } catch (error) {
       const apiError = error as ApiError;
@@ -809,12 +941,22 @@ function Processing({
       <header className="page-heading">
         <p className="eyebrow">{check.file_name}</p>
         <h1>{phaseLabels[check.progress.phase]}</h1>
-        <p>
+        <p className="processing-status">
+          {!terminal && (
+            <span className="processing-spinner" aria-hidden="true" />
+          )}
           {check.status === "queued" && check.progress.queue_position
             ? `В очереди: перед этой записью ${check.progress.queue_position}.`
             : check.progress.processed_until_sec != null && check.duration_sec
               ? `Обработано ${formatTimecode(check.progress.processed_until_sec)} из ${formatTimecode(check.duration_sec)}.`
               : "Состояние обновится автоматически."}
+        </p>
+        <p className="processing-time">
+          Прошло:{" "}
+          {elapsedSeconds == null ? "—" : formatTimecode(elapsedSeconds)}
+          <span>
+            Оставшееся время появится, когда его рассчитает анализатор.
+          </span>
         </p>
       </header>
       {pollError && (
@@ -835,18 +977,38 @@ function Processing({
         </InlineNotice>
       )}
       {actionError && <InlineNotice tone="danger">{actionError}</InlineNotice>}
-      <div className="processing-grid">
-        <PhaseList current={check.progress.phase} />
-        <div>
-          <FactStrip
-            duration={
-              check.duration_sec ??
-              Math.max(1, check.progress.processed_until_sec ?? 1)
-            }
-            observations={check.observations}
-            coverage={check.coverage}
-            onSeek={() => {}}
-          />
+      <div className="processing-actions">
+        <section className="activity-panel" aria-labelledby="activity-title">
+          <h2 id="activity-title">Ход анализа</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Этап</th>
+                <th>Состояние</th>
+              </tr>
+            </thead>
+            <tbody>
+              {phases.map((phase, index) => {
+                const state =
+                  check.progress.phase === "done" || index < currentIndex
+                    ? "Готово"
+                    : index === currentIndex
+                      ? "Выполняется"
+                      : "Ожидает";
+                return (
+                  <tr
+                    key={phase}
+                    className={index === currentIndex ? "is-current" : ""}
+                  >
+                    <td>{phaseLabels[phase]}</td>
+                    <td>{state}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+        {!awaitingResult && (
           <Button
             variant={terminal ? "primary" : "danger"}
             busy={busy}
@@ -854,7 +1016,7 @@ function Processing({
           >
             {terminal ? "Запустить анализ ещё раз" : "Отменить анализ"}
           </Button>
-        </div>
+        )}
       </div>
     </div>
   );

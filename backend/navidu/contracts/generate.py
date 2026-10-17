@@ -148,6 +148,11 @@ def generate() -> dict[str, Any]:
                     {"name": name, "in": "path", "required": True, "schema": {"type": "string"}}
                     for name in names
                 ]
+    paths["/api/ui/checks/{id}/frames/{frame_id}.jpg"]["get"]["parameters"].extend([
+        {"name": "overlay", "in": "query", "schema": {"type": "integer", "enum": [0, 1], "default": 1}},
+        {"name": "revision", "in": "query", "schema": {"type": "integer", "minimum": 1},
+         "description": "Finding-set revision; defaults to the current persisted revision."},
+    ])
     document = {
         "openapi": "3.1.0",
         "info": {"title": "Lado local video analysis", "version": "0.1.0"},

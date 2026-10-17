@@ -5,15 +5,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from PIL import Image
-from pydantic import TypeAdapter, ValidationError
-
 from navidu.contracts.api_v1 import JobResponse, JuryViolation
-from navidu.contracts.domain import Decision, Finding, TimeWindow, verdict_of
+from navidu.contracts.domain import Decision, Finding, Observation, TimeWindow, verdict_of
 from navidu.contracts.generate import generate
 from navidu.contracts.rules import RulesResponse, SourceClauseView
 from navidu.contracts.ui_api import CheckDetailResponse, ReevaluateResponse
 from navidu.contracts.units import finding_id
+from PIL import Image
+from pydantic import TypeAdapter, ValidationError
 
 FIXTURES = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 
@@ -67,6 +66,15 @@ def test_verdict_decisions_and_reset():
 def test_ids_stable_on_equivalent_window():
     assert finding_id("V-COUNT-ABSENT", 41.501, 47.501) == finding_id("V-COUNT-ABSENT", 41.5, 47.5)
     assert finding_id("V-COUNT-ABSENT", 41.5, 47.5) != finding_id("V-COUNT-ABSENT", 42, 47.5)
+
+
+def test_temporal_relation_ids_are_optional_bounded_and_safe():
+    values = {"obs_id": "ob-1", "kind": "cash_handover", "start_sec": 1, "end_sec": 2}
+    assert Observation(**values).relation_id is None
+    assert Observation(**values, relation_id="window:1200.0:cash_batch-1").relation_id
+    for invalid in ["", "../batch", "batch\n1", "a" * 129]:
+        with pytest.raises(ValidationError):
+            Observation(**values, relation_id=invalid)
 
 
 @pytest.mark.parametrize("count", [0, 4])

@@ -4,9 +4,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from PIL import Image
-
 from navidu.ingest import MediaProbeError, frame_at, iter_frames, probe_video
+from PIL import Image
 
 pytestmark = pytest.mark.skipif(
     shutil.which("ffmpeg") is None or importlib.util.find_spec("av") is None

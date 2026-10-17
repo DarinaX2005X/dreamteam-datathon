@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  api,
   parseApiErrorBody,
   pollCheck,
   type PollEvent,
@@ -43,6 +44,11 @@ describe("API errors", () => {
       status: 413,
       fieldIssues: ["file"],
     });
+  });
+  it("pins durable evidence routes to the displayed revision", () => {
+    expect(api.frame("check", "frame", 7, false)).toBe(
+      "/api/ui/checks/check/frames/frame.jpg?overlay=0&revision=7",
+    );
   });
 });
 

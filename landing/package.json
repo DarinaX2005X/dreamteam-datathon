@@ -8,7 +8,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/landing.css"
+    "./styles.css": "./dist/style.css"
   },
   "scripts": {
     "dev": "vite --config dev/vite.config.ts",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import product
 from typing import Any
 
 from navidu.contracts.domain import (
@@ -69,6 +70,36 @@ def _select(expr: dict[str, Any], observations: list[Observation], roles: dict[s
     return []
 
 
+def _connected(left: Observation, right: Observation, shared: str | None) -> bool:
+    if shared == "actor":
+        return left.actor_id is not None and left.actor_id in right.subjects
+    if shared == "recipient":
+        return left.recipient_id is not None and left.recipient_id in right.subjects
+    if shared == "transfer_object":
+        transferred = set(left.subjects) - {left.actor_id, left.recipient_id}
+        return bool(transferred & set(right.subjects))
+    if shared == "relation_id":
+        return left.relation_id is not None and left.relation_id == right.relation_id
+    if shared == "any":
+        return bool(set(left.subjects) & set(right.subjects))
+    return True
+
+
+def _related(left: Observation, right: Observation, relation: dict[str, Any]) -> bool:
+    if not _connected(left, right, relation.get("shared")):
+        return False
+    kind = relation["relation"]
+    limit = float(relation.get("within_sec", 120))
+    if kind == "before":
+        return 0 <= right.start_sec - left.end_sec <= limit
+    if kind == "overlap":
+        return _overlaps(left.start_sec, left.end_sec, right.start_sec, right.end_sec)
+    if kind == "before_or_overlap":
+        return (left.start_sec <= right.end_sec and
+                0 <= right.end_sec - left.end_sec <= limit)
+    raise ValueError(f"Unsupported sequence relation: {kind}")
+
+
 def _eval(
     expr: dict[str, Any],
     anchor: Observation,
@@ -97,6 +128,16 @@ def _eval(
             if result:
                 return True, used
         return False, []
+    if op == "sequence":
+        choices = [_select(step, observations, roles, zone_kinds) for step in argument["steps"]]
+        anchor_step = int(argument.get("anchor_step", len(choices) - 1))
+        for selected in product(*choices):
+            if selected[anchor_step].obs_id != anchor.obs_id:
+                continue
+            if all(_related(selected[item["left"]], selected[item["right"]], item)
+                   for item in argument["relations"]):
+                return True, list(selected)
+        return False, []
     if op == "absent":
         child = argument["predicate"]
         selected = _select(child, observations, roles, zone_kinds)
@@ -116,7 +157,8 @@ def _eval(
                 overlap_ok = argument.get("allow_overlap", False) and (
                     left.start_sec <= right.end_sec and 0 <= right.end_sec - left.end_sec <= limit
                 )
-                if 0 <= gap <= limit or overlap_ok:
+                connected = _connected(left, right, argument.get("shared"))
+                if connected and (0 <= gap <= limit or overlap_ok):
                     pairs.append((left, right))
         if op == "after":
             pairs = [(right, left) for left, right in pairs]
@@ -130,6 +172,19 @@ def _eval(
 def _covered(window: TimeWindow, required: tuple[str, ...], coverage: list[Coverage]):
     return [item for item in coverage if (item.scope in required or item.scope == "whole") and
             _overlaps(item.start_sec, item.end_sec, window.start_sec, window.end_sec)]
+
+
+def _covers_duration(coverage: list[Coverage], duration_sec: float | None) -> bool:
+    if duration_sec is None or not coverage:
+        return False
+    cursor = 0.0
+    for item in sorted(coverage, key=lambda value: (value.start_sec, value.end_sec)):
+        if item.start_sec > cursor + 1e-6:
+            return False
+        cursor = max(cursor, item.end_sec)
+        if cursor >= duration_sec:
+            return True
+    return False
 
 
 def _merge(findings: list[PendingFinding], gap_sec: float = 3.0) -> list[PendingFinding]:
@@ -157,6 +212,7 @@ def evaluate(
     catalog: list[RuleSpec],
     capabilities: dict[str, bool],
     zone_kinds: dict[str, str] | None = None,
+    duration_sec: float | None = None,
 ) -> tuple[list[PendingFinding], list[RuleStatus]]:
     zone_kinds = zone_kinds or {}
     findings: list[PendingFinding] = []
@@ -174,29 +230,45 @@ def evaluate(
         if missing:
             unavailable.append(NotCheckableWindow(start_sec=0, end_sec=0,
                 reason="Нет подтверждённой возможности восприятия: " + ", ".join(missing)))
+        global_gaps = [item for item in coverage if
+                       item.scope in rule.requires_visible or item.scope == "whole"]
+        unavailable.extend(NotCheckableWindow(
+            start_sec=item.start_sec, end_sec=item.end_sec,
+            reason=f"Область {item.scope} не видна: {item.reason}."
+        ) for item in global_gaps)
         for anchor in anchors:
             window = TimeWindow(start_sec=anchor.start_sec, end_sec=anchor.end_sec)
             gaps = _covered(window, rule.requires_visible, coverage)
             if gaps:
-                unavailable.extend(NotCheckableWindow(start_sec=item.start_sec,
-                    end_sec=item.end_sec, reason=f"Область {item.scope} не видна: {item.reason}.")
-                    for item in gaps)
                 continue
             if missing:
                 continue
             matched, used = _eval(rule.condition, anchor, observations, roles, zone_kinds)
             if matched:
+                used_windows = used or [anchor]
+                sequence_start = min(item.start_sec for item in used_windows)
+                sequence_end = max(item.end_sec for item in used_windows)
+                sequence_window = TimeWindow(start_sec=sequence_start, end_sec=sequence_end)
+                if _covered(sequence_window, rule.requires_visible, coverage):
+                    continue
                 basis = tuple(dict.fromkeys([anchor.obs_id] + [item.obs_id for item in used]))
                 sec = anchor.start_sec if rule.timecode_policy in {"onset", "obligation_due"} \
                     else round((anchor.start_sec + anchor.end_sec) / 2, 3)
                 findings.append(PendingFinding(
-                    finding_id=finding_id(rule.rule_id, window.start_sec, window.end_sec),
-                    rule=rule, window=window, timecode_sec=sec, basis=basis,
+                    finding_id=finding_id(rule.rule_id, sequence_window.start_sec,
+                                          sequence_window.end_sec),
+                    rule=rule, window=sequence_window, timecode_sec=sec, basis=basis,
                 ))
         has = any(item.rule.rule_id == rule.rule_id for item in findings)
-        status = "violation" if has else ("not_checkable" if unavailable else "no_violation")
-        if has and unavailable:
+        fully_covered = _covers_duration(global_gaps, duration_sec)
+        if has:
+            status = "partly_checkable" if unavailable else "violation"
+        elif missing or fully_covered:
+            status = "not_checkable"
+        elif unavailable:
             status = "partly_checkable"
+        else:
+            status = "no_violation"
         statuses.append(RuleStatus(rule_id=rule.rule_id, status=status,
                                    not_checkable_windows=unavailable))
     return _merge(findings), statuses

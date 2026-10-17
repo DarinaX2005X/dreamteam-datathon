@@ -48,6 +48,8 @@ class SemanticSignal:
     model_id: str = ""
     prompt_version: str | None = None
     confidence: float | None = None
+    relation_id: str | None = None
+    frame_ids: tuple[str, ...] = ()
 
 
 @dataclass
@@ -60,6 +62,7 @@ class PerceptionArtifacts:
     coverage: list[Coverage] = field(default_factory=list)
     model_versions: dict[str, str] = field(default_factory=dict)
     capabilities: dict[str, bool] = field(default_factory=dict)
+    semantic_windows_completed: int = 0
 
 
 class PerceptionRuntime(Protocol):

@@ -28,6 +28,21 @@
       "title": "Ready",
       "type": "boolean"
     },
+    "analysis_ready": {
+      "default": false,
+      "title": "Analysis Ready",
+      "type": "boolean"
+    },
+    "analysis_mode": {
+      "default": "unvalidated",
+      "enum": [
+        "validated",
+        "unvalidated",
+        "diagnostic"
+      ],
+      "title": "Analysis Mode",
+      "type": "string"
+    },
     "queue": {
       "$ref": "#/$defs/QueueCounts"
     },

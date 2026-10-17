@@ -1,7 +1,6 @@
 
 import pytest
 from fastapi.testclient import TestClient
-
 from navidu.service.app import create_app
 from navidu.service.config import Settings
 from navidu.service.worker import Worker

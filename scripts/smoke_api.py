@@ -6,12 +6,14 @@ from __future__ import annotations
 import argparse
 import base64
 import concurrent.futures
+import http.client
 import json
 import mimetypes
 import secrets
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,7 +49,7 @@ def request_json(request: urllib.request.Request, timeout: float) -> tuple[int, 
         raise SmokeFailure(str(exc)) from exc
 
 
-def multipart(path: Path) -> tuple[bytes, str]:
+def multipart_parts(path: Path) -> tuple[bytes, bytes, str]:
     boundary = "----lado-" + secrets.token_hex(16)
     media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     header = (
@@ -55,13 +57,58 @@ def multipart(path: Path) -> tuple[bytes, str]:
         f'Content-Disposition: form-data; name="file"; filename="{path.name}"\r\n'
         f"Content-Type: {media_type}\r\n\r\n"
     ).encode()
-    body = header + path.read_bytes() + f"\r\n--{boundary}--\r\n".encode("ascii")
-    return body, f"multipart/form-data; boundary={boundary}"
+    footer = f"\r\n--{boundary}--\r\n".encode("ascii")
+    return header, footer, f"multipart/form-data; boundary={boundary}"
+
+
+def post_video(base: str, key: str, path: Path, timeout: float) -> tuple[int, Any]:
+    parsed = urllib.parse.urlsplit(base.rstrip("/"))
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise SmokeFailure(f"invalid --base URL: {base!r}")
+    header, footer, content_type = multipart_parts(path)
+    target = (parsed.path.rstrip("/") if parsed.path else "") + "/api/v1/analyze"
+    connection_type = (
+        http.client.HTTPSConnection
+        if parsed.scheme == "https"
+        else http.client.HTTPConnection
+    )
+    connection = connection_type(parsed.hostname, parsed.port, timeout=timeout)
+    try:
+        connection.putrequest("POST", target)
+        connection.putheader("X-API-Key", key)
+        connection.putheader("Accept", "application/json")
+        connection.putheader("Content-Type", content_type)
+        connection.putheader(
+            "Content-Length", str(len(header) + path.stat().st_size + len(footer))
+        )
+        connection.endheaders()
+        connection.send(header)
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                connection.send(chunk)
+        connection.send(footer)
+        response = connection.getresponse()
+        raw = response.read()
+        try:
+            payload = json.loads(raw)
+        except ValueError as exc:
+            raise SmokeFailure(f"HTTP {response.status} returned non-JSON") from exc
+        if response.status >= 400:
+            raise SmokeFailure(f"HTTP {response.status}: {payload}")
+        return response.status, payload
+    except (OSError, http.client.HTTPException) as exc:
+        raise SmokeFailure(str(exc)) from exc
+    finally:
+        connection.close()
 
 
 def validate_processing(payload: Any) -> str:
     if not isinstance(payload, dict) or payload.get("status") != "processing":
         raise SmokeFailure(f"expected processing response, got {payload!r}")
+    if set(payload) != {"job_id", "status"}:
+        raise SmokeFailure(
+            f"processing response fields differ from schema: {sorted(payload)}"
+        )
     job_id = payload.get("job_id")
     if (
         not isinstance(job_id, str)
@@ -79,6 +126,11 @@ def validate_done(payload: Any) -> tuple[str, int]:
         raise SmokeFailure(f"analysis failed: {payload.get('error')!r}")
     if payload.get("status") != "done":
         raise SmokeFailure(f"unexpected status: {payload.get('status')!r}")
+    if set(payload) != {"job_id", "status", "verdict", "violations"}:
+        raise SmokeFailure(
+            f"done response fields differ from schema: {sorted(payload)}"
+        )
+    validate_processing({"job_id": payload.get("job_id"), "status": "processing"})
     verdict = payload.get("verdict")
     violations = payload.get("violations")
     if verdict not in {"violation", "no_violation"} or not isinstance(violations, list):
@@ -91,6 +143,13 @@ def validate_done(payload: Any) -> tuple[str, int]:
         prefix = f"violations[{index}]"
         if not isinstance(violation, dict):
             raise SmokeFailure(f"{prefix} is not an object")
+        if set(violation) != {
+            "type",
+            "timecode_sec",
+            "description",
+            "evidence_frames",
+        }:
+            raise SmokeFailure(f"{prefix} fields differ from schema")
         if not isinstance(violation.get("type"), str) or not violation["type"]:
             raise SmokeFailure(f"{prefix}.type is empty")
         if (
@@ -112,6 +171,8 @@ def validate_done(payload: Any) -> tuple[str, int]:
             frame_prefix = f"{prefix}.evidence_frames[{frame_index}]"
             if not isinstance(frame, dict):
                 raise SmokeFailure(f"{frame_prefix} is not an object")
+            if set(frame) != {"timestamp_sec", "image_base64"}:
+                raise SmokeFailure(f"{frame_prefix} fields differ from schema")
             timestamp = frame.get("timestamp_sec")
             if (
                 not isinstance(timestamp, (int, float))
@@ -133,18 +194,7 @@ def validate_done(payload: Any) -> tuple[str, int]:
 
 def analyze(base: str, key: str, path: Path, timeout: float, poll: float) -> Result:
     started = time.monotonic()
-    body, content_type = multipart(path)
-    request = urllib.request.Request(
-        base.rstrip("/") + "/api/v1/analyze",
-        data=body,
-        method="POST",
-        headers={
-            "X-API-Key": key,
-            "Content-Type": content_type,
-            "Accept": "application/json",
-        },
-    )
-    status, payload = request_json(request, min(timeout, 120))
+    status, payload = post_video(base, key, path, min(timeout, 120))
     if status != 200:
         raise SmokeFailure(f"POST returned {status}")
     job_id = validate_processing(payload)

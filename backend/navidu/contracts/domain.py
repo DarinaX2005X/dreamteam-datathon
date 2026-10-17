@@ -27,13 +27,14 @@ ObservationKind = Literal[
     "person_in_zone", "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
     "phone_visible", "bag_present", "bag_opened", "storage_open", "visibility_low",
     "cash_sorting", "cash_packing", "bag_integrity_damage", "personal_item_identified",
-    "camera_device_visible",
+    "camera_device_visible", "person_left_zone",
 ]
 Verdict = Literal["violation", "no_violation"]
 DecisionValue = Literal["confirmed", "rejected", "not_visible"]
 CoverageScope = Literal["cashier", "client", "desk", "storage", "whole"]
 CoverageReason = Literal["out_of_frame", "occluded", "low_light", "motion_blur"]
 Source = Literal["auto", "reviewer"]
+AnalysisMode = Literal["validated", "unvalidated", "diagnostic"]
 BBox = tuple[Coordinate, Coordinate, Coordinate, Coordinate]
 
 
@@ -108,6 +109,8 @@ class Observation(TimeWindow):
     # Handover direction is explicit. The order of subjects carries no direction.
     actor_id: TrackId | None = None
     recipient_id: TrackId | None = None
+    relation_id: str | None = Field(default=None, max_length=128,
+                                    pattern=r"^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$")
 
 
 class Coverage(TimeWindow):
@@ -209,6 +212,8 @@ class AnalysisRun(ContractModel):
     check_id: CheckId
     pipeline_version: str
     analysis_fps: float = Field(gt=0, allow_inf_nan=False)
+    analysis_ready: bool = False
+    analysis_mode: AnalysisMode = "unvalidated"
     model_versions: dict[str, str] = Field(default_factory=dict)
     phase_timings_sec: dict[str, Annotated[float, Field(ge=0, allow_inf_nan=False)]] = Field(
         default_factory=dict

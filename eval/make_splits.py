@@ -1,4 +1,4 @@
-"""Produce deterministic source-grouped folds and retain all organizer events.
+"""Produce deterministic source-grouped folds and retain organizer annotations.
 
 Splits group byte-identical files together. This protects against known exact
 duplicates; it does not claim independent sites, actors or camera viewpoints.
@@ -30,8 +30,9 @@ def group_sources(rows: list[dict[str, str]]) -> list[dict]:
             "source_group": sha256[:16], "sha256": sha256,
             "video_ids": [row["video_id"] for row in members],
             "has_violation": verdicts.pop(), "label_secs": events,
+            "timing_ambiguous": len(events) > 1,
             "label_provenance": [{"video_id": row["video_id"], "label_sec": float(row["label_sec"]) if row["label_sec"] else None} for row in members],
-            "annotation_note": "Same video bytes have multiple source timestamps; preserve both pending human adjudication." if len(events) > 1 else "",
+            "annotation_note": "Inconsistent timestamps on the same video bytes; preserve source annotations, exclude from headline timing, and do not treat them as two confirmed events." if len(events) > 1 else "",
         })
     return result
 

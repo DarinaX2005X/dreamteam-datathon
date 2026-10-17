@@ -23,7 +23,7 @@ class JobQueue:
             else:
                 db.execute("UPDATE checks SET status='queued',lease_token=NULL,lease_until=NULL WHERE id=?", (row["id"],))
 
-    def acquire(self):
+    def acquire(self, *, pipeline_version=None):
         with self.store.connection(transaction=True) as db:
             now = time.time()
             self.recover_expired(db, now)
@@ -31,12 +31,14 @@ class JobQueue:
             if not row:
                 return None
             token = secrets.token_hex(16)
-            db.execute("UPDATE checks SET status='processing',started_at=?,lease_until=?,lease_token=?,attempts=attempts+1,error_json=NULL WHERE id=?", (
-                now, now + self.settings.lease_seconds, token, row["id"]
+            version = pipeline_version or row["pipeline_version"]
+            db.execute("UPDATE checks SET status='processing',started_at=?,lease_until=?,lease_token=?,attempts=attempts+1,error_json=NULL,pipeline_version=? WHERE id=?", (
+                now, now + self.settings.lease_seconds, token, version, row["id"]
             ))
             db.execute("DELETE FROM events WHERE check_id=?", (row["id"],))
             result = dict(row)
-            result.update(status="processing", lease_token=token, attempts=row["attempts"] + 1)
+            result.update(status="processing", lease_token=token, attempts=row["attempts"] + 1,
+                          pipeline_version=version)
             return result
 
     def renew(self, check_id, token):

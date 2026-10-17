@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from navidu.contracts.domain import SceneLayout
+from navidu.contracts.domain import RoleOverride, SceneLayout, TrackRole
 from navidu.contracts.rules import RulesResponse
 from navidu.contracts.ui_api import (
     CheckDetailResponse,
@@ -21,6 +21,8 @@ from .api_v1 import accept_upload
 from .catalog import read_catalog
 from .exceptions import ServiceError
 from .presenters import check_directory, detail, evidence_path, summary
+from .readiness import PREPARING_MESSAGE, published_analysis_valid
+from .reevaluation import staged_frames, staged_reevaluation
 
 router = APIRouter(prefix="/api/ui")
 
@@ -50,9 +52,12 @@ def get_video(check_id: str, request: Request):
 
 
 @router.get("/checks/{check_id}/frames/{frame_id}.jpg")
-def get_frame(check_id: str, frame_id: str, request: Request, overlay: int = Query(default=1, ge=0, le=1)):
-    path = evidence_path(request.app.state.store, check_id, frame_id, bool(overlay))
-    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+def get_frame(check_id: str, frame_id: str, request: Request,
+              overlay: int = Query(default=1, ge=0, le=1),
+              revision: int | None = Query(default=None, ge=1)):
+    path = evidence_path(request.app.state.store, check_id, frame_id, bool(overlay), revision=revision)
+    cache = "private, max-age=3600" if revision is not None else "private, no-cache"
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": cache})
 
 
 @router.put("/checks/{check_id}/findings/{finding_id}/decision", response_model=DecisionResponse)
@@ -68,7 +73,7 @@ async def reevaluate(check_id: str, body: ReevaluateRequest, request: Request):
     with store.connection() as db:
         base = store._editable_revision(db, check_id, body.base_revision, allow_example=body.dry_run)
     artifacts = store.artifacts(check_id)
-    track_ids = {track.track_id for track in artifacts.tracks}
+    track_ids = {track.track_id for track in artifacts.tracks if track.kind == "person"}
     if any(override.track_id not in track_ids for override in body.role_overrides):
         raise ServiceError(422, "INVALID_INPUT", "Для выбранной роли не найден трек человека.")
     if len({override.track_id for override in body.role_overrides}) != len(body.role_overrides):
@@ -78,31 +83,34 @@ async def reevaluate(check_id: str, body: ReevaluateRequest, request: Request):
     adapter = request.app.state.pipeline
     if adapter is None:
         raise ServiceError(503, "NOT_READY", "Пересчёт правил пока недоступен.")
-    updated = await run_in_threadpool(
-        adapter.reevaluate, artifacts, role_overrides=body.role_overrides,
-        zone_overrides=body.zone_overrides, base=base,
-    )
-    # Persist the reviewed scene for the next recalculation, without touching revision 1.
-    if body.zone_overrides:
-        zones = {zone.zone_id: zone for zone in artifacts.layout.zones}
+    roles = {track.track_id: track.role.value for track in artifacts.tracks
+             if track.role is not None and track.role.source == "reviewer"}
+    roles.update({override.track_id: override.role for override in base.role_overrides})
+    roles.update({override.track_id: override.role for override in body.role_overrides})
+    effective_roles = [RoleOverride(track_id=track_id, role=role) for track_id, role in roles.items()]
+    with staged_reevaluation(store, check_id, artifacts) as staged:
+        updated = await run_in_threadpool(
+            adapter.reevaluate, staged, role_overrides=effective_roles,
+            zone_overrides=body.zone_overrides, base=base,
+        )
+        zones = {zone.zone_id: zone for zone in staged.layout.zones}
         zones.update({zone.zone_id: zone.model_copy(update={"source": "reviewer"}) for zone in body.zone_overrides})
-        artifacts.layout = SceneLayout(revision=updated.layout_revision, zones=list(zones.values()),
-                                       camera_note=artifacts.layout.camera_note)
-    roles = {override.track_id: override.role for override in body.role_overrides}
-    for track in artifacts.tracks:
-        if track.track_id in roles:
-            from navidu.contracts.domain import TrackRole
-            track.role = TrackRole(value=roles[track.track_id], source="reviewer")
-    updated, diff = store.save_reevaluation(check_id, body.base_revision, updated,
-                                           dry_run=body.dry_run, artifacts=artifacts)
-    return ReevaluateResponse(finding_set=updated, diff=diff)
+        staged.layout = SceneLayout(revision=updated.layout_revision, zones=list(zones.values()),
+                                    camera_note=staged.layout.camera_note)
+        for track in staged.tracks:
+            if track.track_id in roles:
+                track.role = TrackRole(value=roles[track.track_id], source="reviewer")
+        preview = staged_frames(staged, updated, preview=body.dry_run)
+        updated, diff = store.save_reevaluation(check_id, body.base_revision, updated,
+                                               dry_run=body.dry_run, artifacts=staged)
+        return ReevaluateResponse(finding_set=updated, diff=diff, preview_frames=preview)
 
 
 @router.post("/checks/{check_id}/retry", response_model=CheckSummaryResponse)
 def retry(check_id: str, request: Request):
     store = request.app.state.store
     if not store.health()["ready"]:
-        raise ServiceError(503, "NOT_READY", "Локальная модель пока не готова.")
+        raise ServiceError(503, "NOT_READY", PREPARING_MESSAGE)
     return CheckSummaryResponse(check=summary(store, store.retry(check_id)))
 
 
@@ -123,7 +131,7 @@ def example_id(store):
         return None
     try:
         row = store.get(check_id)
-        if row["is_example"] and row["status"] == "done":
+        if row["is_example"] and row["status"] == "done" and published_analysis_valid(row):
             return check_id
     except ServiceError:
         pass

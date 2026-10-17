@@ -147,7 +147,11 @@ export function SheetPage() {
                 </strong>
               </header>
               <img
-                src={api.frame(id, finding.evidence[0].frame_id)}
+                src={api.frame(
+                  id,
+                  finding.evidence[0].frame_id,
+                  findingSet.revision,
+                )}
                 alt={`Основной кадр ${formatTimecode(finding.timecode_sec)}`}
               />
               <div className="sheet-finding__text">

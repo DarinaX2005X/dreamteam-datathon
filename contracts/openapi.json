@@ -485,6 +485,27 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "overlay",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "default": 1
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Finding-set revision; defaults to the current persisted revision."
           }
         ]
       }
@@ -508,6 +529,21 @@
             "exclusiveMinimum": 0,
             "title": "Analysis Fps",
             "type": "number"
+          },
+          "analysis_ready": {
+            "default": false,
+            "title": "Analysis Ready",
+            "type": "boolean"
+          },
+          "analysis_mode": {
+            "default": "unvalidated",
+            "enum": [
+              "validated",
+              "unvalidated",
+              "diagnostic"
+            ],
+            "title": "Analysis Mode",
+            "type": "string"
           },
           "model_versions": {
             "additionalProperties": {
@@ -867,7 +903,8 @@
               "cash_packing",
               "bag_integrity_damage",
               "personal_item_identified",
-              "camera_device_visible"
+              "camera_device_visible",
+              "person_left_zone"
             ],
             "title": "Kind",
             "type": "string"
@@ -964,6 +1001,20 @@
             ],
             "default": null,
             "title": "Recipient Id"
+          },
+          "relation_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Relation Id"
           }
         },
         "required": [
@@ -1668,6 +1719,24 @@
             "default": null,
             "title": "Automatic Verdict"
           },
+          "video_available": {
+            "default": true,
+            "title": "Video Available",
+            "type": "boolean"
+          },
+          "video_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Video Expires At"
+          },
           "video": {
             "anyOf": [
               {
@@ -2090,6 +2159,21 @@
             "title": "Ready",
             "type": "boolean"
           },
+          "analysis_ready": {
+            "default": false,
+            "title": "Analysis Ready",
+            "type": "boolean"
+          },
+          "analysis_mode": {
+            "default": "unvalidated",
+            "enum": [
+              "validated",
+              "unvalidated",
+              "diagnostic"
+            ],
+            "title": "Analysis Mode",
+            "type": "string"
+          },
           "queue": {
             "$ref": "#/components/schemas/QueueCounts"
           },
@@ -2350,6 +2434,11 @@
             "exclusiveMinimum": 0,
             "title": "Max Duration Sec",
             "type": "number"
+          },
+          "diagnostic_only": {
+            "default": false,
+            "title": "Diagnostic Only",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2411,6 +2500,32 @@
         "title": "PipelineEvent",
         "type": "object"
       },
+      "PreviewFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "image_base64": {
+            "title": "Image Base64",
+            "type": "string"
+          },
+          "overlay_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overlay Base64"
+          }
+        },
+        "required": [
+          "image_base64",
+          "overlay_base64"
+        ],
+        "title": "PreviewFrame",
+        "type": "object"
+      },
       "ReevaluateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2453,6 +2568,13 @@
           },
           "diff": {
             "$ref": "#/components/schemas/FindingDiff"
+          },
+          "preview_frames": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PreviewFrame"
+            },
+            "title": "Preview Frames",
+            "type": "object"
           }
         },
         "required": [
@@ -2807,6 +2929,21 @@
           "pipeline_version": {
             "title": "Pipeline Version",
             "type": "string"
+          },
+          "analysis_ready": {
+            "default": false,
+            "title": "Analysis Ready",
+            "type": "boolean"
+          },
+          "analysis_mode": {
+            "default": "unvalidated",
+            "enum": [
+              "validated",
+              "unvalidated",
+              "diagnostic"
+            ],
+            "title": "Analysis Mode",
+            "type": "string"
           }
         },
         "required": [
@@ -2907,7 +3044,8 @@
           "cash_packing",
           "bag_integrity_damage",
           "personal_item_identified",
-          "camera_device_visible"
+          "camera_device_visible",
+          "person_left_zone"
         ],
         "type": "string"
       },

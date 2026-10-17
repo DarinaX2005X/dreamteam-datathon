@@ -10,23 +10,27 @@ Copy `.env.example` to `.env`, replace `NAVIDU_API_KEYS`, then fetch and verify 
 manifest before starting. A strong key can be generated locally with
 `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
 
-On Windows:
+On Windows (choose `cpu`, `cuda`, or leave `auto`; `-VenvPath` permits an isolated environment):
 
 ```powershell
-.\scripts\setup_local.ps1 -FetchModels
+.\scripts\setup_local.ps1 -Device auto -VenvPath backend/.venv -FetchModels
 backend\.venv\Scripts\python.exe scripts\run_local.py
 ```
 
-On Linux:
+On Linux (`--device=cpu|cuda|auto`; `--venv` permits an isolated environment):
 
 ```bash
-./scripts/setup_local.sh --fetch-models
+./scripts/setup_local.sh --device=auto --venv=backend/.venv --fetch-models
 backend/.venv/bin/python scripts/run_local.py
 ```
 
 The launch command prints `API bound` when HTTP is reachable. This is not a claim that inference is
 ready. `/api/ui/health` must report `ready: true` and `model_status: ready` before accepting uploads.
 No browser is opened. API and worker logs stay in `logs/`; job data stays in `data/`.
+
+For a CPU-only container smoke image that does not pull CUDA layers, use
+`docker build -f deploy/Dockerfile.cpu -t lado-local:cpu .`. It verifies packaging and HTTP
+startup only; it does not establish the GPU model acceptance criteria below.
 
 ## NVIDIA Brev L40S preparation
 
@@ -57,10 +61,10 @@ After the source and verified models are present:
 ```bash
 cp .env.example .env
 # edit NAVIDU_API_KEYS; keep .env private
-python3 scripts/preflight.py --device cuda --require-models --min-vram-gib 40 --min-ram-gib 60 --min-disk-gib 80
-docker compose build
-docker compose up -d
-docker compose logs -f api worker
+python3 scripts/preflight.py --host-only --device cuda --min-vram-gib 40 --min-ram-gib 60 --min-disk-gib 80
+docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml build
+docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d
+docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml logs -f api worker
 ```
 
 Use a Brev Secure Link for HTTP port `${NAVIDU_PORT:-8000}` when authenticated browser access is

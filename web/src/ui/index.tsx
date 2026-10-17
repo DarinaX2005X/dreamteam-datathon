@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type {
   Coverage,
   Finding,
   Observation,
   Track,
+  TrackSample,
 } from "../../../contracts/ts/types.gen";
 import { formatTimecode } from "../i18n/ru";
 
@@ -126,6 +127,7 @@ export function SegmentedChoice({
 
 const factNames: Record<string, string> = {
   person_in_zone: "Человек в зоне",
+  person_left_zone: "Человек покинул зону",
   cash_in_hands: "Деньги в руках",
   cash_on_desk: "Деньги на столе",
   cash_handover: "Передача денег",
@@ -143,6 +145,29 @@ const factNames: Record<string, string> = {
 };
 
 type FactGroup = { key: string; label: string; observations: Observation[] };
+
+export function nearestVisibleSample(
+  samples: TrackSample[],
+  time: number,
+): TrackSample | undefined {
+  const ordered = [...samples].sort((a, b) => a.t - b.t);
+  const nearest = ordered.reduce<TrackSample | undefined>(
+    (best, sample) =>
+      !best || Math.abs(sample.t - time) < Math.abs(best.t - time)
+        ? sample
+        : best,
+    undefined,
+  );
+  if (!nearest) return undefined;
+  const intervals = ordered
+    .slice(1)
+    .map((sample, index) => sample.t - ordered[index].t)
+    .filter((interval) => interval > 0 && interval <= 2)
+    .sort((a, b) => a - b);
+  const typicalInterval = intervals[Math.floor(intervals.length / 2)] ?? 0.1;
+  const tolerance = Math.min(0.75, Math.max(0.08, typicalInterval * 0.75));
+  return Math.abs(nearest.t - time) <= tolerance ? nearest : undefined;
+}
 
 export function groupObservations(observations: Observation[]): FactGroup[] {
   const groups = new Map<string, FactGroup>();
@@ -177,36 +202,14 @@ export function FactStrip({
   onSeek: (seconds: number) => void;
   onSelect?: (id: string) => void;
 }) {
-  const [table, setTable] = useState(false);
-  const groups = useMemo(() => groupObservations(observations), [observations]);
-  const pct = (value: number) =>
-    `${Math.min(100, Math.max(0, (value / duration) * 100))}%`;
-  const keyboardSeek = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (
-      event.key !== "ArrowLeft" &&
-      event.key !== "ArrowRight" &&
-      event.key !== "Home" &&
-      event.key !== "End"
-    )
-      return;
-    event.preventDefault();
-    const next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? duration
-          : time + (event.key === "ArrowLeft" ? -1 : 1);
-    onSeek(Math.max(0, Math.min(duration, next)));
-  };
+  void duration;
+  void time;
   return (
-    <section className="fact-strip" aria-label="Лента фактов">
+    <section className="fact-strip" aria-label="Наблюдаемые факты">
       <div className="fact-strip__head">
         <h3>Наблюдаемые факты</h3>
-        <button className="text-button" onClick={() => setTable(!table)}>
-          {table ? "Показать лентой" : "Показать таблицей"}
-        </button>
       </div>
-      {table ? (
+      <div className="fact-table-wrap">
         <table>
           <thead>
             <tr>
@@ -219,68 +222,55 @@ export function FactStrip({
             {observations.map((item) => (
               <tr key={item.obs_id}>
                 <td>{factNames[item.kind] ?? item.kind}</td>
-                <td>{formatTimecode(item.start_sec)}</td>
+                <td>
+                  <button
+                    className="time-link"
+                    onClick={() => onSeek(item.start_sec)}
+                  >
+                    {formatTimecode(item.start_sec)}
+                  </button>
+                </td>
                 <td>{formatTimecode(item.end_sec)}</td>
+              </tr>
+            ))}
+            {coverage.map((item, index) => (
+              <tr key={`coverage-${index}`} className="is-coverage">
+                <td>Нельзя полностью проверить: {item.reason}</td>
+                <td>
+                  <button
+                    className="time-link"
+                    onClick={() => onSeek(item.start_sec)}
+                  >
+                    {formatTimecode(item.start_sec)}
+                  </button>
+                </td>
+                <td>{formatTimecode(item.end_sec)}</td>
+              </tr>
+            ))}
+            {findings.map((item) => (
+              <tr key={item.finding_id} className="is-finding">
+                <td>
+                  <button
+                    className="fact-link"
+                    onClick={() => onSelect?.(item.finding_id)}
+                  >
+                    {item.type_label}
+                  </button>
+                </td>
+                <td>
+                  <button
+                    className="time-link"
+                    onClick={() => onSeek(item.timecode_sec)}
+                  >
+                    {formatTimecode(item.timecode_sec)}
+                  </button>
+                </td>
+                <td>Эпизод</td>
               </tr>
             ))}
           </tbody>
         </table>
-      ) : (
-        <div
-          className="lanes"
-          style={{ height: Math.max(150, groups.length * 30) }}
-          role="slider"
-          tabIndex={0}
-          aria-label="Положение на записи"
-          aria-valuemin={0}
-          aria-valuemax={duration}
-          aria-valuenow={time}
-          onKeyDown={keyboardSeek}
-          onClick={(event) => {
-            const bounds = event.currentTarget.getBoundingClientRect();
-            onSeek(((event.clientX - bounds.left) / bounds.width) * duration);
-          }}
-        >
-          {groups.map((group) => (
-            <div className="lane" key={group.key}>
-              <span>{group.label}</span>
-              {group.observations.map((item) => (
-                <i
-                  key={item.obs_id}
-                  style={{
-                    left: pct(item.start_sec),
-                    width: pct(item.end_sec - item.start_sec),
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-          {coverage.map((item, index) => (
-            <i
-              key={index}
-              className="coverage"
-              title={`Нельзя проверить: ${item.reason}`}
-              style={{
-                left: pct(item.start_sec),
-                width: pct(item.end_sec - item.start_sec),
-              }}
-            />
-          ))}
-          {findings.map((item) => (
-            <button
-              key={item.finding_id}
-              className={`finding-dot ${item.decision?.value === "rejected" ? "is-rejected" : ""}`}
-              style={{ left: pct(item.timecode_sec) }}
-              aria-label={`${item.type_label}, ${formatTimecode(item.timecode_sec)}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelect?.(item.finding_id);
-              }}
-            />
-          ))}
-          <i className="playhead" style={{ left: pct(time) }} />
-        </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -291,25 +281,31 @@ export function VideoStage({
   fps = 25,
   width = 16,
   height = 9,
+  available = true,
   tracks,
   time,
   seekToken,
   onTime,
   onTrack,
+  onAvailabilityChange,
 }: {
   checkId: string;
   duration?: number;
   fps?: number;
   width?: number;
   height?: number;
+  available?: boolean;
   tracks: Track[];
   time: number;
   seekToken: number;
   onTime: (value: number) => void;
   onTrack?: (id: string) => void;
+  onAvailabilityChange?: (available: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [overlay, setOverlay] = useState(true);
+  const [mediaError, setMediaError] = useState(false);
+  const [loadGeneration, setLoadGeneration] = useState(0);
   useEffect(() => {
     if (videoRef.current)
       videoRef.current.currentTime = Math.max(0, Math.min(duration, time));
@@ -322,20 +318,48 @@ export function VideoStage({
     onTime(value);
   };
   return (
-    <div className="video-stage" data-surface="stage">
+    <div
+      className="video-stage"
+      data-surface="stage"
+      style={{ maxWidth: `min(100%, calc(65vh * ${width} / ${height}))` }}
+    >
       <div
         className="video-frame"
         style={{ aspectRatio: `${width}/${height}` }}
       >
-        <video
-          ref={videoRef}
-          src={`/api/ui/checks/${checkId}/video`}
-          controls
-          onTimeUpdate={(event) => onTime(event.currentTarget.currentTime)}
-        >
-          Браузер не поддерживает видео.
-        </video>
-        {overlay && (
+        {available && !mediaError ? (
+          <video
+            key={loadGeneration}
+            ref={videoRef}
+            src={`/api/ui/checks/${checkId}/video`}
+            controls
+            onCanPlay={() => onAvailabilityChange?.(true)}
+            onError={() => {
+              setMediaError(true);
+              onAvailabilityChange?.(false);
+            }}
+            onTimeUpdate={(event) => onTime(event.currentTarget.currentTime)}
+          >
+            Браузер не поддерживает видео.
+          </video>
+        ) : (
+          <div className="video-unavailable">
+            <strong>Исходная запись недоступна</strong>
+            <p>Кадры-доказательства и решения проверяющего сохранены.</p>
+            {available && (
+              <Button
+                variant="quiet"
+                onClick={() => {
+                  setMediaError(false);
+                  setLoadGeneration((value) => value + 1);
+                }}
+              >
+                Повторить загрузку записи
+              </Button>
+            )}
+          </div>
+        )}
+        {overlay && available && !mediaError && (
           <svg
             className="track-overlay"
             viewBox="0 0 1 1"
@@ -343,14 +367,20 @@ export function VideoStage({
             aria-label="Разметка объектов"
           >
             {active.map((track) => {
-              const sample = [...(track.samples ?? [])].sort(
-                (a, b) => Math.abs(a.t - time) - Math.abs(b.t - time),
-              )[0];
+              const sample = nearestVisibleSample(track.samples ?? [], time);
               if (!sample) return null;
               const [x1, y1, x2, y2] = sample.bbox;
               return (
-                <g key={track.track_id}>
+                <g
+                  key={track.track_id}
+                  onClick={() => onTrack?.(track.track_id)}
+                >
                   <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} />
+                  <text x={x1} y={Math.max(0.025, y1 - 0.008)}>
+                    {track.kind === "person"
+                      ? `Человек ${track.track_id}`
+                      : (track.object_class ?? `Объект ${track.track_id}`)}
+                  </text>
                   <title>{`Объект ${track.track_id}`}</title>
                 </g>
               );
@@ -358,52 +388,48 @@ export function VideoStage({
           </svg>
         )}
       </div>
-      <div className="video-tools">
-        <Button
-          variant="quiet"
-          onClick={() => {
-            const video = videoRef.current;
-            if (video) void (video.paused ? video.play() : video.pause());
-          }}
-        >
-          Воспроизвести / пауза
-        </Button>
-        <Button
-          variant="quiet"
-          onClick={() => seek(Math.max(0, time - 1 / fps))}
-        >
-          − кадр
-        </Button>
-        <strong>{formatTimecode(time)}</strong>
-        <Button
-          variant="quiet"
-          onClick={() => seek(Math.min(duration, time + 1 / fps))}
-        >
-          + кадр
-        </Button>
-        <label>
-          <input
-            type="checkbox"
-            checked={overlay}
-            onChange={(event) => setOverlay(event.target.checked)}
-          />{" "}
-          Разметка
-        </label>
-      </div>
-      {onTrack && active.some((track) => track.kind === "person") && (
-        <div className="track-list" aria-label="Объекты в текущем кадре">
-          {active
-            .filter((track) => track.kind === "person")
-            .map((track) => (
-              <button
-                key={track.track_id}
-                onClick={() => onTrack(track.track_id)}
-              >
-                Уточнить роль {track.track_id}
-              </button>
-            ))}
+      {available && !mediaError && (
+        <div className="video-tools">
+          <Button
+            variant="quiet"
+            onClick={() => seek(Math.max(0, time - 1 / fps))}
+          >
+            − кадр
+          </Button>
+          <strong>{formatTimecode(time)}</strong>
+          <Button
+            variant="quiet"
+            onClick={() => seek(Math.min(duration, time + 1 / fps))}
+          >
+            + кадр
+          </Button>
+          <label>
+            <input
+              type="checkbox"
+              checked={overlay}
+              onChange={(event) => setOverlay(event.target.checked)}
+            />{" "}
+            Разметка
+          </label>
         </div>
       )}
+      {available &&
+        !mediaError &&
+        onTrack &&
+        active.some((track) => track.kind === "person") && (
+          <div className="track-list" aria-label="Объекты в текущем кадре">
+            {active
+              .filter((track) => track.kind === "person")
+              .map((track) => (
+                <button
+                  key={track.track_id}
+                  onClick={() => onTrack(track.track_id)}
+                >
+                  Уточнить роль {track.track_id}
+                </button>
+              ))}
+          </div>
+        )}
     </div>
   );
 }

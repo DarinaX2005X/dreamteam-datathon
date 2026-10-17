@@ -6,14 +6,16 @@ import threading
 import time
 
 from navidu.contracts.errors import AnalysisError
-from navidu.contracts.pipeline import AnalysisArtifacts, PipelineConfig
+from navidu.contracts.pipeline import AnalysisArtifacts, PipelineConfig, RuntimeStatus
 
 from .adapter import LocalPipelineAdapter
 from .config import Settings
-from .exceptions import LeaseLost
+from .exceptions import LeaseLost, ServiceError
 from .queue import JobQueue
+from .readiness import INCOMPLETE_MESSAGE, NOT_PERFORMED_MESSAGE, PREPARING_MESSAGE, analysis_ready
 from .retention import cleanup
 from .store import Store
+from .structured_log import configure_logging, log_exception
 
 logger = logging.getLogger("lado.worker")
 
@@ -30,13 +32,25 @@ class Worker:
         self._status = {
             "model_status": "loading", "device": settings.device,
             "limitations": [], "pipeline_version": settings.pipeline_version,
+            "analysis_ready": False, "analysis_mode": "unvalidated",
         }
         self._last_cleanup = 0.0
 
     def heartbeat(self):
         self.store.worker_state(self.worker_id, **self._status)
 
+    def refresh_status(self):
+        if hasattr(self.pipeline, "runtime_status"):
+            value = self.pipeline.runtime_status()
+            status = RuntimeStatus.model_validate(value)
+            self._status.update(status.model_dump())
+        else:
+            self._status.update(analysis_ready=False, analysis_mode="unvalidated")
+        self.heartbeat()
+        return analysis_ready(self._status)
+
     def prepare(self):
+        self._status.update(model_status="loading", analysis_ready=False, analysis_mode="unvalidated")
         preparation_done = threading.Event()
 
         def pulse():
@@ -49,34 +63,29 @@ class Worker:
             self.heartbeat()
             if hasattr(self.pipeline, "prepare"):
                 self.pipeline.prepare()
-            if hasattr(self.pipeline, "runtime_status"):
-                value = self.pipeline.runtime_status()
-                if hasattr(value, "model_dump"):
-                    value = value.model_dump()
-                self._status.update({key: value[key] for key in self._status if key in value})
-            else:
-                self._status["model_status"] = "ready"
-            self.heartbeat()
-            return self._status["model_status"] == "ready"
+            return self.refresh_status()
         except (ModuleNotFoundError, FileNotFoundError) as exc:
             self._status["model_status"] = "missing"
             self._status["limitations"] = ["Для локального анализа нужны установленные зависимости и веса модели."]
             self.heartbeat()
-            logger.warning(json.dumps({"phase": "prepare", "error_type": type(exc).__name__}))
+            log_exception(logger, exc, code="MODEL_UNAVAILABLE", level=logging.WARNING, phase="prepare")
             return False
-        except Exception:
+        except Exception as exc:
             self._status["model_status"] = "error"
             self._status["limitations"] = ["Не удалось подготовить локальную модель. Подробности в журнале обработчика."]
             self.heartbeat()
-            logger.exception("Local model preparation failed")
+            log_exception(logger, exc, code=getattr(exc, "code", "MODEL_PREPARATION_FAILED"), phase="prepare")
             return False
         finally:
             preparation_done.set()
             thread.join(timeout=2)
 
     def run_once(self) -> bool:
-        self.heartbeat()
-        job = self.queue.acquire()
+        if not analysis_ready(self._status) and not self.prepare():
+            return False
+        if not self.refresh_status():
+            return False
+        job = self.queue.acquire(pipeline_version=self._status["pipeline_version"])
         if job is None:
             return False
         check_id, token = job["id"], job["lease_token"]
@@ -126,6 +135,8 @@ class Worker:
             cached = self.store.cached_artifacts(check_id, token, staging)
             if cached is not None:
                 artifacts, source_id, analyzed_at = cached
+                if not self.refresh_status() or self._status["pipeline_version"] != job["pipeline_version"]:
+                    raise ServiceError(503, "RUNTIME_RESTART_REQUIRED", PREPARING_MESSAGE)
                 self.store.complete(check_id, token, artifacts, cached_from_check_id=source_id,
                                     analyzed_at=analyzed_at)
                 logger.info(json.dumps({"check_id": check_id, "phase": "done", "origin": "cache"}))
@@ -136,6 +147,8 @@ class Worker:
                 self.queue.release(check_id, token)
                 return True
             artifacts = AnalysisArtifacts.model_validate(artifacts)
+            if not self.refresh_status() or self._status["pipeline_version"] != job["pipeline_version"]:
+                raise ServiceError(503, "RUNTIME_RESTART_REQUIRED", PREPARING_MESSAGE)
             self.store.complete(check_id, token, artifacts)
             logger.info(json.dumps({"check_id": check_id, "phase": "done", "duration_sec": round(time.monotonic() - started, 3)}))
         except LeaseLost:
@@ -144,23 +157,28 @@ class Worker:
             if self.stop_event.is_set():
                 self.queue.release(check_id, token)
             elif self.queue.owns(check_id, token):
+                code = getattr(exc, "code", "ANALYSIS_FAILED")
+                nonretryable = {"ANALYSIS_NOT_PERFORMED", "ANALYSIS_INCOMPLETE", "RUNTIME_RESTART_REQUIRED", "RULES_INVALID",
+                                "MODEL_NOT_VALIDATED", "MODEL_UNAVAILABLE"}
+                retryable = getattr(exc, "retryable", code not in nonretryable)
+                message = (NOT_PERFORMED_MESSAGE if code == "ANALYSIS_NOT_PERFORMED" else
+                           INCOMPLETE_MESSAGE if code == "ANALYSIS_INCOMPLETE" else
+                           PREPARING_MESSAGE if code in nonretryable else
+                           "Обработка прервалась. Сервис попробует повторить её автоматически.")
                 self.queue.fail(check_id, token, AnalysisError(
-                    code=getattr(exc, "code", "ANALYSIS_FAILED"),
-                    message="Обработка прервалась. Сервис попробует повторить её автоматически.",
+                    code=code, message=message,
                     failed_phase=phase, at_sec=processed,
-                ))
-                logger.exception(json.dumps({"check_id": check_id, "phase": phase}))
+                ), retryable=retryable)
+                log_exception(logger, exc, code=code, check_id=check_id, phase=phase)
         finally:
             stop_lease.set()
             thread.join(timeout=2)
         return True
 
     def run(self):
-        ready = False
         while not self.stop_event.is_set():
-            if not ready:
-                ready = self.prepare()
-                if not ready:
+            if not analysis_ready(self._status):
+                if not self.prepare():
                     self.stop_event.wait(10)
                     continue
             if time.monotonic() - self._last_cleanup > 300:
@@ -171,7 +189,7 @@ class Worker:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    configure_logging()
     worker = Worker(Settings.from_env())
     for event in [signal.SIGINT, signal.SIGTERM]:
         signal.signal(event, lambda *_: worker.stop_event.set())

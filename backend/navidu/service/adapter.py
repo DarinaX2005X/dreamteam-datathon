@@ -6,6 +6,8 @@ from pathlib import Path
 from navidu.contracts.pipeline import PipelineConfig
 
 from .config import Settings
+from .exceptions import ServiceError
+from .readiness import PREPARING_MESSAGE
 
 
 class LocalPipelineAdapter:
@@ -32,6 +34,13 @@ class LocalPipelineAdapter:
     def prepare(self):
         if self._prepared:
             return
+        # Validate the executable catalog before any model load or video work.
+        from navidu.rules.catalog import CatalogConfigurationError, load_catalog
+        try:
+            if not load_catalog(self.settings.rules_dir / "catalog"):
+                raise ValueError("No rules are installed.")
+        except (CatalogConfigurationError, ValueError, KeyError, OSError) as exc:
+            raise ServiceError(503, "RULES_INVALID", PREPARING_MESSAGE) from exc
         module = self._load()
         if hasattr(module, "prepare"):
             module.prepare(self.config())
@@ -52,6 +61,8 @@ class LocalPipelineAdapter:
             "device": self.settings.device,
             "limitations": [],
             "pipeline_version": self.settings.pipeline_version,
+            "analysis_ready": False,
+            "analysis_mode": "unvalidated",
         }
 
     def analyze(self, video_path: Path, **kwargs):

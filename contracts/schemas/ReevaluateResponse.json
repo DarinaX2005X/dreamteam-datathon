@@ -349,6 +349,32 @@
       "title": "OverlayBox",
       "type": "object"
     },
+    "PreviewFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "image_base64": {
+          "title": "Image Base64",
+          "type": "string"
+        },
+        "overlay_base64": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Overlay Base64"
+        }
+      },
+      "required": [
+        "image_base64",
+        "overlay_base64"
+      ],
+      "title": "PreviewFrame",
+      "type": "object"
+    },
     "RoleOverride": {
       "additionalProperties": false,
       "properties": {
@@ -439,6 +465,13 @@
     },
     "diff": {
       "$ref": "#/$defs/FindingDiff"
+    },
+    "preview_frames": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PreviewFrame"
+      },
+      "title": "Preview Frames",
+      "type": "object"
     }
   },
   "required": [

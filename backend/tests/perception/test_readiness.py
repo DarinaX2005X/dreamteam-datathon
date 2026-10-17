@@ -39,7 +39,15 @@ def test_successfully_loaded_detector_is_ready_and_reused(tmp_path, monkeypatch)
     runtime = LocalPerceptionRuntime()
     runtime.prepare(config)
     runtime.prepare(config)
-    assert runtime.runtime_status(config).model_status == "ready"
+    status = runtime.runtime_status(config)
+    assert status.model_status == "ready"
+    assert status.analysis_ready is False
+    assert status.analysis_mode == "diagnostic"
+    assert status.pipeline_version.startswith("0.1.0+runtime.")
+    assert loads == ["test-detector"]
+    rebound = config.model_copy(update={"pipeline_version": status.pipeline_version})
+    runtime.prepare(rebound)
+    assert runtime.runtime_status(rebound).pipeline_version == status.pipeline_version
     assert loads == ["test-detector"]
     changed = config.model_copy(update={"device": "cuda"})
     assert runtime.runtime_status(changed).model_status == "loading"
@@ -49,10 +57,32 @@ def test_required_semantic_must_be_loaded(tmp_path, monkeypatch):
     config = _config(tmp_path, monkeypatch, semantic=True)
     runtime = LocalPerceptionRuntime()
     runtime._prepared_key = runtime._configuration_key(config)
+    runtime._pipeline_version = "test+runtime.loaded"
     runtime._detector = SimpleNamespace(device="cpu")
     assert runtime.runtime_status(config).model_status == "loading"
-    runtime._semantic = object()
-    assert runtime.runtime_status(config).model_status == "ready"
+    runtime._semantic = SimpleNamespace(device="cpu")
+    status = runtime.runtime_status(config)
+    assert status.model_status == "ready"
+    assert status.analysis_ready is False
+    assert status.analysis_mode == "unvalidated"
+
+
+def test_public_readiness_requires_every_enabled_core_semantic_capability(tmp_path, monkeypatch):
+    config = _config(tmp_path, monkeypatch, semantic=True)
+    runtime = LocalPerceptionRuntime()
+    runtime._prepared_key = runtime._configuration_key(config)
+    runtime._pipeline_version = "test+runtime.loaded"
+    runtime._detector = SimpleNamespace(device="cpu")
+    runtime._semantic = SimpleNamespace(device="cpu")
+    runtime._required_semantic_capabilities = {"counting_action", "handover_direction"}
+    runtime._validated_capabilities = {"cash_detection": True, "counting_action": True}
+    assert runtime.runtime_status(config).analysis_ready is False
+    runtime._validated_capabilities["handover_direction"] = True
+    assert runtime.runtime_status(config).analysis_ready is True
+    diagnostic = config.model_copy(update={"diagnostic_only": True})
+    runtime._prepared_key = runtime._configuration_key(diagnostic)
+    assert runtime.runtime_status(diagnostic).analysis_ready is False
+    assert runtime.runtime_status(diagnostic).analysis_mode == "diagnostic"
 
 
 def test_missing_required_semantic_has_actionable_status(tmp_path, monkeypatch):

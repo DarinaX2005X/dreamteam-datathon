@@ -1,5 +1,8 @@
 param(
     [string]$Python = "py -3.12",
+    [string]$VenvPath = "backend/.venv",
+    [ValidateSet("auto", "cpu", "cuda")]
+    [string]$Device = "auto",
     [switch]$FetchModels,
     [switch]$SkipModels
 )
@@ -7,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Backend = Join-Path $ProjectRoot "backend"
-$Venv = Join-Path $Backend ".venv"
+$Venv = if ([System.IO.Path]::IsPathRooted($VenvPath)) { $VenvPath } else { Join-Path $ProjectRoot $VenvPath }
 $VenvPython = Join-Path $Venv "Scripts\python.exe"
 
 function Invoke-PythonSelector {
@@ -24,10 +27,16 @@ if (-not (Test-Path -LiteralPath $VenvPython)) {
     Invoke-PythonSelector @("-m", "venv", $Venv)
 }
 & $VenvPython -m pip install --timeout 120 --retries 10 --upgrade pip
-& $VenvPython -m pip install --timeout 120 --retries 10 -e "$Backend[service]"
+$SelectedDevice = $Device
+if ($SelectedDevice -eq "auto") {
+    $SelectedDevice = if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) { "cuda" } else { "cpu" }
+}
+$TorchIndex = if ($SelectedDevice -eq "cuda") { "https://download.pytorch.org/whl/cu124" } else { "https://download.pytorch.org/whl/cpu" }
+Write-Host "Installing the $SelectedDevice runtime in $Venv"
+& $VenvPython -m pip install --timeout 120 --retries 10 --index-url $TorchIndex "torch==2.6.0" "torchvision==0.21.0"
+if ($LASTEXITCODE -ne 0) { throw "PyTorch installation failed." }
+& $VenvPython -m pip install --timeout 120 --retries 10 -e "$Backend[service,runtime,$SelectedDevice]"
 if ($LASTEXITCODE -ne 0) { throw "Backend dependency installation failed." }
-& $VenvPython -m pip install --timeout 120 --retries 10 -r (Join-Path $ProjectRoot "deploy\requirements-cpu.txt")
-if ($LASTEXITCODE -ne 0) { throw "Local model runtime dependency installation failed." }
 
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
     throw "ffmpeg and ffprobe are required on PATH. Install FFmpeg, then rerun setup."
@@ -43,7 +52,7 @@ if ($LASTEXITCODE -ne 0) { throw "Web build failed." }
 $FetchScript = Join-Path $ProjectRoot "scripts\fetch_models.py"
 if ($FetchModels) {
     if (-not (Test-Path -LiteralPath $FetchScript)) { throw "scripts/fetch_models.py is not available yet." }
-    & $VenvPython $FetchScript
+    & $VenvPython $FetchScript --profile $SelectedDevice
     if ($LASTEXITCODE -ne 0) { throw "Model download or integrity verification failed." }
 }
 if (-not $SkipModels) {

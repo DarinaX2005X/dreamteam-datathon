@@ -8,6 +8,7 @@ from typing import Literal, Protocol
 from pydantic import Field
 
 from .domain import (
+    AnalysisMode,
     AnalysisRun,
     Coverage,
     FindingSet,
@@ -33,6 +34,7 @@ class PipelineConfig(ContractModel):
     analysis_fps: float = Field(default=3.0, gt=0, le=60)
     evidence_overlay: bool = True
     max_duration_sec: float = Field(default=600, gt=0)
+    diagnostic_only: bool = False
 
     @classmethod
     def from_env(cls, *, check_id: str | None = None) -> "PipelineConfig":
@@ -61,6 +63,8 @@ class RuntimeStatus(ContractModel):
     device: str
     limitations: list[str] = Field(default_factory=list)
     pipeline_version: str
+    analysis_ready: bool = False
+    analysis_mode: AnalysisMode = "unvalidated"
 
 
 class AnalysisArtifacts(ContractModel):

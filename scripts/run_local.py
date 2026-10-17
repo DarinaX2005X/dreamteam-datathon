@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -17,6 +18,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
+ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def load_dotenv(path: Path) -> None:
+    """Load literal KEY=VALUE pairs while preserving already-exported environment values."""
+    if not path.is_file():
+        return
+    for number, raw_line in enumerate(
+        path.read_text(encoding="utf-8-sig").splitlines(), 1
+    ):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        if "=" not in line:
+            raise ValueError(f"{path}:{number}: expected KEY=VALUE")
+        name, value = line.split("=", 1)
+        name, value = name.strip(), value.strip()
+        if not ENV_NAME.fullmatch(name):
+            raise ValueError(f"{path}:{number}: invalid environment name {name!r}")
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        if "\x00" in value:
+            raise ValueError(f"{path}:{number}: NUL is not allowed")
+        os.environ.setdefault(name, value)
 
 
 def wait_until_bound(
@@ -41,6 +68,11 @@ def wait_until_bound(
 
 
 def main() -> int:
+    try:
+        load_dotenv(ROOT / ".env")
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"Cannot read .env: {exc}", file=sys.stderr)
+        return 2
     parser = argparse.ArgumentParser(
         description="Start the local API and model worker; Ctrl+C stops only these children."
     )

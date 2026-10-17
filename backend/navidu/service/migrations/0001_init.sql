@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS checks (
     artifacts_json TEXT,
     automatic_artifacts_json TEXT,
     cached_from_check_id TEXT,
-    analyzed_at REAL
+    analyzed_at REAL,
+    analysis_ready INTEGER NOT NULL DEFAULT 0,
+    analysis_mode TEXT NOT NULL DEFAULT 'unvalidated'
 );
 CREATE INDEX IF NOT EXISTS checks_queue ON checks(status, priority, created_at);
 CREATE INDEX IF NOT EXISTS checks_cache ON checks(sha256, pipeline_version, status);
@@ -47,13 +49,21 @@ CREATE TABLE IF NOT EXISTS decisions (
     decided_at REAL NOT NULL,
     PRIMARY KEY(check_id, finding_id, revision)
 );
+CREATE TABLE IF NOT EXISTS review_media (
+    check_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    PRIMARY KEY(check_id, revision),
+    FOREIGN KEY(check_id, revision) REFERENCES finding_sets(check_id, revision) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS worker_state (
     worker_id TEXT PRIMARY KEY,
     heartbeat REAL NOT NULL,
     pipeline_version TEXT NOT NULL,
     model_status TEXT NOT NULL,
     device TEXT NOT NULL,
-    limitations_json TEXT NOT NULL
+    limitations_json TEXT NOT NULL,
+    analysis_ready INTEGER NOT NULL DEFAULT 0,
+    analysis_mode TEXT NOT NULL DEFAULT 'unvalidated'
 );
 CREATE TABLE IF NOT EXISTS retention_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -3,7 +3,6 @@ import subprocess
 from dataclasses import replace
 
 import pytest
-
 from navidu.service.exceptions import ServiceError
 from navidu.service.uploads import probe_video
 

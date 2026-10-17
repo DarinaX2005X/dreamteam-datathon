@@ -61,4 +61,23 @@ def derive_observations(
                     provenance="geometry", model_id=None,
                 ))
                 index += 1
+            for previous, current in zip(track.samples, track.samples[1:]):
+                was_inside = _inside(
+                    (previous.bbox[0] + previous.bbox[2]) / 2,
+                    previous.bbox[3], zone.polygon,
+                )
+                is_inside = _inside(
+                    (current.bbox[0] + current.bbox[2]) / 2,
+                    current.bbox[3], zone.polygon,
+                )
+                if was_inside and not is_inside and current.t - previous.t <= max_gap_sec:
+                    observations.append(Observation(
+                        obs_id=f"ob-{index}", kind="person_left_zone",
+                        start_sec=previous.t, end_sec=current.t,
+                        subjects=[track.track_id], zones=[zone.zone_id],
+                        score=min(previous.score, current.score),
+                        frame_ids=[frame_id(previous.t), frame_id(current.t)],
+                        provenance="geometry", model_id=None,
+                    ))
+                    index += 1
     return observations

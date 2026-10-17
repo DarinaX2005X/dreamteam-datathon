@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 
 import pytest
-
 from navidu.contracts.domain import VideoMeta
 from navidu.contracts.errors import AnalysisError
 from navidu.service.exceptions import LeaseLost
@@ -44,7 +43,7 @@ def _take_lease_and_wait(settings, sender):
 
 
 def test_queue_recovers_killed_process_without_duplicate_publication(settings):
-    settings = replace(settings, lease_seconds=0.3, heartbeat_seconds=0.05)
+    settings = replace(settings, lease_seconds=3, heartbeat_seconds=0.05)
     store = Store(settings)
     enqueue(store, "000000000001")
     context = multiprocessing.get_context("spawn")
@@ -56,7 +55,8 @@ def test_queue_recovers_killed_process_without_duplicate_publication(settings):
     process.kill()
     process.join(timeout=10)
     assert not process.is_alive()
-    time.sleep(0.35)
+    with store.connection() as db:
+        db.execute("UPDATE checks SET lease_until=? WHERE id=?", (time.time() - 1, previous["id"]))
     worker = Worker(settings, pipeline=FakePipeline())
     assert worker.run_once()
     assert store.get("000000000001")["status"] == "done"
@@ -108,9 +108,9 @@ def test_stale_attempt_cannot_overwrite_retried_result(settings):
     store.retry(old["id"])
     worker = Worker(settings, pipeline=FakePipeline())
     assert worker.run_once()
-    published_frame = next((directory / "frames").glob("*.jpg"))
+    published_frame = next((directory / "frames" / "original").glob("*.jpg"))
     before = published_frame.read_bytes()
-    (old_staging / "frames" / published_frame.name).write_bytes(b"stale corrupted bytes")
+    (old_staging / "frames" / "original" / published_frame.name).write_bytes(b"stale corrupted bytes")
     with pytest.raises(LeaseLost):
         store.complete(old["id"], old["lease_token"], artifact)
     assert published_frame.read_bytes() == before

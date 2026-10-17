@@ -4,6 +4,7 @@ from navidu.contracts.api_v1 import JobProcessing, JobResponse
 
 from .exceptions import ServiceError
 from .presenters import jury_response
+from .readiness import PREPARING_MESSAGE
 from .uploads import persist_upload
 
 router = APIRouter(prefix="/api/v1")
@@ -13,7 +14,7 @@ async def accept_upload(request: Request, file: UploadFile | None, *, priority: 
     store = request.app.state.store
     health = store.health()
     if not health["ready"]:
-        raise ServiceError(503, "NOT_READY", "Локальная модель пока не готова. Проверьте состояние сервиса.")
+        raise ServiceError(503, "NOT_READY", PREPARING_MESSAGE)
     check_id, name, path, checksum, meta = await persist_upload(
         file, store.settings, request.app.state.probe
     )

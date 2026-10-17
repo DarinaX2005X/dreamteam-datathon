@@ -43,9 +43,10 @@ def materialize_findings(
     work_dir: Path,
     probe: ProbeResult,
     overlay: bool = True,
+    evidence_dir_name: str = "evidence",
 ) -> list[Finding]:
-    originals = work_dir / "evidence" / "original"
-    overlays = work_dir / "evidence" / "overlay"
+    originals = work_dir / evidence_dir_name / "original"
+    overlays = work_dir / evidence_dir_name / "overlay"
     originals.mkdir(parents=True, exist_ok=True)
     overlays.mkdir(parents=True, exist_ok=True)
     obs_by_id = {item.obs_id: item for item in observations}

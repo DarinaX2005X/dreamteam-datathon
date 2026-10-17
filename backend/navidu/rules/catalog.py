@@ -8,7 +8,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-_OPS = {"observation", "handover", "all", "any", "absent", "before", "after"}
+_OPS = {"observation", "handover", "all", "any", "absent", "before", "after", "sequence"}
+
+
+class CatalogConfigurationError(RuntimeError):
+    """A deterministic catalog defect that cannot succeed on a job retry."""
+
+    code = "RULES_INVALID"
+    retryable = False
 
 
 @dataclass(frozen=True)
@@ -39,9 +46,16 @@ def _validate_expression(value: object) -> None:
             raise ValueError(f"Оператор {op} ожидает непустой список.")
         for child in argument:
             _validate_expression(child)
+    elif op == "sequence":
+        if not isinstance(argument, dict) or not isinstance(argument.get("steps"), list):
+            raise ValueError("Оператор sequence ожидает список steps.")
+        for child in argument["steps"]:
+            _validate_expression(child)
+        if not isinstance(argument.get("relations"), list):
+            raise ValueError("Оператор sequence ожидает список relations.")
     elif op in {"before", "after"}:
         if not isinstance(argument, dict) or set(argument) - {
-            "first", "then", "within_sec", "allow_overlap"
+            "first", "then", "within_sec", "allow_overlap", "shared"
         }:
             raise ValueError(f"Некорректные аргументы оператора {op}.")
         _validate_expression(argument.get("first"))
@@ -51,6 +65,15 @@ def _validate_expression(value: object) -> None:
 
 
 def load_catalog(path: Path) -> list[RuleSpec]:
+    try:
+        return _load_catalog(path)
+    except CatalogConfigurationError:
+        raise
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise CatalogConfigurationError(f"RULES_INVALID: {error}") from error
+
+
+def _load_catalog(path: Path) -> list[RuleSpec]:
     rules: list[RuleSpec] = []
     for file in sorted(path.glob("*.yaml")):
         payload = json.loads(file.read_text(encoding="utf-8"))

@@ -2,6 +2,7 @@ import base64
 import importlib.util
 import io
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ def load(name, path):
 
 smoke = load("lado_smoke_api", "scripts/smoke_api.py")
 preflight = load("lado_preflight", "scripts/preflight.py")
+run_local = load("lado_run_local", "scripts/run_local.py")
 
 
 def jpeg_base64():
@@ -75,3 +77,15 @@ def test_processing_job_id_is_strict():
     )
     with pytest.raises(smoke.SmokeFailure, match="job_id"):
         smoke.validate_processing({"job_id": "../../unsafe", "status": "processing"})
+
+
+def test_dotenv_is_literal_and_existing_environment_wins(tmp_path, monkeypatch):
+    monkeypatch.setenv("NAVIDU_PORT", "9000")
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "NAVIDU_PORT=8000\nNAVIDU_MODELS_DIR='C:\\models folder\\v1#fixed'\n",
+        encoding="utf-8",
+    )
+    run_local.load_dotenv(env_file)
+    assert os.environ["NAVIDU_PORT"] == "9000"
+    assert os.environ["NAVIDU_MODELS_DIR"] == r"C:\models folder\v1#fixed"

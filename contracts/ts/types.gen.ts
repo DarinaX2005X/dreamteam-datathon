@@ -22,6 +22,8 @@ export type AnalysisRun = {
   "check_id": string;
   "pipeline_version": string;
   "analysis_fps": number;
+  "analysis_ready"?: boolean;
+  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
   "model_versions"?: {
   [key: string]: string;
 };
@@ -42,6 +44,8 @@ export type CheckDetail = {
   "analysis_origin"?: "local" | "cache";
   "analyzed_at"?: string | null;
   "automatic_verdict"?: "violation" | "no_violation" | null;
+  "video_available"?: boolean;
+  "video_expires_at"?: string | null;
   "video"?: VideoMeta | null;
   "progress": CheckProgress;
   "layout"?: SceneLayout | null;
@@ -169,6 +173,8 @@ export type FindingSet = {
 
 export type HealthResponse = {
   "ready": boolean;
+  "analysis_ready"?: boolean;
+  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
   "queue": QueueCounts;
   "pipeline_version": string;
   "model_status": "loading" | "ready" | "missing" | "error";
@@ -224,7 +230,7 @@ export type Observation = {
   "start_sec": number;
   "end_sec": number;
   "obs_id": string;
-  "kind": "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible";
+  "kind": "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone";
   "subjects"?: Array<string>;
   "zones"?: Array<string>;
   "score"?: number | null;
@@ -233,9 +239,10 @@ export type Observation = {
   "model_id"?: string | null;
   "actor_id"?: string | null;
   "recipient_id"?: string | null;
+  "relation_id"?: string | null;
 };
 
-export type ObservationKind = "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible";
+export type ObservationKind = "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone";
 
 export type OverlayBox = {
   "bbox": [number, number, number, number];
@@ -252,6 +259,7 @@ export type PipelineConfig = {
   "analysis_fps"?: number;
   "evidence_overlay"?: boolean;
   "max_duration_sec"?: number;
+  "diagnostic_only"?: boolean;
 };
 
 export type PipelineEvent = {
@@ -262,6 +270,11 @@ export type PipelineEvent = {
 };
 
 export type PipelinePhase = "decode" | "perception" | "facts" | "rules" | "evidence";
+
+export type PreviewFrame = {
+  "image_base64": string;
+  "overlay_base64": string | null;
+};
 
 export type QueueCounts = {
   "api": number;
@@ -278,6 +291,9 @@ export type ReevaluateRequest = {
 export type ReevaluateResponse = {
   "finding_set": FindingSet;
   "diff": FindingDiff;
+  "preview_frames"?: {
+  [key: string]: PreviewFrame;
+};
 };
 
 export type Role = "cashier" | "client" | "collector" | "controller" | "staff" | "outsider" | "unknown";
@@ -335,6 +351,8 @@ export type RuntimeStatus = {
   "device": string;
   "limitations"?: Array<string>;
   "pipeline_version": string;
+  "analysis_ready"?: boolean;
+  "analysis_mode"?: "validated" | "unvalidated" | "diagnostic";
 };
 
 export type SceneLayout = {

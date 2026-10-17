@@ -160,8 +160,8 @@ export const api = {
       signal,
     }),
   video: (id: string) => `/api/ui/checks/${id}/video`,
-  frame: (id: string, frame: string, overlay = true) =>
-    `/api/ui/checks/${id}/frames/${frame}.jpg?overlay=${overlay ? 1 : 0}`,
+  frame: (id: string, frame: string, revision: number, overlay = true) =>
+    `/api/ui/checks/${id}/frames/${frame}.jpg?overlay=${overlay ? 1 : 0}&revision=${revision}`,
 };
 
 export function uploadCheck(
@@ -195,9 +195,14 @@ export function uploadCheck(
         reject(parseApiErrorBody(body, xhr.status, "Ошибка передачи"));
       }
     };
-    xhr.onerror = () =>
+    xhr.onerror = () => {
+      signal.removeEventListener("abort", abort);
       reject(new ApiError("NETWORK", "Нет связи с сервисом", 0));
-    xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+    };
+    xhr.onabort = () => {
+      signal.removeEventListener("abort", abort);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
     signal.addEventListener("abort", abort, { once: true });
     const data = new FormData();
     data.append("file", file);

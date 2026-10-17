@@ -25,6 +25,21 @@
     "pipeline_version": {
       "title": "Pipeline Version",
       "type": "string"
+    },
+    "analysis_ready": {
+      "default": false,
+      "title": "Analysis Ready",
+      "type": "boolean"
+    },
+    "analysis_mode": {
+      "default": "unvalidated",
+      "enum": [
+        "validated",
+        "unvalidated",
+        "diagnostic"
+      ],
+      "title": "Analysis Mode",
+      "type": "string"
     }
   },
   "required": [

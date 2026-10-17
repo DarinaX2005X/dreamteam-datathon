@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from .domain import (
+    AnalysisMode,
     Coverage,
     Decision,
     DecisionValue,
@@ -49,6 +50,8 @@ class CheckDetail(CheckSummary):
     analysis_origin: Literal["local", "cache"] = "local"
     analyzed_at: datetime | None = None
     automatic_verdict: Verdict | None = None
+    video_available: bool = True
+    video_expires_at: datetime | None = None
     video: VideoMeta | None = None
     progress: CheckProgress
     layout: SceneLayout | None = None
@@ -92,9 +95,15 @@ class FindingDiff(ContractModel):
     verdict_changed: bool
 
 
+class PreviewFrame(ContractModel):
+    image_base64: str
+    overlay_base64: str | None
+
+
 class ReevaluateResponse(ContractModel):
     finding_set: FindingSet
     diff: FindingDiff
+    preview_frames: dict[str, PreviewFrame] = Field(default_factory=dict)
 
 
 class QueueCounts(ContractModel):
@@ -104,6 +113,8 @@ class QueueCounts(ContractModel):
 
 class HealthResponse(ContractModel):
     ready: bool
+    analysis_ready: bool = False
+    analysis_mode: AnalysisMode = "unvalidated"
     queue: QueueCounts
     pipeline_version: str
     model_status: Literal["loading", "ready", "missing", "error"]

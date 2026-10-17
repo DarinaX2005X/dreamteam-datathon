@@ -8,10 +8,13 @@ import product from "../../../../contracts/product.json";
 import { ApiError, api, uploadCheck } from "../../api/client";
 import { Button, InlineNotice } from "../../ui";
 import { errors } from "../../i18n/ru";
-import { readRecentIds, recentStatus } from "./domain";
+import {
+  readRecentStorage,
+  recentStatus,
+  shouldDiscardUpload,
+  writeRecentStorage,
+} from "./domain";
 import { intakeStrings as strings } from "./strings";
-
-const RECENT = "lado.recentChecks";
 
 export function IntakePage() {
   const navigate = useNavigate();
@@ -24,8 +27,20 @@ export function IntakePage() {
   const [recent, setRecent] = useState<CheckSummary[]>([]);
   const [health, setHealth] = useState<HealthResponse>();
   const [healthError, setHealthError] = useState("");
+  const mounted = useRef(true);
+  const activeUpload = useRef<AbortController>();
+  const memoryRecent = useRef<string[]>([]);
+
+  const storage = () => {
+    try {
+      return window.localStorage;
+    } catch {
+      return undefined;
+    }
+  };
 
   useEffect(() => {
+    mounted.current = true;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const loadHealth = async () => {
@@ -33,8 +48,7 @@ export function IntakePage() {
         const next = await api.health(controller.signal);
         setHealth(next);
         setHealthError("");
-        if (next.model_status === "loading")
-          timer = setTimeout(loadHealth, 2000);
+        timer = setTimeout(loadHealth, next.ready ? 8000 : 3000);
       } catch (requestError) {
         if ((requestError as Error).name !== "AbortError") {
           setHealthError(
@@ -45,7 +59,7 @@ export function IntakePage() {
       }
     };
     void loadHealth();
-    const ids = readRecentIds(localStorage.getItem(RECENT));
+    const ids = readRecentStorage(storage(), memoryRecent.current);
     Promise.allSettled(ids.map((id) => api.recent(id, controller.signal))).then(
       (results) => {
         if (controller.signal.aborted) return;
@@ -53,14 +67,14 @@ export function IntakePage() {
           result.status === "fulfilled" ? [result.value] : [],
         );
         setRecent(available);
-        localStorage.setItem(
-          RECENT,
-          JSON.stringify(available.map((item) => item.id)),
-        );
+        memoryRecent.current = available.map((item) => item.id);
+        writeRecentStorage(storage(), memoryRecent.current);
       },
     );
     return () => {
       controller.abort();
+      activeUpload.current?.abort();
+      mounted.current = false;
       if (timer) clearTimeout(timer);
     };
   }, []);
@@ -83,33 +97,42 @@ export function IntakePage() {
   const submit = async () => {
     if (!file || uploadController) return;
     const controller = new AbortController();
+    activeUpload.current = controller;
     setUploadController(controller);
-    setProgress(0);
+    setProgress(-1);
     try {
       const check = await uploadCheck(
         file,
-        (loaded, total) => setProgress(total ? loaded / total : 0),
+        (loaded, total) => setProgress(total ? loaded / total : -1),
         controller.signal,
       );
+      if (controller.signal.aborted || !mounted.current) return;
       const ids = [
         check.id,
-        ...readRecentIds(localStorage.getItem(RECENT)),
+        ...readRecentStorage(storage(), memoryRecent.current),
       ].slice(0, 8);
-      localStorage.setItem(RECENT, JSON.stringify([...new Set(ids)]));
+      memoryRecent.current = [...new Set(ids)];
+      writeRecentStorage(storage(), memoryRecent.current);
       navigate(`/app/checks/${check.id}`);
     } catch (requestError) {
       if ((requestError as Error).name !== "AbortError") {
         const apiError = requestError as ApiError;
+        if (!mounted.current) return;
         setError(errors[apiError.code] ?? apiError.message);
-        setFile(undefined);
-        if (input.current) {
-          input.current.value = "";
-          input.current.focus();
+        if (shouldDiscardUpload(apiError.code)) {
+          setFile(undefined);
+          if (input.current) {
+            input.current.value = "";
+            input.current.focus();
+          }
         }
       }
     } finally {
-      setUploadController(undefined);
-      setProgress(null);
+      if (mounted.current) {
+        setUploadController(undefined);
+        setProgress(null);
+      }
+      if (activeUpload.current === controller) activeUpload.current = undefined;
     }
   };
 
@@ -123,14 +146,15 @@ export function IntakePage() {
           наблюдаемые эпизоды и свяжет их с нормами.
         </p>
       </header>
-      {health && health.model_status !== "ready" && (
-        <InlineNotice
-          tone={health.model_status === "loading" ? "warning" : "danger"}
-        >
-          {health.model_status === "loading"
-            ? "Модель загружается. Начать проверку можно после её готовности."
-            : "Анализ пока недоступен."}{" "}
-          {(health.limitations ?? []).join(" ")}
+      {health && !health.ready && (
+        <InlineNotice tone="warning">
+          Подготавливаем проверку действий. Загрузка станет доступна после
+          проверки модели.
+        </InlineNotice>
+      )}
+      {health?.ready && (health.limitations ?? []).length > 0 && (
+        <InlineNotice tone="warning">
+          Ограничения текущего анализа: {(health.limitations ?? []).join(" ")}
         </InlineNotice>
       )}
       {healthError && <InlineNotice tone="warning">{healthError}</InlineNotice>}
@@ -167,18 +191,16 @@ export function IntakePage() {
             {strings.choose}
           </Button>
           <Button
-            title={
-              health?.model_status !== "ready"
-                ? "Дождитесь готовности сервиса"
-                : undefined
-            }
+            title={!health?.ready ? "Дождитесь готовности сервиса" : undefined}
             onClick={() => void submit()}
             busy={Boolean(uploadController)}
-            disabled={!file || health?.model_status !== "ready"}
+            disabled={!file || !health?.ready}
           >
             {progress == null
               ? "Передать и начать анализ"
-              : `Передано ${(progress * 100).toFixed(0)}%`}
+              : progress < 0
+                ? "Передаём файл…"
+                : `Передано ${(progress * 100).toFixed(0)}%`}
           </Button>
         </div>
         {uploadController && (
