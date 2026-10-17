@@ -159,11 +159,13 @@ class Worker:
                 self.queue.release(check_id, token)
             elif self.queue.owns(check_id, token):
                 code = getattr(exc, "code", "ANALYSIS_FAILED")
-                nonretryable = {"ANALYSIS_NOT_PERFORMED", "ANALYSIS_INCOMPLETE", "RUNTIME_RESTART_REQUIRED", "RULES_INVALID",
+                nonretryable = {"ANALYSIS_NOT_PERFORMED", "ANALYSIS_INCOMPLETE", "MODEL_OUTPUT_INVALID", "RUNTIME_RESTART_REQUIRED", "RULES_INVALID",
                                 "MODEL_NOT_VALIDATED", "MODEL_UNAVAILABLE"}
                 retryable = getattr(exc, "retryable", code not in nonretryable)
                 message = (NOT_PERFORMED_MESSAGE if code == "ANALYSIS_NOT_PERFORMED" else
                            INCOMPLETE_MESSAGE if code == "ANALYSIS_INCOMPLETE" else
+                           "Модель не смогла вернуть полный результат анализа. Проверка не завершена."
+                           if code == "MODEL_OUTPUT_INVALID" else
                            PREPARING_MESSAGE if code in nonretryable else
                            "Обработка прервалась. Сервис попробует повторить её автоматически.")
                 self.queue.fail(check_id, token, AnalysisError(

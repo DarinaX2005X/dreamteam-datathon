@@ -60,6 +60,15 @@ Other recipient fields are null. Never invent a person ID. At most six events.
 """
 
 
+class TemporalOutputError(RuntimeError):
+    code = "MODEL_OUTPUT_INVALID"
+    retryable = False
+
+    def __init__(self, message: str, *, numeric_metrics: dict | None = None):
+        super().__init__(message)
+        self.numeric_metrics = numeric_metrics or {}
+
+
 def resolve_dtype(device: str, requested: str, *, bf16_supported: bool = False) -> str:
     """Keep existing defaults; explicit precision never silently falls back."""
     if requested not in {"auto", "bf16", "fp16", "fp32"}:
@@ -96,12 +105,17 @@ def _decode_payload(text: str) -> dict:
     try:
         value = json.loads(stripped)
     except (TypeError, ValueError) as error:
-        raise RuntimeError("MODEL_OUTPUT_INVALID: временная модель не вернула проверяемый JSON.") from error
+        raise TemporalOutputError(
+            "MODEL_OUTPUT_INVALID: временная модель не вернула проверяемый JSON.",
+            numeric_metrics={"response_chars": len(stripped),
+                             "json_error_pos": getattr(error, "pos", None)},
+        ) from error
     if not isinstance(value, dict) or not isinstance(value.get("events"), list) \
             or not isinstance(value.get("roles", []), list) \
             or not isinstance(value.get("same_cash_batches", []), list) \
             or not isinstance(value.get("reflections", []), list):
-        raise RuntimeError("MODEL_OUTPUT_INVALID: неверная схема временных наблюдений.")
+        raise TemporalOutputError("MODEL_OUTPUT_INVALID: неверная схема временных наблюдений.",
+                                  numeric_metrics={"response_chars": len(stripped)})
     return value
 
 
@@ -313,9 +327,15 @@ class TemporalVerifier:
             "input_tokens": inputs["input_ids"].shape[1],
             "image_patches": sum(patch_counts),
             "generated_tokens": output.shape[1] - inputs["input_ids"].shape[1],
+            "max_new_tokens": self.max_new_tokens,
+            "token_limit_reached": output.shape[1] - inputs["input_ids"].shape[1] >= self.max_new_tokens,
             "peak_cuda_mib": round(torch.cuda.max_memory_allocated() / 1048576, 1)
                              if self.device == "cuda" else None}
-        payload = _decode_payload(text)
+        try:
+            payload = _decode_payload(text)
+        except TemporalOutputError as error:
+            error.numeric_metrics.update(self.last_metrics)
+            raise
         self.last_metrics["raw_event_count"] = len(payload["events"])
         self.last_metrics["raw_role_count"] = len(payload.get("roles", []))
         self.last_metrics["raw_cash_batch_count"] = len(payload.get("same_cash_batches", []))

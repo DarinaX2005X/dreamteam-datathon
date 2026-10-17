@@ -2,17 +2,28 @@
 
 import json
 import logging
+import math
 import traceback
 from pathlib import Path
 
 
 def error_fields(exc: BaseException, *, code: str):
-    return {
+    fields = {
         "code": code,
         "error_type": type(exc).__name__,
         "trace": [{"file": Path(frame.filename).name, "function": frame.name, "line": frame.lineno}
                   for frame in traceback.extract_tb(exc.__traceback__)],
     }
+    metrics = getattr(exc, "numeric_metrics", None)
+    if isinstance(metrics, dict):
+        allowed = {"response_chars", "json_error_pos", "input_tokens", "image_patches",
+                   "generated_tokens", "max_new_tokens", "token_limit_reached",
+                   "generation_sec", "vision_sec", "peak_cuda_mib"}
+        fields["numeric_metrics"] = {
+            key: value for key, value in metrics.items() if key in allowed
+            and type(value) in (int, float, bool) and math.isfinite(value)
+        }
+    return fields
 
 
 def log_exception(logger, exc, *, code, level=logging.ERROR, **fields):

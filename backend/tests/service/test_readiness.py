@@ -216,6 +216,24 @@ def test_all_uncheckable_failure_is_nonretryable_and_public(client, app, pipelin
     assert "verdict" not in jury
 
 
+def test_invalid_model_output_is_not_retried_as_the_same_request(client, app, pipeline, monkeypatch):
+    from navidu.perception.temporal import _decode_payload
+
+    def malformed_output(video_path, *, work_dir, config, emit, should_stop):
+        emit(PipelineEvent(phase="perception", processed_until_sec=3))
+        _decode_payload('{"events":[')
+
+    monkeypatch.setattr(pipeline, "analyze", malformed_output)
+    check_id = upload(client).json()["check"]["id"]
+    assert app.state.test_worker.run_once()
+    row = app.state.store.get(check_id)
+    assert row["status"] == "failed" and row["attempts"] == 1
+    assert not app.state.test_worker.run_once()
+    result = client.get(f"/api/ui/checks/{check_id}").json()["check"]
+    assert result["verdict"] is None and result["error"]["code"] == "MODEL_OUTPUT_INVALID"
+    assert "автоматически" not in result["error"]["message"]
+
+
 def test_progress_observation_deltas_upsert_existing_ids(client, app):
     check_id = upload(client).json()["check"]["id"]
     job = JobQueue(app.state.store).acquire()

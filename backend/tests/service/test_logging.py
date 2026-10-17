@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 
-from navidu.service.structured_log import JsonFormatter, log_exception
+from navidu.service.structured_log import JsonFormatter, error_fields, log_exception
 
 
 def test_exception_event_omits_private_message_and_locals(caplog):
@@ -38,3 +38,17 @@ def test_server_exception_formatter_also_redacts_message_and_context():
     assert event["logger"] == "uvicorn.error"
     assert event["trace"][0]["file"] == "test_logging.py"
     assert secret not in rendered and "payload" not in rendered and "\n" not in rendered
+
+
+def test_exception_metrics_allow_only_known_finite_numbers():
+    error = RuntimeError("private generated response")
+    error.numeric_metrics = {
+        "generated_tokens": 512, "max_new_tokens": 512, "token_limit_reached": True,
+        "response_chars": "private response", "generation_sec": float("nan"),
+        "private field name": 1,
+    }
+    fields = error_fields(error, code="MODEL_OUTPUT_INVALID")
+    assert fields["numeric_metrics"] == {
+        "generated_tokens": 512, "max_new_tokens": 512, "token_limit_reached": True,
+    }
+    assert "private" not in json.dumps(fields)
