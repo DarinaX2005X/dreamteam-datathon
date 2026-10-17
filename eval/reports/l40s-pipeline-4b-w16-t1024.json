@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "source_commit": "3e84e50",
+  "pipeline_version": "0.1.0+runtime.aaf3d22c37b8aae2daf7",
+  "task": "complete HTTP/UI pipeline, automatic normative verdict",
+  "quality_accepted": false,
+  "analysis_mode": "experimental",
+  "hardware": "NVIDIA L40S",
+  "model_id": "internvl3_5-4b",
+  "proposal_adapter_active": false,
+  "configuration": {
+    "semantic_dtype": "bf16",
+    "semantic_window_frames": 16,
+    "semantic_fps": 1,
+    "semantic_max_new_tokens": 1024,
+    "semantic_max_patches": 1,
+    "prompt_version": "cash-actions-v4-batch-schema"
+  },
+  "partition": "inner_validation",
+  "holdout_used": false,
+  "selected_unique_sources": 8,
+  "completed_unique_sources": 8,
+  "failed_unique_sources": 0,
+  "confusion": {"tp": 0, "tn": 4, "fp": 0, "fn": 4},
+  "http_poll_completion_seconds": [70.2, 25.1, 25.1, 20.1, 35.1, 10.1, 75.2, 25.1],
+  "http_poll_interval_seconds": 5,
+  "semantic_windows_completed": 23,
+  "image_patches_total": 307,
+  "generated_tokens_total": 8966,
+  "max_window_peak_cuda_mib": 10222.9,
+  "raw_cash_batch_count": 0,
+  "bound_cash_batch_count": 0,
+  "accepted_semantic_event_counts": {
+    "cash_in_hands": 46,
+    "cash_sorting": 23,
+    "cash_on_desk": 2
+  },
+  "rule_status_counts": {"no_violation": 24, "not_checkable": 32},
+  "person_role_counts": {"known": 20, "unknown": 5},
+  "limitations": [
+    "Only eight development sources; this is not held-out quality evidence.",
+    "HTTP completion times include upload and polling delay, not exact worker latency.",
+    "No positive source was detected. Successful execution does not establish model quality.",
+    "Not all catalog rules are currently checkable by the runtime."
+  ]
+}
