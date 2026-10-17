@@ -47,7 +47,7 @@ for directory in ("training", "eval"):
               volumes={"/models": models})
 def prepare_models(profile: str = "baseline") -> dict:
     selections = {"baseline": ["internvl3_5-4b", "rfdetr-nano-onnx"],
-                  "qwen": ["qwen3-vl-4b"]}
+                  "qwen": ["qwen3-vl-4b"], "qwen8": ["qwen3-vl-8b"]}
     if profile not in selections:
         raise ValueError("Unknown model preparation profile")
     shutil.copyfile("/workspace/model-manifest.json", "/models/manifest.json")
@@ -75,27 +75,58 @@ def prepare_data() -> dict:
     return {"development_sources": 32, "holdout_sources": 0, "gpu_allocated": False}
 
 
+@setup_app.function(image=image, cpu=(2, 2), memory=(4096, 4096), timeout=600,
+              retries=0, max_containers=1, min_containers=0, scaledown_window=2,
+              volumes={"/private": private})
+def check_validation_decode() -> dict:
+    import traceback
+
+    from navidu.ingest import iter_frames
+
+    from eval.training import load_training_partition
+
+    root = Path("/private/dataset")
+    samples = load_training_partition(root / "eval/training-splits.json",
+        inventory=root / "research/dataset/inventory.csv", labels=root / "eval/labels.csv",
+        folds=root / "eval/folds.csv", dataset_dir=root / "data/dataset", partition="validation")
+    result = {"gpu_allocated": False, "sources": []}
+    for index, sample in enumerate(samples):
+        try:
+            count = sum(1 for _ in iter_frames(sample.video_path, analysis_fps=2))
+            record = {"index": index, "frames": count, "decoded": True}
+        except Exception as error:
+            record = {"index": index, "decoded": False, "error": type(error).__name__,
+                      "stack": [{"file": Path(item.filename).name, "line": item.lineno,
+                                 "function": item.name} for item in traceback.extract_tb(error.__traceback__)]}
+        result["sources"].append(record)
+    print(json.dumps(result), flush=True)
+    return result
+
+
 @app.function(image=image, gpu="L4", cpu=(4, 4), memory=(32768, 32768),
               timeout=6000, retries=0, max_containers=1, min_containers=0,
               scaledown_window=2, volumes={"/models": models, "/private": private})
-def train(run_id: str) -> dict:
+def train(run_id: str, model_id: str = "internvl3_5-4b") -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run id")
+    if model_id not in {"internvl3_5-4b", "qwen3-vl-4b"}:
+        raise ValueError("Unknown proposal model")
     output = Path("/private/runs") / run_id
     if output.exists():
         raise RuntimeError("Run exists; download its artifacts instead of starting it twice")
     output.mkdir(parents=True)
     # The trainer claims an empty output directory. Keep telemetry alongside it.
     telemetry = Path("/private/runs") / (run_id + "-gpu.csv")
-    env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+    env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
+           "CUBLAS_WORKSPACE_CONFIG": ":4096:8"}
     command = [sys.executable, "training/train_proposal.py", "--host-profile", "modal-l4",
-               "--base-model", "/models/internvl3_5-4b", "--models-dir", "/models",
+               "--model-id", model_id, "--base-model", f"/models/{model_id}", "--models-dir", "/models",
                "--output-dir", str(output), "--dataset-dir", "/private/dataset/data/dataset",
                "--training-manifest", "/private/dataset/eval/training-splits.json",
                "--inventory", "/private/dataset/research/dataset/inventory.csv",
                "--labels", "/private/dataset/eval/labels.csv",
                "--folds", "/private/dataset/eval/folds.csv",
-               "--epochs", "3", "--minimum-epochs", "3", "--learning-rate", "0.00005",
+               "--epochs", "3", "--minimum-epochs", "1", "--learning-rate", "0.00005",
                "--max-wall-minutes", "90", "--cuda-memory-fraction", "0.94"]
     started = time.monotonic()
     with telemetry.open("w") as stream:
@@ -132,23 +163,25 @@ def train(run_id: str) -> dict:
 
 @setup_app.local_entrypoint()
 def setup(stage: str = "models"):
-    if stage in {"models", "qwen"}:
-        print(json.dumps(prepare_models.remote("qwen" if stage == "qwen" else "baseline")))
+    if stage in {"models", "qwen", "qwen8"}:
+        print(json.dumps(prepare_models.remote("baseline" if stage == "models" else stage)))
     elif stage == "data":
         print(json.dumps(prepare_data.remote()))
+    elif stage == "check":
+        check_validation_decode.remote()
     else:
-        raise ValueError("Setup stage must be models, qwen or data")
+        raise ValueError("Setup stage must be models, qwen, qwen8, data or check")
 
 
 @app.local_entrypoint()
-def main(run_id: str = ""):
+def main(run_id: str = "", model_id: str = "internvl3_5-4b"):
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("An explicit valid unique --run-id is required")
     try:
-        print(json.dumps(train.remote(run_id)))
+        print(json.dumps(train.remote(run_id, model_id)))
     finally:
         # Retain artifacts on the user's machine even when training fails.
         destination = ROOT / "training/runs" / run_id
         destination.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run([sys.executable, "-X", "utf8", "-m", "modal", "volume", "get",
-                        "lado-training-v1", f"/runs/{run_id}", str(destination)], check=True)
+                        "lado-training-v1", f"/runs/{run_id}", str(destination.parent)], check=True)

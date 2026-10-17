@@ -80,6 +80,34 @@ class CacheTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 store.cached(item)
 
+    def test_projection_verifies_pipeline_frames_and_rejects_missing_evidence(self) -> None:
+        from PIL import Image
+
+        item = source("a", 1, (20.0,))
+        artifacts = SimpleNamespace(
+            run=SimpleNamespace(pipeline_version="test-only", analysis_ready=False,
+                analysis_mode="diagnostic", phase_timings_sec={}, model_versions={"test": "1"}),
+            video=SimpleNamespace(duration_sec=100.0),
+            finding_set=SimpleNamespace(verdict="violation", rules=[SimpleNamespace(status="violation")],
+                findings=[SimpleNamespace(timecode_sec=20.0, rule_id="synthetic-test-rule",
+                    evidence=[SimpleNamespace(frame_id="fr-20000")])]))
+        with tempfile.TemporaryDirectory() as directory:
+            attempt = Path(directory)
+            for filename in ("run.json", "finding_set.json", "video.json"):
+                atomic_json(attempt / filename, {})
+            atomic_json(attempt / "engine_manifest.json", {"complete": True})
+            frame = attempt / "frames/original/fr-20000.jpg"
+            frame.parent.mkdir(parents=True)
+            Image.new("RGB", (8, 8), "red").save(frame)
+            record = _artifact_projection(artifacts, item, fingerprint=FINGERPRINT,
+                pipeline_version="test-only", latency=1.0, attempt=attempt)
+            self.assertEqual(record["status"], "done")
+            self.assertEqual(record["artifact_hashes"]["frames/original/fr-20000.jpg"], file_sha256(frame))
+            frame.unlink()
+            with self.assertRaises(FileNotFoundError):
+                _artifact_projection(artifacts, item, fingerprint=FINGERPRINT,
+                    pipeline_version="test-only", latency=1.0, attempt=attempt)
+
     def test_failed_and_partial_attempts_never_become_completed_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = RunStore(Path(directory), FINGERPRINT)

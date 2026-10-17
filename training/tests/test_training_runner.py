@@ -20,6 +20,16 @@ SPEC.loader.exec_module(train_proposal)
 
 
 class TrainingRunnerTests(unittest.TestCase):
+    def test_qwen_recipe_is_explicit_and_bounded(self) -> None:
+        recipe = train_proposal.Recipe(model_id="qwen3-vl-4b")
+        recipe.validate()
+        self.assertEqual(recipe.max_pixels, 262144)
+        self.assertIn("ebb281ec", train_proposal.BASE_MODEL_IDS[recipe.model_id])
+        for recipe in (train_proposal.Recipe(model_id="unknown"),
+                       train_proposal.Recipe(model_id="qwen3-vl-4b", max_pixels=1048576)):
+            with self.assertRaises(train_proposal.TrainingError):
+                recipe.validate()
+
     def test_fixed_recipe_rejects_unapproved_epoch_or_lora_shape(self) -> None:
         train_proposal.Recipe().validate()
         with self.assertRaisesRegex(train_proposal.TrainingError, "epochs"):

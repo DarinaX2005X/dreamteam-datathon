@@ -330,7 +330,7 @@ def _artifact_projection(artifacts, source: EvaluationSource, *, fingerprint: st
 
     for finding in artifacts.finding_set.findings:
         for evidence in finding.evidence:
-            relative = f"evidence/original/{evidence.frame_id}.jpg"
+            relative = f"frames/original/{evidence.frame_id}.jpg"
             path = attempt / relative
             with Image.open(path) as image:
                 if image.format != "JPEG":

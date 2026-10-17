@@ -4,6 +4,13 @@ The user performs visual and browser testing. All agents, including delegated ag
 
 ## Project coordination
 
+As of 2026-10-18 (local time), the user forbids local CPU video decoding,
+frame/contact-sheet generation, model/processor checks and other heavy model work
+because they made the computer unusable. Run these only in the authorized Modal
+workspace. Local lightweight editing, metadata reads and remote control are allowed.
+The user explicitly authorized training Qwen on the current frames and organizer
+labels despite their concern that the shown positive/negative actions look similar.
+
 The accepted project memory is in `.vibemachina/`. MAIN alone edits it and performs Git writes. Each implementation worker owns explicitly assigned paths. New workers use GPT-5.6 Sol as requested by the user on 2026-10-17; already running workers continue unchanged. Public product name is Latin `Lado`, centralized in `contracts/product.json`; the `navidu` Python namespace is retained internally for compatibility with the prepared plan.
 
 Bank videos, extracted frames and video descriptions must not be submitted to external AI APIs. Inference and data processing run locally or on the explicitly authorized self-hosted Brev instance `fierce-aquamarine-beaver`. On 2026-10-17 the user additionally authorized the 32 development videos and their annotations in their private Modal workspace for training and website processing. Keep holdout videos and annotations local. Brev is stopped: do not restart it without a new instruction. Heavy runs use the authorized Modal L4 24 GB profile with a bounded budget; do not upgrade the GPU without a measured need and user agreement. Do not commit data, credentials, caches or model weights. No slides, pitch scripts, presentation kit or promotional video in this assignment.

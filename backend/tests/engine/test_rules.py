@@ -188,3 +188,24 @@ def test_p42_stays_not_checkable_until_grounded_context_producer_is_enabled():
     assert not any(item.rule.rule_id == "V-COUNT-NO-CONTROLLER" for item in findings)
     status = next(item for item in statuses if item.rule_id == "V-COUNT-NO-CONTROLLER")
     assert status.status == "not_checkable"
+
+
+def test_old_cash_on_desk_requires_new_client_same_cashier_and_same_old_batch():
+    roles = {"p1": "cashier", "p2": "client", "p3": "client", "p4": "cashier"}
+    caps = {"handover_direction": True, "cash_on_desk": True, "zone_departure": True}
+    zones = {"z-client_window-1": "client_window"}
+    observations = [
+        obs(1, "cash_handover", 1, 2, subjects=("p2", "p1"), actor="p2", recipient="p1", relation="cash:o1"),
+        obs(2, "person_left_zone", 3, 4, subjects=("p2",), zones=("z-client_window-1",)),
+        obs(3, "cash_on_desk", 5, 9, subjects=("o1",), relation="cash:o1"),
+        obs(4, "cash_handover", 7, 8, subjects=("p3", "p1"), actor="p3", recipient="p1", relation="cash:o2"),
+    ]
+    rule = next(rule for rule in CATALOG if rule.rule_id == "V-CASH-UNSECURED")
+    findings, _ = evaluate(observations, [], roles, [rule], caps, zones)
+    assert len(findings) == 1 and findings[0].timecode_sec == 7
+    for changes in ({"actor_id": "p2"}, {"recipient_id": "p4"}, {"start_sec": 10, "end_sec": 11}):
+        changed = observations[:3] + [observations[3].model_copy(update=changes)]
+        assert not evaluate(changed, [], roles, [rule], caps, zones)[0]
+    wrong_batch = observations[:2] + [observations[2].model_copy(update={"relation_id": "cash:o3"})] + observations[3:]
+    assert not evaluate(wrong_batch, [], roles, [rule], caps, zones)[0]
+    assert not evaluate([observations[0], *observations[2:]], [], roles, [rule], caps, zones)[0]

@@ -118,7 +118,9 @@ def apply_reflection_filters(artifacts: PerceptionArtifacts) -> dict[str, float 
     canonicalized_signals = 0
     retained_signals = []
     for item in artifacts.semantic_signals:
-        if item.kind == "reflection":
+        if item.kind in {"reflection", "uncertain_person"}:
+            # Uncertainty concerns the alleged image itself. Mapping it to the
+            # physical source would wrongly make that real person uncertain.
             retained_signals.append(item)
             continue
         remap = mapping(item.subjects, item.start_sec, item.end_sec)

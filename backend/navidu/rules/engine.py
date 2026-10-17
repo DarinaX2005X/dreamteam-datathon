@@ -80,6 +80,10 @@ def _connected(left: Observation, right: Observation, shared: str | None) -> boo
         return bool(transferred & set(right.subjects))
     if shared == "relation_id":
         return left.relation_id is not None and left.relation_id == right.relation_id
+    if shared == "same_recipient_different_actor":
+        return (left.recipient_id is not None and left.recipient_id == right.recipient_id
+                and left.actor_id is not None and right.actor_id is not None
+                and left.actor_id != right.actor_id)
     if shared == "any":
         return bool(set(left.subjects) & set(right.subjects))
     return True

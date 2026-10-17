@@ -230,7 +230,7 @@ export type Observation = {
   "start_sec": number;
   "end_sec": number;
   "obs_id": string;
-  "kind": "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone";
+  "kind": "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone" | "extra_person_present" | "identity_document_visible";
   "subjects"?: Array<string>;
   "zones"?: Array<string>;
   "score"?: number | null;
@@ -242,7 +242,7 @@ export type Observation = {
   "relation_id"?: string | null;
 };
 
-export type ObservationKind = "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone";
+export type ObservationKind = "person_in_zone" | "cash_in_hands" | "cash_on_desk" | "cash_handover" | "counting_motion" | "phone_visible" | "bag_present" | "bag_opened" | "storage_open" | "visibility_low" | "cash_sorting" | "cash_packing" | "bag_integrity_damage" | "personal_item_identified" | "camera_device_visible" | "person_left_zone" | "extra_person_present" | "identity_document_visible";
 
 export type OverlayBox = {
   "bbox": [number, number, number, number];
@@ -416,7 +416,7 @@ export type TrackRole = {
 export type TrackSample = {
   "t": number;
   "bbox": [number, number, number, number];
-  "score": number;
+  "score"?: number | null;
 };
 
 export type Verdict = "violation" | "no_violation";

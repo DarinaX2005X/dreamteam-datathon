@@ -159,8 +159,6 @@ class LocalPerceptionRuntime:
                     if semantic_entry.get("runtime") == "transformers-qwen3-vl":
                         from .qwen import QwenTemporalVerifier
 
-                        if adapter_entry:
-                            raise ModelAssetsError("INVALID_CONFIG: InternVL proposal weights cannot be used with Qwen.")
                         verifier = QwenTemporalVerifier
                     semantic = verifier(config.models_dir, semantic_entry, config.device)
                     if adapter_entry:
@@ -366,13 +364,16 @@ class LocalPerceptionRuntime:
                 from .reflections import apply_reflection_filters
                 from .temporal import apply_semantic_roles
 
-                artifacts.tracks = list(tracks.values())
+                artifacts.tracks = list(tracks.values()) + artifacts.tracks
                 reflection_metrics = apply_reflection_filters(artifacts)
                 artifacts.diagnostics["reflections"] = reflection_metrics
                 self._semantic.last_metrics.update({
                     f"reflection_{key}": value for key, value in reflection_metrics.items()
                 })
                 apply_semantic_roles(artifacts.tracks, artifacts.semantic_signals)
+                from .grounding import derive_simultaneous_people
+
+                derive_simultaneous_people(artifacts, max_gap_sec=1.5 / self._semantic.sample_fps)
             else:
                 artifacts.tracks = list(tracks.values())
             artifacts.observations.extend(_object_observations(artifacts.tracks, detector.model_id,

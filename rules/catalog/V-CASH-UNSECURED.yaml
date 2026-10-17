@@ -3,12 +3,24 @@
   "type_label": "Ранее принятые деньги остались на открытой поверхности",
   "norm_refs": ["S231-p20-storage"],
   "requires_visible": ["desk", "cashier", "client"],
-  "requires_capabilities": ["handover_direction", "cash_on_desk", "continuous_desk_visibility"],
-  "anchor": {"observation": {"kind": "cash_on_desk"}},
-  "condition": {"all": [
-    {"before": {"first": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "then": {"observation": {"kind": "cash_on_desk"}}, "within_sec": 120, "shared": "relation_id"}},
-    {"before": {"first": {"observation": {"kind": "cash_on_desk"}}, "then": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}}, "within_sec": 120}}
-  ]},
+  "requires_capabilities": ["handover_direction", "cash_on_desk", "zone_departure"],
+  "anchor": {"handover": {"actor_role": "client", "recipient_role": "cashier"}},
+  "condition": {"sequence": {
+    "steps": [
+      {"handover": {"actor_role": "client", "recipient_role": "cashier"}},
+      {"observation": {"kind": "person_left_zone", "role": "client", "zone_kind": "client_window"}},
+      {"observation": {"kind": "cash_on_desk"}},
+      {"handover": {"actor_role": "client", "recipient_role": "cashier"}}
+    ],
+    "anchor_step": 3,
+    "relations": [
+      {"left": 0, "right": 1, "relation": "before", "within_sec": 120, "shared": "actor"},
+      {"left": 1, "right": 3, "relation": "before", "within_sec": 120},
+      {"left": 0, "right": 3, "relation": "before", "within_sec": 120, "shared": "same_recipient_different_actor"},
+      {"left": 0, "right": 2, "relation": "before_or_overlap", "within_sec": 120, "shared": "relation_id"},
+      {"left": 2, "right": 3, "relation": "overlap"}
+    ]
+  }},
   "timecode_policy": "onset",
   "what_seen": "Деньги предыдущего видимого приёма остаются на открытой поверхности при появлении следующего клиента.",
   "why_may_violate": "Ранее принятые наличные должны храниться в закрывающемся специальном устройстве.",

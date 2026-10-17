@@ -24,7 +24,7 @@ def _vfr_video(tmp_path: Path) -> Path:
     output = tmp_path / "vfr.mov"
     subprocess.run([
         "ffmpeg", "-v", "error", "-f", "concat", "-safe", "0", "-i",
-        str(tmp_path / "concat.txt"), "-fps_mode", "vfr", "-c:v", "libx264",
+        str(tmp_path / "concat.txt"), "-vsync", "vfr", "-c:v", "libx264",
         "-pix_fmt", "yuv420p", str(output),
     ], check=True)
     return output
@@ -45,8 +45,8 @@ def test_rotation_metadata_is_applied_before_inference(tmp_path):
     source = _vfr_video(tmp_path)
     rotated = tmp_path / "rotated.mov"
     subprocess.run([
-        "ffmpeg", "-v", "error", "-display_rotation:v:0", "90", "-i", str(source),
-        "-c", "copy", str(rotated),
+        "ffmpeg", "-v", "error", "-i", str(source),
+        "-c", "copy", "-metadata:s:v:0", "rotate=90", str(rotated),
     ], check=True)
     probe = probe_video(rotated)
     assert probe.video.rotation == 90

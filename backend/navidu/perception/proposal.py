@@ -13,12 +13,16 @@ TASK = {"prompt_version": PROMPT_VERSION, "window_frames": 16, "fps": 2.0,
         "stride_frames": 8, "max_new_tokens": 32}
 
 
+def task_for_model(base_id: str) -> dict:
+    return {**TASK, "max_pixels": 262144} if base_id == "qwen3-vl-4b" else dict(TASK)
+
+
 def validate_adapter(directory: Path, entry: dict, base_entry: dict, base_hash: str) -> Path:
     """Reject an adapter for another base or any recipe that changes base weights."""
     expected_base = {"id": base_entry["id"], "revision": base_entry.get("revision"),
                      "sha256": base_hash}
     if entry.get("runtime") != "peft-lora-proposal" or entry.get("base_model") != expected_base \
-            or entry.get("task") != TASK:
+            or entry.get("task") != task_for_model(base_entry["id"]):
         raise ModelAssetsError("MODEL_ADAPTER_INVALID: адаптер не соответствует базовой модели или задаче.")
     local_dir = entry.get("local_dir")
     if not isinstance(local_dir, str):
@@ -74,6 +78,7 @@ class ProposalVerifier:
         except ImportError as error:
             raise RuntimeError("ADAPTER_DEPENDENCY_MISSING: установите зависимости backend[adapters].") from error
         self.model_id = entry["id"]
+        self.base_model_id = base_entry["id"]
         self.base = base
         self.model = PeftModel.from_pretrained(base.model, str(path), adapter_name="proposal",
                                               is_trainable=False, local_files_only=True)
@@ -94,7 +99,9 @@ class ProposalVerifier:
 
         if should_stop():
             raise RuntimeError("ANALYSIS_CANCELLED")
-        inputs = encode_proposal(self.base.processor, frames).to(self.base.device, dtype=self.base.dtype)
+        options = ({"model_id": "qwen3-vl-4b", "max_pixels": 262144}
+                   if getattr(self, "base_model_id", None) == "qwen3-vl-4b" else {})
+        inputs = encode_proposal(self.base.processor, frames, **options).to(self.base.device, dtype=self.base.dtype)
         started = time.perf_counter()
         self.model.base_model.enable_adapter_layers()
         try:

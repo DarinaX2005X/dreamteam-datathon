@@ -24,7 +24,9 @@ from navidu.rules.engine import PendingFinding
 def _nearest_box(track: Track, timestamp_sec: float):
     if not track.samples:
         return None
-    return min(track.samples, key=lambda sample: abs(sample.t - timestamp_sec)).bbox
+    nearest = min(track.samples, key=lambda sample: abs(sample.t - timestamp_sec))
+    # Sparse semantic object boxes must never be carried onto distant frames.
+    return nearest.bbox if abs(nearest.t - timestamp_sec) <= .75 else None
 
 
 def _resize(image: Image.Image) -> Image.Image:

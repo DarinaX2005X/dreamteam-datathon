@@ -4,8 +4,89 @@ from __future__ import annotations
 import os
 import time
 from collections.abc import Callable
+from pathlib import Path
+from statistics import median
 
 from .temporal import TemporalOutputError, TemporalVerifier, _decode_payload, visual_request
+
+
+def detail_bounds(frame_tracks):
+    """A stable person's observed box proposes a crop, never a role or a fact."""
+    candidates = {}
+    for people in frame_tracks:
+        for person, box in people.items():
+            candidates.setdefault(person, []).append(box)
+    candidates = [boxes for boxes in candidates.values() if len(boxes) >= max(2, len(frame_tracks) // 2)]
+    if not candidates:
+        return None
+    boxes = max(candidates, key=lambda boxes: len(boxes) * median(
+        (box[2] - box[0]) * (box[3] - box[1]) for box in boxes))
+    x1, y1, x2, y2 = [median(box[index] for box in boxes) for index in range(4)]
+    width, height = x2 - x1, y2 - y1
+    if width <= .02 or height <= .05:
+        return None
+    return max(0., x1 - width * .65), max(0., y1 + height * .2), \
+        min(1., x2 + width * .65), min(1., y2 + height * .15)
+
+
+def prepare_qwen_inputs(processor, frames, frame_tracks, *, variant, max_pixels, mode,
+                        detail=None):
+    """Preserve source PTS and bound the native video processor's total pixel budget."""
+    import numpy as np
+
+    images, content = visual_request(frames, frame_tracks, variant)
+    if mode == "images":
+        prompt = processor.apply_chat_template([{"role": "user", "content": content}],
+                                               add_generation_prompt=True, tokenize=False)
+        inputs = processor(images=images, text=prompt, return_tensors="pt",
+                           min_pixels=65536, max_pixels=max_pixels)
+    elif mode == "video":
+        relative = [float(timestamp - frames[0][0]) for timestamp, _ in frames]
+        if len(frames) < 2 or any(b <= a for a, b in zip(relative, relative[1:])):
+            raise ValueError("Video inputs need increasing source timestamps")
+        # A millisecond clock expresses the exact already-sampled source PTS.
+        # These indices are metadata for the timebase, not a new frame sampler.
+        clock_indices = [round(timestamp * 1000) for timestamp in relative]
+        mapping = ", ".join(f"{index}={timestamp:.3f}s" for index, timestamp in enumerate(relative))
+        text = ("The video contains the ordered source frames below. Video timestamps are relative "
+                "to this window. Return start_frame/end_frame and supporting frames as INTEGER "
+                "indices from this explicit index-to-time mapping, not seconds: " + mapping + ".\n" +
+                content[-1]["text"])
+        videos = [np.stack(images)]
+        metadata = [{"fps": 1000.0, "total_num_frames": clock_indices[-1] + 1,
+                     "frames_indices": clock_indices}]
+        content = [{"type": "text", "text": "Full scene, view=full:\n"}, {"type": "video"}]
+        if detail is not None:
+            from PIL import Image
+
+            crops = []
+            for pixels in images:
+                source = Image.fromarray(pixels)
+                width, height = source.size
+                crop = source.crop(tuple(round(value * size) for value, size in
+                    zip(detail, (width, height, width, height))))
+                crops.append(np.asarray(crop.resize((crop.width * 2, crop.height * 2), Image.Resampling.BICUBIC)))
+            videos.append(np.stack(crops))
+            metadata.append(dict(metadata[0]))
+            content.extend([{"type": "text", "text": "\nDetail view of the SAME frames and times, view=detail:\n"},
+                            {"type": "video"}])
+            text += ("\nThe second video is a magnified region from the FIRST video, not another camera "
+                     "or additional people. Compare the full scene for roles and simultaneity; inspect "
+                     "the detail for hands, banknotes and cards. Each object sample must add view=full "
+                     "or view=detail; box coordinates are relative to that selected view. Frame indices "
+                     "are identical in both videos. Never count people in the two views twice.\n")
+        content.append({"type": "text", "text": text})
+        prompt = processor.apply_chat_template([{"role": "user", "content": content}],
+                                               add_generation_prompt=True, tokenize=False)
+        inputs = processor(videos=videos, text=prompt, return_tensors="pt",
+            videos_kwargs={"do_sample_frames": False,
+                "video_metadata": metadata,
+                # Qwen3-VL video size is a TOTAL pixel budget across the clip.
+                "size": {"shortest_edge": len(images) * 65536,
+                         "longest_edge": len(images) * max_pixels}})
+    else:
+        raise ValueError("Unsupported Qwen input mode")
+    return inputs, images, prompt
 
 
 class QwenTemporalVerifier(TemporalVerifier):
@@ -16,27 +97,54 @@ class QwenTemporalVerifier(TemporalVerifier):
         return Qwen3VLForConditionalGeneration
 
     def __init__(self, directory, entry, device):
+        self._capture_count = 0
+        self.detail_view = os.getenv("NAVIDU_QWEN_DETAIL_VIEW", "0") == "1"
+        self.input_mode = os.getenv("NAVIDU_QWEN_INPUT_MODE", "images")
+        if self.input_mode not in {"images", "video"}:
+            raise RuntimeError("INVALID_CONFIG: unsupported Qwen input mode.")
+        if self.detail_view and self.input_mode != "video":
+            raise RuntimeError("INVALID_CONFIG: detail view requires native video input.")
+        self.max_window_frames = 64 if self.input_mode == "video" else 16
         self.max_pixels = int(os.getenv("NAVIDU_QWEN_MAX_PIXELS", "451584"))
         if not 65536 <= self.max_pixels <= 1048576:
             raise RuntimeError("INVALID_CONFIG: Qwen image pixel budget is outside the supported range.")
         super().__init__(directory, entry, device)
+        self.prompt_version += f"-qwen-{self.input_mode}"
 
     def _infer(self, frames: list[tuple], frame_tracks: list[dict], should_stop: Callable[[], bool]) -> dict:
         import torch
         from transformers import StoppingCriteria, StoppingCriteriaList
 
         if self.proposal is not None:
-            raise RuntimeError("INVALID_CONFIG: InternVL proposal weights cannot be used with Qwen.")
+            self.proposal.disable()
 
         class Cancelled(StoppingCriteria):
             def __call__(self, input_ids, scores, **kwargs):
                 return should_stop()
 
-        images, content = visual_request(frames, frame_tracks, self.prompt_variant)
-        prompt = self.processor.apply_chat_template([{"role": "user", "content": content}],
-                                                   add_generation_prompt=True, tokenize=False)
-        inputs = self.processor(images=images, text=prompt, return_tensors="pt",
-                                min_pixels=65536, max_pixels=self.max_pixels)
+        detail = detail_bounds(frame_tracks) if self.detail_view else None
+        inputs, images, prompt = prepare_qwen_inputs(self.processor, frames, frame_tracks,
+            variant=self.prompt_variant, max_pixels=self.max_pixels, mode=self.input_mode, detail=detail)
+        capture = None
+        capture_root = os.getenv("NAVIDU_MODEL_INPUT_CAPTURE_DIR")
+        if capture_root and self._capture_count < 4:
+            import json
+
+            from PIL import Image
+
+            self._capture_count += 1
+            capture = Path(capture_root) / f"window-{self._capture_count:02d}"
+            capture.mkdir(parents=True, exist_ok=False)
+            for index, pixels in enumerate(images):
+                Image.fromarray(pixels).save(capture / f"frame-{index:02d}.png")
+            (capture / "prompt.txt").write_text(prompt, encoding="utf-8")
+            (capture / "input.json").write_text(json.dumps({
+                "source_timestamps": [float(item[0]) for item in frames],
+                "input_mode": self.input_mode, "max_pixels_per_frame": self.max_pixels,
+                "input_tokens": inputs["input_ids"].shape[1],
+                "detail_bounds": detail,
+                "note": "Marked source frames before native aspect-preserving resize; private user review only."
+            }, indent=2) + "\n", encoding="utf-8")
         # BatchFeature.to preserves integer token IDs and grid coordinates.
         inputs = inputs.to(self.device, dtype=self.dtype)
         if should_stop():
@@ -47,7 +155,7 @@ class QwenTemporalVerifier(TemporalVerifier):
             from .structured_output import build_prefix, build_schema
 
             options["prefix_allowed_tokens_fn"] = build_prefix(
-                self.processor.tokenizer, build_schema(len(frames), known_ids),
+                self.processor.tokenizer, build_schema(len(frames), known_ids, self.prompt_variant),
                 tokenizer_data=self._structured_tokenizer_data,
             )
         if self.device == "cuda":
@@ -67,16 +175,22 @@ class QwenTemporalVerifier(TemporalVerifier):
         count = output.shape[1] - input_count
         self.last_metrics = {"inference_sec": round(time.perf_counter() - started, 4),
             "input_tokens": input_count, "image_count": len(images), "max_pixels": self.max_pixels,
+            "input_mode": self.input_mode,
+            "detail_view": detail is not None,
             "structured_output_active": bool(options), "generated_tokens": count,
             "max_new_tokens": self.max_new_tokens, "token_limit_reached": count >= self.max_new_tokens,
             "peak_cuda_mib": round(torch.cuda.max_memory_allocated() / 1048576, 1)
                              if self.device == "cuda" else None}
         text = self.processor.decode(output[0, input_count:], skip_special_tokens=True)
+        if capture is not None:
+            (capture / "model-response.txt").write_text(text, encoding="utf-8")
         try:
             payload = _decode_payload(text)
         except TemporalOutputError as error:
             error.numeric_metrics.update(self.last_metrics)
             raise
+        if detail is not None:
+            payload["_detail_bounds"] = detail
         self.last_metrics.update({"raw_event_count": len(payload["events"]),
             "raw_role_count": len(payload.get("roles", [])),
             "raw_cash_batch_count": len(payload.get("same_cash_batches", []))})

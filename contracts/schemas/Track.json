@@ -69,16 +69,23 @@
           "type": "array"
         },
         "score": {
-          "maximum": 1,
-          "minimum": 0,
-          "title": "Score",
-          "type": "number"
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
         }
       },
       "required": [
         "t",
-        "bbox",
-        "score"
+        "bbox"
       ],
       "title": "TrackSample",
       "type": "object"

@@ -25,9 +25,10 @@ EVENT_KINDS = frozenset({
     "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
     "cash_sorting", "cash_packing", "bag_opened", "bag_integrity_damage",
     "personal_item_identified", "camera_device_visible", "phone_visible", "bag_present",
+    "identity_document_visible",
 })
 _ACTION_KINDS = EVENT_KINDS - {"cash_in_hands", "cash_on_desk", "phone_visible", "bag_present",
-                              "camera_device_visible", "personal_item_identified"}
+                              "camera_device_visible", "personal_item_identified", "identity_document_visible"}
 _ROLES = frozenset({"cashier", "client", "unknown"})
 _INSTRUCTIONS = """Label the visible actions in this ordered video sequence. Yellow p1, p2,
 etc. are tracked people. Use their IDs. Give first/last supporting frame indices
@@ -100,11 +101,99 @@ At most six events. Never invent a track, a hidden action, or supporting frame.
 """
 
 
+_CONTEXT_INSTRUCTIONS = """Read this ordered bank-counter video as a sequence of visible facts.
+Yellow p1, p2 etc. identify tracked people. Their numbers NEVER establish roles.
+The first person is not necessarily the cashier. Identify cashier/client only from
+their working position and interactions. A later client can have a new p-ID without
+being an extra person: simultaneous presence matters, not total IDs over the clip.
+
+Follow each clearly recognizable banknote batch: holder, visible transfer, desk,
+counting and packing. Compare before and after, including client changes. A hand
+reaching, ordinary paper or a rectangular card does not establish cash. Counting
+requires repeated note separation or visible counting-machine use, not moving a
+stack. Do not infer that an unobserved action never happened. A document is an
+identity document only when its visible appearance supports that specific class;
+do not read or reproduce any personal data. Report facts, never legal conclusions.
+
+Return ONLY JSON with these six arrays. All frame references are integer indices
+in this window, NOT seconds. Use [] when there is no clear evidence.
+- events: at most 10 objects with kind, start_frame, end_frame, subjects, actor,
+  recipient, objects. Kinds: cash_in_hands, cash_on_desk, cash_handover,
+  counting_motion, cash_sorting, cash_packing, identity_document_visible,
+  bag_opened, bag_integrity_damage, personal_item_identified, camera_device_visible,
+  phone_visible, bag_present. Use at least two supporting frames per event.
+  subjects contains known p-IDs; objects contains local object IDs from objects
+  below. Cash handover requires DIFFERENT visible actor and recipient p-IDs.
+  Other recipients are null. Actions require an actor. Continuing action = one
+  interval. Keep actions for separate clients and separate banknote batches separate.
+- roles: objects with track and role (cashier, client, unknown).
+- same_cash_batches: objects with events (indices in events) and frames. Link at
+  least two events only if the SAME physical cash batch is visibly traceable.
+  Include two supporting frames and evidence inside every linked event interval.
+  The same holder or desk location alone is NOT proof of the same cash batch.
+- reflections: objects with reflected_track, source_track, frames. Require a
+  clearly visible physical source and its mirror/glass image in at least three
+  simultaneous contiguous frames. Similarity or proximity alone is insufficient.
+- visible_people: objects with track, clear, physical, frames. Include only known
+  p-IDs that are clearly recognizable physical people in each listed frame, with
+  clear=true and physical=true. Omit dark silhouettes, heavily obscured people,
+  unclear figures behind glass, images and reflections. Glass alone is not a reason
+  to omit a clearly visible actual person. At least two supported frames per item.
+- objects: at most 6 objects with id, kind, samples. id is local, e.g. c1; kind is
+  cash or identity_document. Each sample has frame and box=[x1,y1,x2,y2], coordinates
+  from 0 to 1000 relative to the full image. Tight boxes around the visible object,
+  never the whole person or desk. Give 2 to 6 samples at useful action boundaries,
+  including the first and last two frames when the same object is visible there.
+  Reuse an id only when its physical continuity is visible. Different clients'
+  cash stays distinct even if placed together. Omit objects too small to recognize.
+Never invent hidden people, boxes, transfers, identities or supporting frames.
+"""
+
+_FOCUSED_INSTRUCTIONS = """Describe the visible participants and cash operations in this video.
+The yellow p-IDs identify people, not roles. Identify cashier/client from their
+position and actions. Describe what IS visible even when no violation is present.
+Follow banknotes from one holder to another, onto the desk, through counting and
+packing. Distinguish money from ordinary paper and identity cards. Counting means
+separating notes repeatedly or using a counting machine; a hand reach is not a transfer.
+
+Return JSON with six arrays:
+1. roles: {track, role}, role is cashier/client/unknown.
+2. visible_people: {track, clear:true, physical:true, start_frame, end_frame}.
+   Give contiguous intervals of clearly visible REAL people, excluding reflections,
+   dark silhouettes and heavily obscured figures. A later client is a different ID,
+   not an additional simultaneous person. Never assign a role from a track number.
+3. objects: {id, kind, samples:[{frame, box, view}]}. kind is cash or identity_document.
+   id is c1..c6. Give 2-6 tight boxes per object, with box=[x1,y1,x2,y2] on a 0-1000
+   coordinate scale; view is full (or detail when a detail view is supplied).
+   Reuse an object ID only for the same visible physical batch; keep clients' batches separate.
+4. events: {kind,start_frame,end_frame,subjects,actor,recipient,objects}.
+   Kinds: cash_in_hands,cash_on_desk,cash_handover,counting_motion,cash_sorting,
+   cash_packing,identity_document_visible,phone_visible,bag_present,bag_opened,
+   bag_integrity_damage,personal_item_identified,camera_device_visible.
+   subjects are p-IDs, objects are c-IDs. Cash handover needs distinct actor and
+   recipient p-IDs; other recipients are null. Actions need an actor. At most 10 events.
+5. same_cash_batches: {events:[event indices],frames:[supporting frame indices]}.
+   Link two or more events only for visibly continuous handling of the SAME notes.
+6. reflections: {reflected_track,source_track,frames}. Require the visible physical
+   source and its reflected image together in at least three consecutive frames.
+
+Frame indices refer to THIS window, not seconds. Intervals require start_frame <
+end_frame and at least two visible supporting frames. Report useful visible facts;
+use empty arrays only for categories that are not visible. Do not invent hidden
+actions, read personal data, or judge legality. Do not treat missing evidence as
+proof that a required action never happened.
+"""
+
+
 def prompt_profile(variant: str) -> tuple[str, str]:
     if variant == "v5":
         return PROMPT_VERSION, _INSTRUCTIONS
     if variant == "v6-evidence":
         return "cash-actions-v6-evidence-order", _EVIDENCE_INSTRUCTIONS
+    if variant == "v7-context":
+        return "cash-actions-v7-grounded-context", _CONTEXT_INSTRUCTIONS
+    if variant == "v8-focused":
+        return "cash-actions-v8-focused-context", _FOCUSED_INSTRUCTIONS
     raise RuntimeError("INVALID_CONFIG: unknown semantic prompt variant.")
 
 
@@ -161,7 +250,9 @@ def _decode_payload(text: str) -> dict:
     if not isinstance(value, dict) or not isinstance(value.get("events"), list) \
             or not isinstance(value.get("roles", []), list) \
             or not isinstance(value.get("same_cash_batches", []), list) \
-            or not isinstance(value.get("reflections", []), list):
+            or not isinstance(value.get("reflections", []), list) \
+            or not isinstance(value.get("visible_people", []), list) \
+            or not isinstance(value.get("objects", []), list):
         raise TemporalOutputError("MODEL_OUTPUT_INVALID: неверная схема временных наблюдений.",
                                   numeric_metrics={"response_chars": len(stripped)})
     return value
@@ -301,11 +392,16 @@ def visual_request(frames: list[tuple], frame_tracks: list[dict], variant: str =
         f"0 through {len(frames) - 1}. Every start_frame, end_frame and frames entry "
         "must use these indices. Use start_frame < end_frame for every event. "
         "Combine a continuing action into one interval; do not emit one event per frame.\n"})
+    if variant == "v8-focused":
+        content[-1]["text"] += "Known person IDs in this window: " + ", ".join(
+            sorted({person for people in frame_tracks for person in people})) + ".\n"
     return images, content
 
 
 class TemporalVerifier:
     prompt_version = PROMPT_VERSION
+    prompt_variant = "v5"
+    max_window_frames = 16
     @staticmethod
     def model_class():
         from transformers import InternVLForConditionalGeneration
@@ -327,7 +423,7 @@ class TemporalVerifier:
         self.structured_output = os.getenv("NAVIDU_SEMANTIC_STRUCTURED_OUTPUT", "0").lower() in {
             "1", "true", "yes",
         }
-        if not 3 <= self.window_frames <= 16 or not 0.5 <= self.sample_fps <= 5 \
+        if not 3 <= self.window_frames <= self.max_window_frames or not 0.5 <= self.sample_fps <= 5 \
                 or not 64 <= self.max_new_tokens <= 2048 or not 1 <= self.max_patches <= 4:
             raise RuntimeError("INVALID_CONFIG: неверный размер временного окна или бюджет модели.")
         if device == "cuda" and not torch.cuda.is_available():
@@ -389,7 +485,7 @@ class TemporalVerifier:
             from .structured_output import build_prefix, build_schema
 
             generation_options["prefix_allowed_tokens_fn"] = build_prefix(
-                self.processor.tokenizer, build_schema(len(frames), known_track_ids),
+                self.processor.tokenizer, build_schema(len(frames), known_track_ids, self.prompt_variant),
                 tokenizer_data=self._structured_tokenizer_data,
             )
         # LMFE 0.11.3 cannot enforce maxItems=0. Windows without known people
@@ -464,11 +560,26 @@ class TemporalVerifier:
                 *, should_stop: Callable[[], bool] = lambda: False) -> None:
         frame_tracks = [_samples_at(tracks, timestamp) for timestamp, _ in frames]
         payload = self._infer(frames, frame_tracks, should_stop)
+        if self.prompt_variant in {"v7-context", "v8-focused"} and any(
+            not isinstance(payload.get(key), list)
+            for key in ("events", "roles", "same_cash_batches", "reflections", "visible_people", "objects")
+        ):
+            raise TemporalOutputError("MODEL_OUTPUT_INVALID: отсутствует часть наблюдений контекста.")
         timestamps = [timestamp for timestamp, _ in frames]
         event_validation = {}
         events, roles = validate_events(payload, frame_tracks, timestamps, diagnostics=event_validation)
         bind_cash_relations(payload, events, frame_tracks, timestamps, self.model_id)
         reflections = validate_reflections(payload, frame_tracks, timestamps)
+        if self.prompt_variant in {"v7-context", "v8-focused"}:
+            from .grounding import bind_grounded_events, ground_objects, visible_people
+
+            objects = ground_objects(payload, timestamps, artifacts, self.model_id, self.prompt_version)
+            bind_grounded_events(payload, events, objects)
+            visible_people(payload, frame_tracks, timestamps, artifacts, self.model_id, self.prompt_version)
+            self.last_metrics.update({"grounded_objects": len(objects),
+                "grounded_cash_objects": sum(track.object_class == "cash" for track, _ in objects.values()),
+                "grounded_identity_documents": sum(track.object_class == "identity_document" for track, _ in objects.values()),
+                "raw_visible_people": len(payload["visible_people"])})
         self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles),
                                   "accepted_reflection_count": len(reflections),
                                   "bound_cash_batch_count": len({event["relation_id"] for event in events
@@ -479,6 +590,8 @@ class TemporalVerifier:
         })
         artifacts.semantic_windows_completed += 1
         artifacts.capabilities.update(self.capabilities)
+        if self.prompt_variant not in {"v7-context", "v8-focused"}:
+            artifacts.capabilities["clear_person_count"] = False
         for claim in reflections:
             artifacts.semantic_signals.append(SemanticSignal(
                 kind="reflection", start_sec=claim["start_sec"], end_sec=claim["end_sec"],

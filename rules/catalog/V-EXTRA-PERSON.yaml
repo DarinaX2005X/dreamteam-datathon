@@ -1,0 +1,14 @@
+{
+  "rule_id": "V-EXTRA-PERSON",
+  "type_label": "Более двух ясно видимых людей одновременно",
+  "norm_refs": ["USER-20261018-people"],
+  "requires_visible": [],
+  "requires_capabilities": ["clear_person_count"],
+  "anchor": {"observation": {"kind": "extra_person_present"}},
+  "condition": {"observation": {"kind": "extra_person_present"}},
+  "timecode_policy": "onset",
+  "what_seen": "В одних и тех же последовательных кадрах различимы как минимум три физических участника.",
+  "why_may_violate": "По заданному пользователем критерию одновременно допускаются не более двух ясно видимых людей.",
+  "not_claimed": "Это критерий проверки пользователя, а не вывод о полномочиях человека по законодательству. Смена клиентов, отражения и неразличимые фигуры не учитываются как дополнительные участники.",
+  "strength": "moderate"
+}

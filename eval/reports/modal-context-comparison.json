@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "host": "Modal NVIDIA L4 24 GB",
+  "prompt": "v8-focused",
+  "input_mode": "native_video",
+  "max_frames_per_window": 64,
+  "semantic_fps": 1,
+  "max_pixels_per_frame": 451584,
+  "holdout_used": false,
+  "quality_approved": false,
+  "runs": [
+    {
+      "run_id": "qwen-video64-v8-full-20261017",
+      "model_id": "qwen3-vl-4b",
+      "validation_sources": 8,
+      "completed": 8,
+      "confusion": {
+        "tp": 1,
+        "tn": 3,
+        "fp": 1,
+        "fn": 3
+      },
+      "balanced_accuracy": 0.5,
+      "recall": 0.25,
+      "max_analyze_seconds": 96.573577285,
+      "peak_cuda_mib": 11785.6,
+      "accepted_events": 0,
+      "grounded_objects": 0,
+      "accepted_roles": 1,
+      "accepted_reflection_intervals": 3,
+      "projection_repaired_without_inference": true
+    },
+    {
+      "run_id": "qwen8-video64-v8-pair-20261017",
+      "model_id": "qwen3-vl-8b",
+      "validation_sources": 2,
+      "completed": 2,
+      "confusion": {
+        "tp": 0,
+        "tn": 0,
+        "fp": 1,
+        "fn": 1
+      },
+      "balanced_accuracy": 0.0,
+      "recall": 0.0,
+      "max_analyze_seconds": 104.47579653400001,
+      "peak_cuda_mib": 20490.7,
+      "accepted_events": 0,
+      "grounded_objects": 0,
+      "accepted_roles": 0,
+      "accepted_reflection_intervals": 1,
+      "projection_repaired_without_inference": true
+    },
+    {
+      "run_id": "qwen-video64-v8-consistent-r2-20261017",
+      "model_id": "qwen3-vl-4b",
+      "pipeline_version": "0.1.0+runtime.d3610894d501e26eee06",
+      "reflection_uncertainty_guard": true,
+      "validation_sources": 8,
+      "completed": 8,
+      "confusion": {
+        "tp": 1,
+        "tn": 4,
+        "fp": 0,
+        "fn": 3
+      },
+      "balanced_accuracy": 0.625,
+      "recall": 0.25,
+      "max_analyze_seconds": 97.79403348300002,
+      "peak_cuda_mib": 11785.6,
+      "accepted_events": 0,
+      "grounded_objects": 0,
+      "accepted_roles": 1,
+      "accepted_reflection_intervals": 3,
+      "timing_error_seconds": 4.0,
+      "timing_sample_count": 1,
+      "projection_repaired_without_inference": false
+    }
+  ],
+  "limitations": [
+    "The same development validation set has been used repeatedly during development; this is not an independent final estimate.",
+    "The two-source 8B comparison contains the longest positive and longest negative source only, not all eight validation sources.",
+    "All current findings come from the newly requested simultaneous-person criterion. Cash and identity-document grounding is unproven.",
+    "Organizer labels do not contain independently verified event types or object boxes. A criterion added by the user may differ from those original labels.",
+    "The evaluator used an outdated evidence path; existing completed artifacts were reprojected and JPEG-verified on CPU without repeating inference. Original failure reports are retained privately."
+  ],
+  "adapters_deployed": false,
+  "object_grounding_diagnostics": [
+    {
+      "run_id": "qwen8-objects-hires-20261017",
+      "frames": 12,
+      "cash_boxes": 0,
+      "identity_document_boxes": 0,
+      "invalid_outputs": 0,
+      "input_tokens_per_frame": [
+        475
+      ],
+      "independent_box_ground_truth": false,
+      "deployed": false
+    },
+    {
+      "run_id": "qwen8-objects-upsample-20261017",
+      "frames": 12,
+      "cash_boxes": 1,
+      "identity_document_boxes": 0,
+      "invalid_outputs": 0,
+      "input_tokens_per_frame": [
+        1167
+      ],
+      "independent_box_ground_truth": false,
+      "deployed": false
+    }
+  ],
+  "deployed_run_profile": "qwen-video64-v8-consistent-r2-20261017"
+}

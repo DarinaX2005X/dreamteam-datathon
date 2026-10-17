@@ -49,7 +49,10 @@ def probe_video(path: Path, *, max_duration_sec: float | None = None) -> ProbeRe
         "-of", "json", str(path),
     ]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=30)
+        # Camera files may contain non-UTF-8 tags or diagnostics. They must not
+        # crash otherwise valid numeric metadata parsing (including stderr).
+        result = subprocess.run(command, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", check=False, timeout=30)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise MediaProbeError("UNSUPPORTED_MEDIA", "Не удалось прочитать метаданные записи.") from exc
     if result.returncode:

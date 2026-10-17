@@ -9,7 +9,13 @@ from types import SimpleNamespace
 import pytest
 from navidu.contracts.pipeline import PipelineConfig
 from navidu.perception.assets import ModelAssetsError
-from navidu.perception.proposal import TASK, ProposalVerifier, refinement_window, validate_adapter
+from navidu.perception.proposal import (
+    TASK,
+    ProposalVerifier,
+    refinement_window,
+    task_for_model,
+    validate_adapter,
+)
 from navidu.perception.proposal_task import LORA_TARGET_MODULES, Proposal
 from navidu.perception.runtime import LocalPerceptionRuntime, _selected_ids
 
@@ -35,6 +41,19 @@ def test_adapter_requires_exact_base_hash_and_shared_task(tmp_path):
     with pytest.raises(ModelAssetsError, match="MODEL_ADAPTER_INVALID"):
         validate_adapter(tmp_path, entry, base, "b" * 64)
     entry["task"]["fps"] = 1
+    with pytest.raises(ModelAssetsError, match="MODEL_ADAPTER_INVALID"):
+        validate_adapter(tmp_path, entry, base, "a" * 64)
+
+
+def test_qwen_adapter_binds_exact_base_and_training_pixel_budget(tmp_path):
+    entry, base, _ = _adapter(tmp_path)
+    base["id"] = "qwen3-vl-4b"
+    entry["base_model"]["id"] = base["id"]
+    with pytest.raises(ModelAssetsError, match="MODEL_ADAPTER_INVALID"):
+        validate_adapter(tmp_path, entry, base, "a" * 64)
+    entry["task"] = task_for_model(base["id"])
+    assert validate_adapter(tmp_path, entry, base, "a" * 64).name == "proposal"
+    entry["task"]["max_pixels"] = 451584
     with pytest.raises(ModelAssetsError, match="MODEL_ADAPTER_INVALID"):
         validate_adapter(tmp_path, entry, base, "a" * 64)
 

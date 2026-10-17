@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train and select the native InternVL proposal LoRA on an authorized cloud GPU."""
+"""Train and select a pinned native proposal LoRA on an authorized cloud GPU."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import random
 import signal
 import sys
 import time
+import traceback
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -28,6 +29,10 @@ for import_root in (ROOT, BACKEND):
         sys.path.insert(0, str(import_root))
 
 BASE_MODEL_ID = "OpenGVLab/InternVL3_5-4B-HF@6bd4487402110ef9889ba50eb7aefeb302526fed"
+BASE_MODEL_IDS = {
+    "internvl3_5-4b": BASE_MODEL_ID,
+    "qwen3-vl-4b": "Qwen/Qwen3-VL-4B-Instruct@ebb281ec70b05090aa6165b016eac8ec08e71b17",
+}
 TRAIN_FOLDS = (1, 2, 3)
 VALIDATION_FOLDS = (4,)
 MIN_CUDA_MEMORY_BYTES = 40 * 1024**3
@@ -115,6 +120,8 @@ class ProgressReporter:
 
 @dataclass(frozen=True)
 class Recipe:
+    model_id: str = "internvl3_5-4b"
+    max_pixels: int = 262144
     seed: int = 1729
     epochs: int = 3
     minimum_epochs: int = 1
@@ -131,6 +138,10 @@ class Recipe:
     max_new_tokens: int = 32
 
     def validate(self) -> None:
+        if self.model_id not in BASE_MODEL_IDS:
+            raise TrainingError("unsupported proposal model")
+        if type(self.max_pixels) is not int or not 65536 <= self.max_pixels <= 451584:
+            raise TrainingError("invalid Qwen image pixel budget")
         if not 1 <= self.epochs <= 3:
             raise TrainingError("epochs must be between 1 and 3")
         if not 1 <= self.minimum_epochs <= self.epochs:
@@ -298,7 +309,8 @@ def evaluate(
                 spec, frame_count=recipe.frame_count, fps=recipe.fps, cache=cache
             )
             timestamps = [float(timestamp) for timestamp, _ in frames]
-            inputs = move_batch(encode_proposal(processor, frames), "cuda")
+            inputs = move_batch(encode_proposal(processor, frames, model_id=recipe.model_id,
+                                                max_pixels=recipe.max_pixels), "cuda")
             generated = model.generate(
                 **inputs,
                 do_sample=False,
@@ -311,7 +323,7 @@ def evaluate(
                     timestamps,
                 )
                 by_sample[spec.sample.sample_id].append(proposal)
-            except RuntimeError:
+            except (RuntimeError, UnicodeError):
                 invalid_outputs += 1
 
             if reporter is not None:
@@ -403,7 +415,8 @@ def train_epoch(
         if target is None:
             skipped_unsupervised += 1
             continue
-        batch = move_batch(encode_proposal(processor, frames, target=target), "cuda")
+        batch = move_batch(encode_proposal(processor, frames, target=target, model_id=recipe.model_id,
+                                           max_pixels=recipe.max_pixels), "cuda")
         labels = batch.get("labels")
         if labels is None or not bool((labels != -100).any()):
             raise TrainingError("proposal encoder did not produce response-only supervised labels")
@@ -561,6 +574,9 @@ def mark_failed_status(output_dir: Path, error: BaseException) -> None:
                 ),
                 "stage_eta_seconds": None,
                 "failure_type": type(error).__name__,
+                "failure_stack": [{"file": Path(item.filename).name, "function": item.name,
+                                   "line": item.lineno}
+                                  for item in traceback.extract_tb(error.__traceback__)[-12:]],
             }
         )
         write_json_atomic(status_path, record)
@@ -578,6 +594,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _OWNED_OUTPUT_DIR = None
     reporter = initialize_progress(args.output_dir, args.max_wall_minutes)
     recipe = Recipe(
+        model_id=args.model_id,
+        max_pixels=args.max_pixels,
         seed=args.seed,
         epochs=args.epochs,
         minimum_epochs=args.minimum_epochs,
@@ -592,7 +610,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from navidu.perception.assets import model_entry, read_manifest, verify_model
     from navidu.perception.proposal_task import LORA_TARGET_MODULES, PROMPT_VERSION
     from peft import LoraConfig, get_peft_model
-    from transformers import AutoProcessor, InternVLForConditionalGeneration
+    from transformers import (
+        AutoProcessor,
+        InternVLForConditionalGeneration,
+        Qwen3VLForConditionalGeneration,
+    )
 
     from eval.training import load_training_partition
     from training.data import make_training_windows
@@ -606,10 +628,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     models_dir = args.models_dir or args.base_model.parent
     model_manifest = read_manifest(models_dir)
-    base_entry = model_entry(model_manifest, "internvl3_5-4b")
+    base_entry = model_entry(model_manifest, recipe.model_id)
+    base_model_id = BASE_MODEL_IDS[recipe.model_id]
     expected_base = (models_dir / str(base_entry["local_dir"])).resolve()
     if args.base_model.resolve() != expected_base:
-        raise TrainingError("--base-model must select the pinned internvl3_5-4b manifest entry")
+        raise TrainingError("--base-model must select the pinned model manifest entry")
+    if base_entry["revision"] != base_model_id.split("@")[1]:
+        raise TrainingError("proposal base revision changed")
     reporter.begin("base_model_verification")
     reporter.write(completed=0, total=1)
     base_model_aggregate_sha256 = verify_model(models_dir, base_entry)
@@ -636,7 +661,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     reporter.begin("model_loading", torch)
     reporter.write(torch, completed=0, total=1)
     processor = AutoProcessor.from_pretrained(args.base_model, local_files_only=True)
-    model = InternVLForConditionalGeneration.from_pretrained(
+    model_class = (Qwen3VLForConditionalGeneration if recipe.model_id == "qwen3-vl-4b"
+                   else InternVLForConditionalGeneration)
+    model = model_class.from_pretrained(
         args.base_model,
         local_files_only=True,
         torch_dtype=torch.bfloat16,
@@ -729,7 +756,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "schema_version": 1,
                 "state": "validation_pending",
-                "base_model_id": BASE_MODEL_ID,
+                "base_model_id": base_model_id,
                 "base_model_aggregate_sha256": base_model_aggregate_sha256,
                 "base_model_revision": base_entry["revision"],
                 "prompt_version": PROMPT_VERSION,
@@ -790,7 +817,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         partial_manifest = {
             "schema_version": 1,
             "state": "running" if epoch < recipe.epochs else "complete",
-            "base_model_id": BASE_MODEL_ID,
+            "base_model_id": base_model_id,
             "base_model_aggregate_sha256": base_model_aggregate_sha256,
             "base_model_revision": base_entry["revision"],
             "prompt_version": PROMPT_VERSION,
@@ -822,7 +849,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     result = {
         "schema_version": 1,
         "state": "complete",
-        "base_model_id": BASE_MODEL_ID,
+        "base_model_id": base_model_id,
         "base_model_aggregate_sha256": base_model_aggregate_sha256,
         "base_model_revision": base_entry["revision"],
         "prompt_version": PROMPT_VERSION,
@@ -860,6 +887,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-model", type=Path, required=True)
+    parser.add_argument("--model-id", choices=tuple(BASE_MODEL_IDS), default="internvl3_5-4b")
+    parser.add_argument("--max-pixels", type=int, default=262144)
     parser.add_argument("--models-dir", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--training-manifest", type=Path, default=ROOT / "eval/training-splits.json")

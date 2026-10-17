@@ -7,6 +7,7 @@ import type {
   TrackSample,
 } from "../../../contracts/ts/types.gen";
 import { formatTimecode } from "../i18n/ru";
+import { roleLabels } from "../features/review/strings";
 
 export function Button({
   variant = "primary",
@@ -125,9 +126,18 @@ export function SegmentedChoice({
   );
 }
 
+const objectNames: Record<string, string> = {
+  cash: "Деньги",
+  identity_document: "Удостоверение",
+  phone: "Телефон",
+  bag: "Сумка",
+};
+
 const factNames: Record<string, string> = {
   person_in_zone: "Человек в зоне",
   person_left_zone: "Человек покинул зону",
+  extra_person_present: "Более двух людей одновременно",
+  identity_document_visible: "Документ, удостоверяющий личность",
   cash_in_hands: "Деньги в руках",
   cash_on_desk: "Деньги на столе",
   cash_handover: "Передача денег",
@@ -309,7 +319,11 @@ export function VideoStage({
       videoRef.current.currentTime = Math.max(0, Math.min(duration, time));
   }, [duration, seekToken]);
   const active = tracks.filter(
-    (track) => track.first_sec <= time && track.last_sec >= time,
+    (track) =>
+      track.first_sec <= time &&
+      track.last_sec >= time &&
+      (track.kind === "person" ||
+        Object.hasOwn(objectNames, track.object_class ?? "")),
   );
   const seek = (value: number) => {
     if (videoRef.current) videoRef.current.currentTime = value;
@@ -373,8 +387,10 @@ export function VideoStage({
                   <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} />
                   <text x={x1} y={Math.max(0.025, y1 - 0.008)}>
                     {track.kind === "person"
-                      ? `Человек ${track.track_id}`
-                      : (track.object_class ?? `Объект ${track.track_id}`)}
+                      ? `${track.role && track.role.value !== "unknown" ? roleLabels[track.role.value] : "Человек"} · ${track.track_id}`
+                      : (objectNames[track.object_class ?? ""] ??
+                        track.object_class ??
+                        `Объект ${track.track_id}`)}
                   </text>
                   <title>{`Объект ${track.track_id}`}</title>
                 </g>

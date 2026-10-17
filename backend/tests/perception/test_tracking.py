@@ -107,6 +107,7 @@ def test_semantic_tail_requires_new_frames_and_emits_real_partial_results(monkey
 
         def __init__(self):
             self.windows = []
+            self.last_metrics = {}
 
         def observe(self, frames, tracks, artifacts, *, should_stop):
             self.windows.append([timestamp for timestamp, _ in frames])

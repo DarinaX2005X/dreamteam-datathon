@@ -62,19 +62,28 @@ def _validate_target(value: Any, frame_count: int) -> tuple[bool, int | None]:
     return True, index
 
 
-def encode_proposal(processor, frames: list[tuple[float, Any]], *, target: dict | None = None):
+def encode_proposal(processor, frames: list[tuple[float, Any]], *, target: dict | None = None,
+                    model_id: str = "internvl3_5-4b", max_pixels: int = 262144):
     """Return native processor tensors; optionally mask all prompt tokens in loss."""
     messages = proposal_messages(frames)
     images = [rgb for _, rgb in frames]
+    if model_id == "qwen3-vl-4b":
+        if type(max_pixels) is not int or not 65536 <= max_pixels <= 451584:
+            raise ValueError("Invalid Qwen training pixel budget")
+        image_options = {"min_pixels": 65536, "max_pixels": max_pixels}
+    elif model_id == "internvl3_5-4b":
+        image_options = {"crop_to_patches": False}
+    else:
+        raise ValueError("Unsupported proposal model")
     prompt = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-    inputs = processor(images=images, text=prompt, return_tensors="pt", crop_to_patches=False)
+    inputs = processor(images=images, text=prompt, return_tensors="pt", **image_options)
     if target is None:
         return inputs
     _validate_target(target, len(frames))
     response = json.dumps(target, separators=(",", ":"))
     full = processor.apply_chat_template(messages + [{"role": "assistant", "content": response}],
                                          add_generation_prompt=False, tokenize=False)
-    combined = processor(images=images, text=full, return_tensors="pt", crop_to_patches=False)
+    combined = processor(images=images, text=full, return_tensors="pt", **image_options)
     prefix = inputs["input_ids"][0].tolist()
     complete = combined["input_ids"][0].tolist()
     prefix_length = next((index for index, pair in enumerate(zip(prefix, complete)) if pair[0] != pair[1]),

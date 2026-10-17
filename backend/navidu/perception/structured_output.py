@@ -16,7 +16,8 @@ def _array(items: dict[str, Any], maximum: int, *, minimum: int = 0) -> dict[str
     return {"type": "array", "items": items, "minItems": minimum, "maxItems": maximum}
 
 
-def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...]) -> dict[str, Any]:
+def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...],
+                 variant: str = "v5") -> dict[str, Any]:
     """Build the exact bounded JSON payload schema for one semantic window."""
     if type(frame_count) is not int or frame_count < 1:
         raise ValueError("frame_count must be positive")
@@ -70,7 +71,7 @@ def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...])
         "required": ["reflected_track", "source_track", "frames"],
         "additionalProperties": False,
     }
-    return {
+    schema = {
         "type": "object",
         "properties": {
             "events": _array(event, 6),
@@ -81,6 +82,36 @@ def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...])
         "required": ["events", "roles", "same_cash_batches", "reflections"],
         "additionalProperties": False,
     }
+    if variant in {"v7-context", "v8-focused"}:
+        local_id = {"type": "string", "pattern": "^c[1-6]$"}
+        event["properties"]["kind"]["enum"].append("identity_document_visible")
+        event["properties"]["objects"] = _array(local_id, 6)
+        event["required"].append("objects")
+        schema["properties"]["events"]["maxItems"] = 10
+        batch["properties"]["events"]["items"] = {"type": "integer", "enum": list(range(10))}
+        schema["properties"]["visible_people"] = _array({
+            "type": "object", "properties": {"track": track_id,
+                "clear": {"const": True}, "physical": {"const": True},
+                "frames": _array(frame_index, max(2, frame_count), minimum=2)},
+            "required": ["track", "clear", "physical", "frames"], "additionalProperties": False,
+        }, 24 if track_ids else 0)
+        schema["properties"]["objects"] = _array({
+            "type": "object", "properties": {"id": local_id,
+                "kind": {"type": "string", "enum": ["cash", "identity_document"]},
+                "samples": _array({"type": "object", "properties": {
+                    "frame": frame_index,
+                    "view": {"type": "string", "enum": ["full", "detail"]},
+                    "box": _array({"type": "integer", "minimum": 0, "maximum": 1000}, 4, minimum=4)},
+                    "required": ["frame", "box"], "additionalProperties": False}, 6, minimum=2)},
+            "required": ["id", "kind", "samples"], "additionalProperties": False,
+        }, 6)
+        schema["required"].extend(["visible_people", "objects"])
+        if variant == "v8-focused":
+            person = schema["properties"]["visible_people"]["items"]
+            del person["properties"]["frames"]
+            person["properties"].update(start_frame=frame_index, end_frame=frame_index)
+            person["required"] = ["track", "clear", "physical", "start_frame", "end_frame"]
+    return schema
 
 
 def build_prefix(tokenizer, schema: dict[str, Any], *, tokenizer_data=None):
