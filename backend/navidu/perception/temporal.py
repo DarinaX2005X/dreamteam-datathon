@@ -20,7 +20,7 @@ from navidu.pipeline.interfaces import PerceptionArtifacts, SemanticSignal
 
 from .reflections import validate_reflections
 
-PROMPT_VERSION = "cash-actions-v3-reflections"
+PROMPT_VERSION = "cash-actions-v4-batch-schema"
 EVENT_KINDS = frozenset({
     "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
     "cash_sorting", "cash_packing", "bag_opened", "bag_integrity_damage",
@@ -45,6 +45,10 @@ supporting frames. List every clearly supported frame index as one contiguous ru
 do not span uncertain frames. Do not infer reflections from similarity or proximity alone.
 If two actions visibly involve the SAME banknote batch in this sequence, link their
 zero-based event indices in same_cash_batches and give supporting frame indices.
+Each same_cash_batches item must use these exact keys:
+{"events":[0,1],"frames":[0,1]}. The numbers are examples only. Include at least
+two distinct event indices and two distinct supporting frames. Every linked event
+must have a supporting frame within its own start_frame/end_frame interval.
 Being performed by the same person is insufficient for this cash-batch link.
 Return only JSON. Schema example (do not copy these example events):
 {"events":[{"kind":"counting_motion","start_frame":0,"end_frame":1,
@@ -314,6 +318,7 @@ class TemporalVerifier:
         payload = _decode_payload(text)
         self.last_metrics["raw_event_count"] = len(payload["events"])
         self.last_metrics["raw_role_count"] = len(payload.get("roles", []))
+        self.last_metrics["raw_cash_batch_count"] = len(payload.get("same_cash_batches", []))
         return payload
 
     def observe(self, frames: list[tuple], tracks: list[Track], artifacts: PerceptionArtifacts,
@@ -325,7 +330,13 @@ class TemporalVerifier:
         bind_cash_relations(payload, events, frame_tracks, timestamps, self.model_id)
         reflections = validate_reflections(payload, frame_tracks, timestamps)
         self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles),
-                                  "accepted_reflection_count": len(reflections)})
+                                  "accepted_reflection_count": len(reflections),
+                                  "bound_cash_batch_count": len({event["relation_id"] for event in events
+                                      if event.get("relation_id") is not None})})
+        artifacts.diagnostics.setdefault("semantic_windows", []).append({
+            "start_sec": timestamps[0], "end_sec": timestamps[-1],
+            "frame_count": len(frames), **self.last_metrics,
+        })
         artifacts.semantic_windows_completed += 1
         artifacts.capabilities.update(self.capabilities)
         for claim in reflections:

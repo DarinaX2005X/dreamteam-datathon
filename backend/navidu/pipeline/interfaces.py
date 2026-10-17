@@ -63,6 +63,7 @@ class PerceptionArtifacts:
     model_versions: dict[str, str] = field(default_factory=dict)
     capabilities: dict[str, bool] = field(default_factory=dict)
     semantic_windows_completed: int = 0
+    diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
 class PerceptionRuntime(Protocol):

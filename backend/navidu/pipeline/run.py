@@ -123,6 +123,11 @@ def _write_artifacts(
     (directory / "semantic_signals.jsonl").write_text("\n".join(
         json.dumps(asdict(item), ensure_ascii=False) for item in perception.semantic_signals
     ) + ("\n" if perception.semantic_signals else ""), encoding="utf-8")
+    (directory / "inference_metrics.json").write_text(json.dumps({
+        "schema_version": 1,
+        "semantic_windows_completed": perception.semantic_windows_completed,
+        **perception.diagnostics,
+    }, ensure_ascii=True, allow_nan=False, indent=2), encoding="utf-8")
     (directory / "engine_manifest.json").write_text(json.dumps({
         "source_path": str(source_path.resolve()),
         "capabilities": capabilities,

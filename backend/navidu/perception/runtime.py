@@ -361,6 +361,7 @@ class LocalPerceptionRuntime:
 
                 artifacts.tracks = list(tracks.values())
                 reflection_metrics = apply_reflection_filters(artifacts)
+                artifacts.diagnostics["reflections"] = reflection_metrics
                 self._semantic.last_metrics.update({
                     f"reflection_{key}": value for key, value in reflection_metrics.items()
                 })
