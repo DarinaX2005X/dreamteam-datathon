@@ -286,7 +286,6 @@ export function VideoStage({
   time,
   seekToken,
   onTime,
-  onTrack,
   onAvailabilityChange,
 }: {
   checkId: string;
@@ -299,7 +298,6 @@ export function VideoStage({
   time: number;
   seekToken: number;
   onTime: (value: number) => void;
-  onTrack?: (id: string) => void;
   onAvailabilityChange?: (available: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -371,10 +369,7 @@ export function VideoStage({
               if (!sample) return null;
               const [x1, y1, x2, y2] = sample.bbox;
               return (
-                <g
-                  key={track.track_id}
-                  onClick={() => onTrack?.(track.track_id)}
-                >
+                <g key={track.track_id}>
                   <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} />
                   <text x={x1} y={Math.max(0.025, y1 - 0.008)}>
                     {track.kind === "person"
@@ -413,23 +408,6 @@ export function VideoStage({
           </label>
         </div>
       )}
-      {available &&
-        !mediaError &&
-        onTrack &&
-        active.some((track) => track.kind === "person") && (
-          <div className="track-list" aria-label="Объекты в текущем кадре">
-            {active
-              .filter((track) => track.kind === "person")
-              .map((track) => (
-                <button
-                  key={track.track_id}
-                  onClick={() => onTrack(track.track_id)}
-                >
-                  Уточнить роль {track.track_id}
-                </button>
-              ))}
-          </div>
-        )}
     </div>
   );
 }

@@ -480,10 +480,6 @@ img {
   height: 100%;
   pointer-events: none;
 }
-.track-overlay g {
-  pointer-events: all;
-  cursor: pointer;
-}
 .track-overlay rect {
   fill: rgba(97, 207, 255, 0.07);
   stroke: var(--nv-raw-brand-forte-sky);

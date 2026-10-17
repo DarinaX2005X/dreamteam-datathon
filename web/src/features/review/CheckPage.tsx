@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type {
-  DecisionValue,
-  Finding,
-  Role,
-  Zone,
-  ZoneKind,
-} from "../../../../contracts/ts/types.gen";
+import type { DecisionValue, Finding } from "../../../../contracts/ts/types.gen";
 import {
   ApiError,
   api,
-  normalizeFindingSet,
   pollCheck,
   type UiCheck,
 } from "../../api/client";
@@ -21,20 +14,17 @@ import {
   Empty,
   FactStrip,
   InlineNotice,
-  ModalSurface,
   SegmentedChoice,
   VideoStage,
 } from "../../ui";
 import { errors, formatTimecode } from "../../i18n/ru";
 import {
   decisionPayload,
-  buildReevaluateRequest,
   evidenceSource,
-  mergeRoleOverrides,
   type DecisionDraft,
   type PreviewFrames,
 } from "./domain";
-import { phaseLabels, roleLabels } from "./strings";
+import { phaseLabels } from "./strings";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -46,16 +36,12 @@ export function CheckPage() {
   const [time, setTime] = useState(0);
   const [seekToken, setSeekToken] = useState(0);
   const [selected, setSelected] = useState("");
-  const [saving, setSaving] = useState("");
   const [drafts, setDrafts] = useState<Record<string, DecisionDraft>>({});
   const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({});
   const [conflict, setConflict] = useState(false);
-  const [roleTrack, setRoleTrack] = useState("");
-  const [role, setRole] = useState<Role>("unknown");
   const [diff, setDiff] = useState<string[]>([]);
   const [frame, setFrame] = useState<{ finding: Finding; index: number }>();
   const [frameOverlay, setFrameOverlay] = useState(true);
-  const [zoneDraft, setZoneDraft] = useState<Zone[] | null>(null);
   const [pollGeneration, setPollGeneration] = useState(0);
   const [previewFrames, setPreviewFrames] = useState<PreviewFrames>({});
   const [previewActive, setPreviewActive] = useState(false);
@@ -227,88 +213,6 @@ export function CheckPage() {
     }
   };
 
-  const reevaluateRole = async () => {
-    if (!findingSet || !roleTrack || !check) return;
-    setSaving("role");
-    try {
-      const roleOverrides = mergeRoleOverrides(findingSet.role_overrides, {
-        track_id: roleTrack,
-        role,
-      });
-      const response = await api.reevaluate(
-        id,
-        buildReevaluateRequest({
-          persistedRevision: persistedCheckRef.current?.finding_set?.revision,
-          displayedRevision: findingSet.revision,
-          roleOverrides,
-          zoneOverrides: check.layout?.zones ?? [],
-          dryRun: Boolean(check.is_example),
-        }),
-      );
-      setCheck(
-        (current) =>
-          current && {
-            ...current,
-            tracks: current.tracks.map((track) =>
-              track.track_id === roleTrack
-                ? { ...track, role: { value: role, source: "reviewer" } }
-                : track,
-            ),
-            finding_set: normalizeFindingSet(response.finding_set),
-          },
-      );
-      setPreviewFrames(response.preview_frames ?? {});
-      setPreviewActive(Boolean(check.is_example));
-      selectAvailableFinding(response.finding_set.findings ?? []);
-      setDiff(diffMessages(response.diff));
-      setRoleTrack("");
-      if (!check.is_example) await refresh();
-    } catch (error) {
-      if ((error as ApiError).code === "STALE_REVISION") setConflict(true);
-      else setLoadError((error as Error).message);
-    } finally {
-      setSaving("");
-    }
-  };
-
-  const saveZones = async () => {
-    if (!findingSet || !zoneDraft || !check) return;
-    setSaving("zones");
-    try {
-      const response = await api.reevaluate(
-        id,
-        buildReevaluateRequest({
-          persistedRevision: persistedCheckRef.current?.finding_set?.revision,
-          displayedRevision: findingSet.revision,
-          roleOverrides: findingSet.role_overrides,
-          zoneOverrides: zoneDraft,
-          dryRun: Boolean(check.is_example),
-        }),
-      );
-      setCheck(
-        (current) =>
-          current && {
-            ...current,
-            layout: current.layout
-              ? { ...current.layout, zones: zoneDraft }
-              : current.layout,
-            finding_set: normalizeFindingSet(response.finding_set),
-          },
-      );
-      setPreviewFrames(response.preview_frames ?? {});
-      setPreviewActive(Boolean(check.is_example));
-      selectAvailableFinding(response.finding_set.findings ?? []);
-      setDiff(diffMessages(response.diff));
-      setZoneDraft(null);
-      if (!check.is_example) await refresh();
-    } catch (error) {
-      if ((error as ApiError).code === "STALE_REVISION") setConflict(true);
-      else setLoadError((error as Error).message);
-    } finally {
-      setSaving("");
-    }
-  };
-
   const selectAvailableFinding = (findings: Finding[]) => {
     if (findings.some((item) => item.finding_id === selectedRef.current))
       return;
@@ -422,17 +326,6 @@ export function CheckPage() {
             seekToken={seekToken}
             onTime={setTime}
             onAvailabilityChange={(available) => setVideoLoadFailed(!available)}
-            onTrack={
-              videoAvailable
-                ? (trackId) => {
-                    setRoleTrack(trackId);
-                    setRole(
-                      check.tracks.find((item) => item.track_id === trackId)
-                        ?.role?.value ?? "unknown",
-                    );
-                  }
-                : undefined
-            }
           />
           {videoAvailable && check.video_expires_at && (
             <p className="coverage-note">
@@ -513,97 +406,8 @@ export function CheckPage() {
               ))}
             </ul>
           </details>
-          <section className="people">
-            <h2>Люди в кадре</h2>
-            {check.tracks
-              .filter((item) => item.kind === "person")
-              .map((item) => (
-                <button
-                  key={item.track_id}
-                  disabled={!videoAvailable}
-                  title={
-                    !videoAvailable ? "Исходная запись недоступна" : undefined
-                  }
-                  onClick={() => {
-                    setRoleTrack(item.track_id);
-                    setRole(item.role?.value ?? "unknown");
-                  }}
-                >
-                  {item.track_id}
-                  <span>{roleLabels[item.role?.value ?? "unknown"]}</span>
-                </button>
-              ))}
-          </section>
-          {(check.layout?.zones ?? []).length > 0 && (
-            <Button
-              variant="quiet"
-              disabled={!videoAvailable}
-              title={!videoAvailable ? "Исходная запись недоступна" : undefined}
-              onClick={() =>
-                setZoneDraft(cloneZones(check.layout?.zones ?? []))
-              }
-            >
-              Уточнить зоны сцены
-            </Button>
-          )}
         </aside>
       </div>
-      <ModalSurface
-        open={Boolean(roleTrack)}
-        title="Кто это на записи?"
-        onClose={() => setRoleTrack("")}
-      >
-        <div className="modal-body">
-          <div className="radio-list">
-            {Object.entries(roleLabels).map(([value, label]) => (
-              <label key={value}>
-                <input
-                  type="radio"
-                  name="role"
-                  value={value}
-                  checked={role === value}
-                  onChange={() => setRole(value as Role)}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-          {check.is_example && <p>В примере изменения не сохраняются.</p>}
-          <div className="action-row">
-            <Button variant="quiet" onClick={() => setRoleTrack("")}>
-              Отмена
-            </Button>
-            <Button
-              busy={saving === "role"}
-              onClick={() => void reevaluateRole()}
-            >
-              Пересчитать по нормам
-            </Button>
-          </div>
-        </div>
-      </ModalSurface>
-      <ModalSurface
-        open={zoneDraft !== null}
-        title="Зоны сцены"
-        onClose={() => setZoneDraft(null)}
-        className="zone-dialog"
-      >
-        {zoneDraft && <ZoneEditor zones={zoneDraft} onChange={setZoneDraft} />}
-        <div className="modal-body">
-          <p>
-            Координаты заданы относительно кадра от 0 до 1. Изменённая область
-            показана на схеме.
-          </p>
-          <div className="action-row">
-            <Button variant="quiet" onClick={() => setZoneDraft(null)}>
-              Отмена
-            </Button>
-            <Button busy={saving === "zones"} onClick={() => void saveZones()}>
-              Пересчитать по нормам
-            </Button>
-          </div>
-        </div>
-      </ModalSurface>
       <Dialog
         open={Boolean(frame)}
         title={frame?.finding.type_label ?? "Кадр"}
@@ -766,127 +570,6 @@ function FindingCard({
   );
 }
 
-function ZoneEditor({
-  zones,
-  onChange,
-}: {
-  zones: Zone[];
-  onChange: (zones: Zone[]) => void;
-}) {
-  const [selected, setSelected] = useState(0);
-  const zone = zones[selected];
-  const setPoint = (pointIndex: number, coordinate: 0 | 1, value: number) => {
-    const bounded = Math.max(
-      0,
-      Math.min(1, Number.isFinite(value) ? value : 0),
-    );
-    onChange(
-      zones.map((item, zoneIndex) =>
-        zoneIndex !== selected
-          ? item
-          : {
-              ...item,
-              polygon: item.polygon.map((point, index) =>
-                index !== pointIndex
-                  ? point
-                  : coordinate === 0
-                    ? [bounded, point[1]]
-                    : [point[0], bounded],
-              ),
-            },
-      ),
-    );
-  };
-  return (
-    <div className="zone-editor">
-      <div className="zone-preview" data-surface="stage">
-        <svg viewBox="0 0 1 1" preserveAspectRatio="none">
-          {zones.map((item, index) => (
-            <polygon
-              key={item.zone_id}
-              className={index === selected ? "is-selected" : ""}
-              points={item.polygon.map((point) => point.join(",")).join(" ")}
-              onClick={() => setSelected(index)}
-            />
-          ))}
-        </svg>
-      </div>
-      <div className="zone-controls">
-        <label className="field">
-          <span>Область</span>
-          <select
-            value={selected}
-            onChange={(event) => setSelected(Number(event.target.value))}
-          >
-            {zones.map((item, index) => (
-              <option value={index} key={item.zone_id}>
-                {item.zone_id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Назначение</span>
-          <select
-            value={zone.kind}
-            onChange={(event) =>
-              onChange(
-                zones.map((item, index) =>
-                  index === selected
-                    ? { ...item, kind: event.target.value as ZoneKind }
-                    : item,
-                ),
-              )
-            }
-          >
-            {zoneKinds.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <fieldset>
-          <legend>Вершины области</legend>
-          {zone.polygon.map((point, index) => (
-            <div className="coordinate-row" key={index}>
-              <span>{index + 1}</span>
-              <label>
-                X{" "}
-                <input
-                  aria-label={`Вершина ${index + 1}, X`}
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={point[0]}
-                  onChange={(event) =>
-                    setPoint(index, 0, event.target.valueAsNumber)
-                  }
-                />
-              </label>
-              <label>
-                Y{" "}
-                <input
-                  aria-label={`Вершина ${index + 1}, Y`}
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={point[1]}
-                  onChange={(event) =>
-                    setPoint(index, 1, event.target.valueAsNumber)
-                  }
-                />
-              </label>
-            </div>
-          ))}
-        </fieldset>
-      </div>
-    </div>
-  );
-}
-
 function Processing({
   check,
   restartPolling,
@@ -1037,12 +720,6 @@ function diffMessages(diff: {
     ...(diff.verdict_changed ? ["Вердикт изменился"] : []),
   ];
 }
-function cloneZones(zones: Zone[]): Zone[] {
-  return zones.map((zone) => ({
-    ...zone,
-    polygon: zone.polygon.map((point) => [...point] as [number, number]),
-  }));
-}
 function ruleStatus(status: string) {
   return status === "not_checkable"
     ? "Нельзя проверить"
@@ -1052,12 +729,3 @@ function ruleStatus(status: string) {
         ? "Без замечаний"
         : "Есть эпизод";
 }
-const zoneKinds: [ZoneKind, string][] = [
-  ["cashier_post", "Место кассира"],
-  ["client_window", "Окно клиента"],
-  ["cash_desk", "Кассовый стол"],
-  ["storage", "Хранилище"],
-  ["service_door", "Служебный вход"],
-  ["transfer_tray", "Передаточный лоток"],
-  ["count_room", "Комната пересчёта"],
-];
