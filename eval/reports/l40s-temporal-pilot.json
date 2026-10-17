@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "source_commit": "e1457a4",
+  "task": "binary candidate proposal and source-frame localization, not the final normative verdict",
+  "hardware": "NVIDIA L40S",
+  "activated": false,
+  "baseline": {
+    "balanced_accuracy": 0.625,
+    "fn": 0,
+    "fp": 3,
+    "localization_mae_sec": 12.75,
+    "localization_match_count": 4,
+    "tn": 1,
+    "tp": 4
+  },
+  "elapsed_seconds": 97.486,
+  "epochs": [
+    {
+      "accepted": false,
+      "balanced_accuracy": 0.375,
+      "epoch": 1,
+      "fn": 1,
+      "fp": 4,
+      "localization_mae_sec": 5.833333333333333,
+      "localization_match_count": 3,
+      "mean_loss": 2.518935096760591,
+      "score_max": 0.6044514775276184,
+      "score_min": 0.4845362901687622,
+      "tn": 0,
+      "tp": 3
+    },
+    {
+      "accepted": false,
+      "balanced_accuracy": 0.125,
+      "epoch": 2,
+      "fn": 3,
+      "fp": 4,
+      "localization_mae_sec": 0.5,
+      "localization_match_count": 1,
+      "mean_loss": 2.486921680470308,
+      "score_max": 0.6570349335670471,
+      "score_min": 0.39693978428840637,
+      "tn": 0,
+      "tp": 1
+    },
+    {
+      "accepted": false,
+      "balanced_accuracy": 0.0,
+      "epoch": 3,
+      "fn": 4,
+      "fp": 4,
+      "localization_mae_sec": null,
+      "localization_match_count": 0,
+      "mean_loss": 2.2488219489653907,
+      "score_max": 0.8169581294059753,
+      "score_min": 0.1080896407365799,
+      "tn": 0,
+      "tp": 0
+    },
+    {
+      "accepted": false,
+      "balanced_accuracy": 0.25,
+      "epoch": 4,
+      "fn": 2,
+      "fp": 4,
+      "localization_mae_sec": 3.25,
+      "localization_match_count": 2,
+      "mean_loss": 2.2657863025863967,
+      "score_max": 0.90477055311203,
+      "score_min": 0.4177979826927185,
+      "tn": 0,
+      "tp": 2
+    },
+    {
+      "accepted": false,
+      "balanced_accuracy": 0.125,
+      "epoch": 5,
+      "fn": 3,
+      "fp": 4,
+      "localization_mae_sec": 1.5,
+      "localization_match_count": 1,
+      "mean_loss": 1.9715455944339435,
+      "score_max": 0.8803783059120178,
+      "score_min": 0.17282742261886597,
+      "tn": 0,
+      "tp": 1
+    }
+  ],
+  "holdout_used": false,
+  "selected_epoch": null,
+  "split": {
+    "training_sources": 24,
+    "validation_sources": 8
+  },
+  "stop_reason": "early_stopping_patience"
+}

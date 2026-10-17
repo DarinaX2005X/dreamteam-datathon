@@ -41,6 +41,14 @@ overlay_volumes = (
 if '/site-packages/navidu:ro' not in text:
     text = text.replace(model_volume, overlay_volumes, 1)
 
+contracts_volume = '    - ./contracts:/app/contracts:ro\n'
+if '/app/web/dist:ro' not in text:
+    text = text.replace(
+        contracts_volume,
+        contracts_volume + '    - ./web/dist:/app/web/dist:ro\n',
+        1,
+    )
+
 worker_network = '''    networks:
       - offline
     healthcheck:
