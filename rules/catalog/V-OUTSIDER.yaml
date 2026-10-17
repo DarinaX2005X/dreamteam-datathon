@@ -1,0 +1,15 @@
+{
+  "rule_id": "V-OUTSIDER",
+  "type_label": "Человек с неподтверждёнными полномочиями в рабочей зоне",
+  "norm_refs": ["S231-p75"],
+  "requires_visible": ["storage"],
+  "requires_capabilities": ["authorization_status"],
+  "anchor": {"observation": {"kind": "person_in_zone", "role": "outsider"}},
+  "condition": {"observation": {"kind": "person_in_zone", "role": "outsider"}},
+  "timecode_policy": "onset",
+  "what_seen": "Человек входит в установленную зону хранения.",
+  "why_may_violate": "Доступ к кладовой зависит от полномочий и сопровождения.",
+  "not_claimed": "Полномочия не определяются по внешности или одежде.",
+  "strength": "moderate",
+  "enabled": false
+}

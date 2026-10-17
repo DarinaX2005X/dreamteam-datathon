@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "JobDone": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "done",
+          "default": "done",
+          "title": "Status",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "violation",
+            "no_violation"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "violations": {
+          "items": {
+            "$ref": "#/$defs/JuryViolation"
+          },
+          "title": "Violations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "verdict",
+        "violations"
+      ],
+      "title": "JobDone",
+      "type": "object"
+    },
+    "JobError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "JobError",
+      "type": "object"
+    },
+    "JobFailed": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "failed",
+          "default": "failed",
+          "title": "Status",
+          "type": "string"
+        },
+        "error": {
+          "$ref": "#/$defs/JobError"
+        }
+      },
+      "required": [
+        "job_id",
+        "error"
+      ],
+      "title": "JobFailed",
+      "type": "object"
+    },
+    "JobProcessing": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "processing",
+          "default": "processing",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "title": "JobProcessing",
+      "type": "object"
+    },
+    "JuryEvidenceFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "timestamp_sec": {
+          "minimum": 0,
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "image_base64": {
+          "title": "Image Base64",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "image_base64"
+      ],
+      "title": "JuryEvidenceFrame",
+      "type": "object"
+    },
+    "JuryViolation": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "timecode_sec": {
+          "minimum": 0,
+          "title": "Timecode Sec",
+          "type": "number"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_frames": {
+          "items": {
+            "$ref": "#/$defs/JuryEvidenceFrame"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Evidence Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "timecode_sec",
+        "description",
+        "evidence_frames"
+      ],
+      "title": "JuryViolation",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "done": "#/$defs/JobDone",
+      "failed": "#/$defs/JobFailed",
+      "processing": "#/$defs/JobProcessing"
+    },
+    "propertyName": "status"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/JobProcessing"
+    },
+    {
+      "$ref": "#/$defs/JobDone"
+    },
+    {
+      "$ref": "#/$defs/JobFailed"
+    }
+  ]
+}

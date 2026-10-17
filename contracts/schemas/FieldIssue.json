@@ -1,0 +1,19 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path",
+    "message"
+  ],
+  "title": "FieldIssue",
+  "type": "object"
+}

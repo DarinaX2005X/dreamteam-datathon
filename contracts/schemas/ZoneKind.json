@@ -1,0 +1,12 @@
+{
+  "enum": [
+    "cashier_post",
+    "client_window",
+    "cash_desk",
+    "storage",
+    "service_door",
+    "transfer_tray",
+    "count_room"
+  ],
+  "type": "string"
+}

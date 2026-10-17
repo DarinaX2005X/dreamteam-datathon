@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="172" viewBox="0 0 640 172" role="img" aria-labelledby="t d">
+<title id="t">Иллюстрация: лента фактов, три дорожки</title><desc id="d">Дорожки наблюдаемых фактов по времени записи 2 мин 5 с. Подсвечен эпизод 00:41–00:48: деньги в руках кассира, клиента у окна нет. Второй эпизод 01:36–01:43 обведён пунктиром. Авторская иллюстрация.</desc>
+<defs><pattern id="fsHatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#3A1225"/><rect width="3" height="8" fill="#8A7580" opacity="0.7"/></pattern><linearGradient id="fsLit" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FC9385" stop-opacity="0.10"/><stop offset="0.5" stop-color="#FC9385" stop-opacity="0.32"/><stop offset="1" stop-color="#FC9385" stop-opacity="0.10"/></linearGradient></defs>
+<rect width="640" height="172" rx="18" fill="#2A0B19"/>
+<rect x="303.6" y="28" width="28.4" height="110" rx="8" fill="url(#fsLit)" stroke="#FC9385" stroke-width="2"/>
+<rect x="514.0" y="28" width="26.5" height="110" rx="8" fill="none" stroke="#FC9385" stroke-width="2" stroke-dasharray="6 5" opacity="0.8"/>
+<g font-family="Open Sans, sans-serif" font-size="14" font-weight="600" font-stretch="87.5%">
+<text x="16" y="54.0" fill="#CDB6C1">Кассир на месте</text>
+<rect x="150" y="43.0" width="474" height="12" rx="6.0" fill="#3A1225"/>
+<rect x="150.0" y="43.0" width="364.0" height="12" rx="6.0" fill="#61CFFF"/>
+<rect x="540.6" y="43.0" width="83.4" height="12" rx="6.0" fill="#61CFFF"/>
+<text x="16" y="88.0" fill="#CDB6C1">Клиент у окна</text>
+<rect x="150" y="77.0" width="474" height="12" rx="6.0" fill="#3A1225"/>
+<rect x="161.4" y="77.0" width="132.7" height="12" rx="6.0" fill="#61CFFF"/>
+<rect x="339.6" y="77.0" width="159.3" height="12" rx="6.0" fill="#61CFFF"/>
+<rect x="544.4" y="77.0" width="64.5" height="12" rx="6.0" fill="#61CFFF"/>
+<text x="16" y="122.0" fill="#CDB6C1">Деньги в руках</text>
+<rect x="150" y="111.0" width="474" height="12" rx="6.0" fill="#3A1225"/>
+<rect x="195.5" y="111.0" width="30.3" height="12" rx="6.0" fill="#61CFFF"/>
+<rect x="307.4" y="111.0" width="22.8" height="12" rx="6.0" fill="#61CFFF"/>
+<rect x="369.9" y="111.0" width="22.8" height="12" rx="6.0" fill="#61CFFF"/>
+</g>
+<path d="M311.0 8h13.2a1.6 1.6 0 0 1 1.3 2.6l-6.6 7.8a1.6 1.6 0 0 1-2.5 0l-6.6-7.8a1.6 1.6 0 0 1 1.3-2.6z" fill="#FC9385" stroke="#FC9385" stroke-width="0"/>
+<path d="M520.7 8h13.2a1.6 1.6 0 0 1 1.3 2.6l-6.6 7.8a1.6 1.6 0 0 1-2.5 0l-6.6-7.8a1.6 1.6 0 0 1 1.3-2.6z" fill="none" stroke="#FC9385" stroke-width="2"/>
+<rect x="316.6" y="24" width="2" height="118" fill="#FFFFFF"/>
+<g font-family="Open Sans, sans-serif" font-weight="700" font-size="15" font-stretch="87.5%"><rect x="331.6" y="4" width="74" height="23" rx="6" fill="#FC9385"/><text x="338.6" y="20.9" fill="#4A0221">00:44,2</text></g>
+<g font-family="Open Sans, sans-serif" font-size="13" font-weight="600" fill="#CDB6C1" font-stretch="87.5%">
+<rect x="150.0" y="142" width="1" height="6" fill="#8A7580"/><text x="154.0" y="158">00:00</text>
+<rect x="263.8" y="142" width="1" height="6" fill="#8A7580"/><text x="267.8" y="158">00:30</text>
+<rect x="377.5" y="142" width="1" height="6" fill="#8A7580"/><text x="381.5" y="158">01:00</text>
+<rect x="491.3" y="142" width="1" height="6" fill="#8A7580"/><text x="495.3" y="158">01:30</text>
+<rect x="605.0" y="142" width="1" height="6" fill="#8A7580"/><text x="609.0" y="158">02:00</text>
+</g></svg>

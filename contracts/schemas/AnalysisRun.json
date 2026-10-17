@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "pattern": "^[0-9a-f]{12}$",
+      "title": "Check Id",
+      "type": "string"
+    },
+    "pipeline_version": {
+      "title": "Pipeline Version",
+      "type": "string"
+    },
+    "analysis_fps": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Fps",
+      "type": "number"
+    },
+    "model_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Model Versions",
+      "type": "object"
+    },
+    "phase_timings_sec": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "number"
+      },
+      "title": "Phase Timings Sec",
+      "type": "object"
+    }
+  },
+  "required": [
+    "check_id",
+    "pipeline_version",
+    "analysis_fps"
+  ],
+  "title": "AnalysisRun",
+  "type": "object"
+}

@@ -1,0 +1,219 @@
+{
+  "$defs": {
+    "RuleView": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "type_label": {
+          "title": "Type Label",
+          "type": "string"
+        },
+        "norm_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Norm Refs",
+          "type": "array"
+        },
+        "requires_visible": {
+          "items": {
+            "enum": [
+              "cashier",
+              "client",
+              "desk",
+              "storage",
+              "whole"
+            ],
+            "type": "string"
+          },
+          "title": "Requires Visible",
+          "type": "array"
+        },
+        "visible_sign": {
+          "title": "Visible Sign",
+          "type": "string"
+        },
+        "why_may_violate": {
+          "title": "Why May Violate",
+          "type": "string"
+        },
+        "not_claimed": {
+          "title": "Not Claimed",
+          "type": "string"
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceClauseView"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rule_id",
+        "type_label",
+        "norm_refs",
+        "requires_visible",
+        "visible_sign",
+        "why_may_violate",
+        "not_claimed",
+        "enabled"
+      ],
+      "title": "RuleView",
+      "type": "object"
+    },
+    "SourceClauseView": {
+      "additionalProperties": false,
+      "description": "Public source view: unverified quotations never reach user-facing APIs.",
+      "properties": {
+        "clause_id": {
+          "title": "Clause Id",
+          "type": "string"
+        },
+        "document": {
+          "$ref": "#/$defs/SourceDocument"
+        },
+        "locator": {
+          "title": "Locator",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "verified_verbatim": {
+          "default": false,
+          "title": "Verified Verbatim",
+          "type": "boolean"
+        },
+        "visual_test": {
+          "title": "Visual Test",
+          "type": "string"
+        },
+        "not_visual": {
+          "title": "Not Visual",
+          "type": "string"
+        }
+      },
+      "required": [
+        "clause_id",
+        "document",
+        "locator",
+        "visual_test",
+        "not_visual"
+      ],
+      "title": "SourceClauseView",
+      "type": "object"
+    },
+    "SourceDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "act": {
+          "title": "Act",
+          "type": "string"
+        },
+        "registry_code": {
+          "title": "Registry Code",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "edition_checked": {
+          "format": "date",
+          "title": "Edition Checked",
+          "type": "string"
+        },
+        "checked_at": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checked At"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "source_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Version"
+        }
+      },
+      "required": [
+        "title",
+        "act",
+        "registry_code",
+        "url",
+        "edition_checked"
+      ],
+      "title": "SourceDocument",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/RuleView"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "not_checkable": {
+      "items": {
+        "$ref": "#/$defs/SourceClauseView"
+      },
+      "title": "Not Checkable",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rules",
+    "not_checkable"
+  ],
+  "title": "RulesResponse",
+  "type": "object"
+}

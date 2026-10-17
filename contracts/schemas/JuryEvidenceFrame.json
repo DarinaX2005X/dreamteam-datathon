@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "timestamp_sec": {
+      "minimum": 0,
+      "title": "Timestamp Sec",
+      "type": "number"
+    },
+    "image_base64": {
+      "title": "Image Base64",
+      "type": "string"
+    }
+  },
+  "required": [
+    "timestamp_sec",
+    "image_base64"
+  ],
+  "title": "JuryEvidenceFrame",
+  "type": "object"
+}

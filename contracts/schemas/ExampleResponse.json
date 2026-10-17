@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "pattern": "^[0-9a-f]{12}$",
+      "title": "Check Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "check_id"
+  ],
+  "title": "ExampleResponse",
+  "type": "object"
+}

@@ -1,0 +1,50 @@
+name: lado
+
+x-runtime: &runtime
+  image: lado-local:0.1.0
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - path: .env
+      required: true
+  environment:
+    NAVIDU_HOST: 0.0.0.0
+    NAVIDU_PORT: 8000
+    NAVIDU_DATA_DIR: /app/data
+    NAVIDU_MODELS_DIR: /app/models
+    NAVIDU_RULES_DIR: /app/rules
+    NAVIDU_WEB_DIST: /app/web/dist
+  volumes:
+    - ./data:/app/data
+    - ./models:/app/models:ro
+  networks:
+    - offline
+  restart: "no"
+  init: true
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  api:
+    <<: *runtime
+    command: ["python", "-m", "navidu.service"]
+    ports:
+      - "${NAVIDU_BIND_ADDRESS:-127.0.0.1}:${NAVIDU_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ui/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+  worker:
+    <<: *runtime
+    command: ["python", "-m", "navidu.service.worker"]
+    healthcheck:
+      disable: true
+
+networks:
+  offline:
+    internal: true
+

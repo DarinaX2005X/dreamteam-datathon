@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "NotCheckableWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "start_sec": {
+          "minimum": 0,
+          "title": "Start Sec",
+          "type": "number"
+        },
+        "end_sec": {
+          "minimum": 0,
+          "title": "End Sec",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_sec",
+        "end_sec",
+        "reason"
+      ],
+      "title": "NotCheckableWindow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rule_id": {
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "violation",
+        "no_violation",
+        "not_checkable",
+        "partly_checkable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "not_checkable_windows": {
+      "items": {
+        "$ref": "#/$defs/NotCheckableWindow"
+      },
+      "title": "Not Checkable Windows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rule_id",
+    "status"
+  ],
+  "title": "RuleStatus",
+  "type": "object"
+}

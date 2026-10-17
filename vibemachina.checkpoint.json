@@ -1,0 +1,11 @@
+{
+  "checks": [
+    { "command": "$NODE", "args": ["scripts/checkpoint-check.mjs", "lint"] },
+    { "command": "$NODE", "args": ["scripts/checkpoint-check.mjs", "domain"] },
+    { "command": "$NODE", "args": ["scripts/checkpoint-check.mjs", "sources"] },
+    {
+      "command": "$NODE",
+      "args": ["scripts/checkpoint-check.mjs", "web"]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+transformers==4.57.6
+av==13.1.0
+rtmlib==0.0.16
+onnxruntime==1.23.2
+supervision==0.29.1
+numpy==1.26.4
+Pillow==12.3.0

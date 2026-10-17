@@ -1,0 +1,10 @@
+{
+  "enum": [
+    "decode",
+    "perception",
+    "facts",
+    "rules",
+    "evidence"
+  ],
+  "type": "string"
+}

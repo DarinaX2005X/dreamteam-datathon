@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "rule_id": "V-COUNT-ABSENT",
+      "type_label": "Пересчёт денег без клиента у кассы",
+      "norm_refs": [
+        "S231-p20"
+      ],
+      "requires_visible": [
+        "cashier",
+        "desk"
+      ],
+      "visible_sign": "Клиента у кассы не видно.",
+      "why_may_violate": "Пример формата; не реальный результат анализа.",
+      "not_claimed": "Сумма и документы.",
+      "enabled": true,
+      "sources": [
+        {
+          "clause_id": "S231-p20",
+          "document": {
+            "title": "Правила осуществления кассовых операций",
+            "act": "Постановление № 231",
+            "registry_code": "V1900019680",
+            "url": "https://adilet.zan.kz/rus/docs/V1900019680",
+            "edition_checked": "2026-10-17",
+            "checked_at": "2026-10-17",
+            "source_url": null,
+            "source_version": null
+          },
+          "locator": "пункт 20",
+          "quote": null,
+          "verified_verbatim": false,
+          "visual_test": "Присутствие клиента у кассы.",
+          "not_visual": "Сумма операции."
+        }
+      ]
+    }
+  ],
+  "not_checkable": []
+}

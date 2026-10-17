@@ -1,0 +1,17 @@
+{
+  "rule_id": "V-CASH-UNSECURED",
+  "type_label": "Ранее принятые деньги остались на открытой поверхности",
+  "norm_refs": ["S231-p20-storage"],
+  "requires_visible": ["desk", "cashier", "client"],
+  "requires_capabilities": ["handover_direction", "cash_on_desk", "continuous_desk_visibility"],
+  "anchor": {"observation": {"kind": "cash_on_desk"}},
+  "condition": {"all": [
+    {"before": {"first": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "then": {"observation": {"kind": "cash_on_desk"}}, "within_sec": 120}},
+    {"before": {"first": {"observation": {"kind": "cash_on_desk"}}, "then": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}}, "within_sec": 120}}
+  ]},
+  "timecode_policy": "onset",
+  "what_seen": "Деньги предыдущего видимого приёма остаются на открытой поверхности при появлении следующего клиента.",
+  "why_may_violate": "Ранее принятые наличные должны храниться в закрывающемся специальном устройстве.",
+  "not_claimed": "Назначение иных сумм и состояние невидимого замка не устанавливаются.",
+  "strength": "moderate"
+}

@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "TrackRole": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "enum": [
+            "cashier",
+            "client",
+            "collector",
+            "controller",
+            "staff",
+            "outsider",
+            "unknown"
+          ],
+          "title": "Value",
+          "type": "string"
+        },
+        "source": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "reviewer"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "TrackRole",
+      "type": "object"
+    },
+    "TrackSample": {
+      "additionalProperties": false,
+      "properties": {
+        "t": {
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        },
+        "bbox": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Bbox",
+          "type": "array"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "bbox",
+        "score"
+      ],
+      "title": "TrackSample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "track_id": {
+      "pattern": "^[po][0-9]+$",
+      "title": "Track Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "person",
+        "object"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "object_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Object Class"
+    },
+    "first_sec": {
+      "minimum": 0,
+      "title": "First Sec",
+      "type": "number"
+    },
+    "last_sec": {
+      "minimum": 0,
+      "title": "Last Sec",
+      "type": "number"
+    },
+    "role": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TrackRole"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "samples": {
+      "items": {
+        "$ref": "#/$defs/TrackSample"
+      },
+      "title": "Samples",
+      "type": "array"
+    }
+  },
+  "required": [
+    "track_id",
+    "kind",
+    "first_sec",
+    "last_sec"
+  ],
+  "title": "Track",
+  "type": "object"
+}

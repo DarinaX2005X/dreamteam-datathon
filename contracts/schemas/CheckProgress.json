@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "phase": {
+      "enum": [
+        "queued",
+        "decode",
+        "perception",
+        "facts",
+        "rules",
+        "evidence",
+        "done",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "phases": {
+      "items": {
+        "enum": [
+          "decode",
+          "perception",
+          "facts",
+          "rules",
+          "evidence"
+        ],
+        "type": "string"
+      },
+      "title": "Phases",
+      "type": "array"
+    },
+    "processed_until_sec": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Processed Until Sec"
+    },
+    "queue_position": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Queue Position"
+    }
+  },
+  "required": [
+    "phase"
+  ],
+  "title": "CheckProgress",
+  "type": "object"
+}

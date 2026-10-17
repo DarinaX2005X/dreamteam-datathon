@@ -1,0 +1,59 @@
+{
+  "video_files": 42,
+  "unique_video_bytes": 40,
+  "positive_rows": 22,
+  "negative_rows": 20,
+  "duration_sec": {
+    "min": 11.633333,
+    "median": 22.6665105,
+    "max": 142.533021,
+    "sum": 1444.163232
+  },
+  "fps": {
+    "min": 29.758065,
+    "max": 30.0
+  },
+  "dimensions": [
+    "464x848"
+  ],
+  "codecs": [
+    "h264"
+  ],
+  "rotations": [
+    0.0
+  ],
+  "audio_streams": 0,
+  "total_size_mb": 292.870994,
+  "duplicate_groups": [
+    {
+      "sha256": "5385be9420e6a70547d6bcfd0b13d60f9c0738877645afa277d09550a96b8445",
+      "members": [
+        {
+          "video_id": "Х-4",
+          "has_violation": 1,
+          "label_sec": 57.0
+        },
+        {
+          "video_id": "Х-47",
+          "has_violation": 1,
+          "label_sec": 68.0
+        }
+      ]
+    },
+    {
+      "sha256": "1f5840bff58f298e89c4afa00cb1c18f6dafc5c4096c251d9b507604ebefe906",
+      "members": [
+        {
+          "video_id": "Х-5",
+          "has_violation": 0,
+          "label_sec": ""
+        },
+        {
+          "video_id": "Х-48",
+          "has_violation": 0,
+          "label_sec": ""
+        }
+      ]
+    }
+  ]
+}

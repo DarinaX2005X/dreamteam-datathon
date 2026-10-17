@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "pattern": "^[0-9a-f]{12}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "processing",
+      "default": "processing",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "title": "JobProcessing",
+  "type": "object"
+}

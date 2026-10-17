@@ -1,0 +1,8 @@
+{
+  "enum": [
+    "confirmed",
+    "rejected",
+    "not_visible"
+  ],
+  "type": "string"
+}

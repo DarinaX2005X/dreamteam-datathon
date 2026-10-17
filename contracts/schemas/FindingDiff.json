@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "added": {
+      "items": {
+        "pattern": "^fd-[0-9a-f]{10}$",
+        "type": "string"
+      },
+      "title": "Added",
+      "type": "array"
+    },
+    "removed": {
+      "items": {
+        "pattern": "^fd-[0-9a-f]{10}$",
+        "type": "string"
+      },
+      "title": "Removed",
+      "type": "array"
+    },
+    "changed": {
+      "items": {
+        "pattern": "^fd-[0-9a-f]{10}$",
+        "type": "string"
+      },
+      "title": "Changed",
+      "type": "array"
+    },
+    "verdict_changed": {
+      "title": "Verdict Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "added",
+    "removed",
+    "changed",
+    "verdict_changed"
+  ],
+  "title": "FindingDiff",
+  "type": "object"
+}

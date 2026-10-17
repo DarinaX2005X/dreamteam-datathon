@@ -1,0 +1,15 @@
+{
+  "name": "Lado",
+  "font": "Open Sans",
+  "wght": 780,
+  "wdth": 100,
+  "font_size_units": 60.0,
+  "x_height": 32.11,
+  "baseline": 56.05,
+  "wordmark_width": 146.2,
+  "gap": 20.0,
+  "lockup": [
+    246.2,
+    80.0
+  ]
+}

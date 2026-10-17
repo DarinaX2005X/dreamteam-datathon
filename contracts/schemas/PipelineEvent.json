@@ -1,0 +1,197 @@
+{
+  "$defs": {
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "start_sec": {
+          "minimum": 0,
+          "title": "Start Sec",
+          "type": "number"
+        },
+        "end_sec": {
+          "minimum": 0,
+          "title": "End Sec",
+          "type": "number"
+        },
+        "obs_id": {
+          "pattern": "^ob-[0-9]+$",
+          "title": "Obs Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "person_in_zone",
+            "cash_in_hands",
+            "cash_on_desk",
+            "cash_handover",
+            "counting_motion",
+            "phone_visible",
+            "bag_present",
+            "bag_opened",
+            "storage_open",
+            "visibility_low",
+            "cash_sorting",
+            "cash_packing",
+            "bag_integrity_damage",
+            "personal_item_identified",
+            "camera_device_visible"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "subjects": {
+          "items": {
+            "pattern": "^[po][0-9]+$",
+            "type": "string"
+          },
+          "title": "Subjects",
+          "type": "array"
+        },
+        "zones": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Zones",
+          "type": "array"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "frame_ids": {
+          "items": {
+            "pattern": "^fr-[0-9]+$",
+            "type": "string"
+          },
+          "title": "Frame Ids",
+          "type": "array"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "enum": [
+                "detector",
+                "temporal_model",
+                "geometry",
+                "reviewer"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provenance"
+        },
+        "model_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Id"
+        },
+        "actor_id": {
+          "anyOf": [
+            {
+              "pattern": "^[po][0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor Id"
+        },
+        "recipient_id": {
+          "anyOf": [
+            {
+              "pattern": "^[po][0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recipient Id"
+        }
+      },
+      "required": [
+        "start_sec",
+        "end_sec",
+        "obs_id",
+        "kind"
+      ],
+      "title": "Observation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "phase": {
+      "enum": [
+        "decode",
+        "perception",
+        "facts",
+        "rules",
+        "evidence"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "processed_until_sec": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Processed Until Sec"
+    },
+    "observations_delta": {
+      "items": {
+        "$ref": "#/$defs/Observation"
+      },
+      "title": "Observations Delta",
+      "type": "array"
+    },
+    "message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Message"
+    }
+  },
+  "required": [
+    "phase"
+  ],
+  "title": "PipelineEvent",
+  "type": "object"
+}

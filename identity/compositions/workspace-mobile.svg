@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" role="img" aria-labelledby="t d">
+  <title id="t">Дизайн-образец: разбор проверки, 390×844</title>
+  <desc id="d">Узкая рабочая поверхность. Порядок: вердикт, видео с управлением, свёрнутая лента фактов, выбранный эпизод с кадром, наблюдением, нормой и решением, ниже следующий эпизод. Все действия широкой версии сохранены.</desc>
+  <defs>
+    <clipPath id="wmVideo"><rect x="16" y="150" width="358" height="201" rx="12"/></clipPath>
+    <clipPath id="wmFrame"><rect x="32" y="508" width="326" height="120" rx="10"/></clipPath>
+    <filter id="wmRest" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#4A0221" flood-opacity="0.08"/>
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#4A0221" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+  <rect width="390" height="844" fill="#FCFAFB"/>
+  <rect width="390" height="56" fill="#FFFFFF"/><rect y="55" width="390" height="1" fill="#E1D5DB"/>
+  <image href="../logo/navidu-mark.svg" x="12" y="12" width="32" height="32"/>
+  <g font-family="Open Sans, sans-serif" font-size="14" font-weight="600">
+    <text x="52" y="33" fill="#2A0A18">kassa_0412.mov</text>
+    <rect x="282" y="10" width="96" height="36" rx="10" fill="#A31551"/>
+    <text x="330" y="33" fill="#FFFFFF" text-anchor="middle">Новая</text>
+  </g>
+
+  <path d="M18.4 76h15.2a1.8 1.8 0 0 1 1.4 2.9l-7.6 9a1.8 1.8 0 0 1-2.8 0l-7.6-9a1.8 1.8 0 0 1 1.4-2.9z" fill="#FC9385" stroke="#4A0221" stroke-width="1.5"/>
+  <g font-family="Open Sans, sans-serif">
+    <text font-size="18" font-weight="700" fill="#2A0A18"><tspan x="44" y="90">Обнаружены признаки</tspan><tspan x="44" y="114">возможных нарушений</tspan></text>
+    <text x="44" y="136" font-size="13" fill="#6B5761">2 эпизода. Запись 02:05.</text>
+  </g>
+
+  <rect x="8" y="144" width="374" height="262" rx="18" fill="#2A0B19"/>
+  <image href="../art/desk-scene.svg" x="16" y="150" width="358" height="201" clip-path="url(#wmVideo)"/>
+  <g font-family="Open Sans, sans-serif">
+    <circle cx="38" cy="378" r="18" fill="#3A1225"/><path d="M33 369v18l14-9z" fill="#F7EDF1"/>
+    <text x="66" y="383" font-size="14" font-weight="700" fill="#F7EDF1" font-stretch="87.5%">00:44,2 / 02:05</text>
+    <rect x="232" y="362" width="134" height="32" rx="8" fill="#3A1225"/>
+    <text x="299" y="383" font-size="13" font-weight="600" fill="#F7EDF1" text-anchor="middle">Лента фактов</text>
+  </g>
+
+  <g filter="url(#wmRest)"><rect x="16" y="420" width="358" height="374" rx="14" fill="#FFFFFF"/></g>
+  <rect x="17" y="421" width="356" height="372" rx="13" fill="none" stroke="#A31551" stroke-width="2"/>
+  <path d="M34.6 440h13.8a1.7 1.7 0 0 1 1.3 2.7l-6.9 8.2a1.7 1.7 0 0 1-2.6 0l-6.9-8.2a1.7 1.7 0 0 1 1.3-2.7z" fill="#FC9385" stroke="#4A0221" stroke-width="1.4"/>
+  <g font-family="Open Sans, sans-serif">
+    <text x="58" y="453" font-size="15" font-weight="700" fill="#2A0A18">Пересчёт без клиента у кассы</text>
+    <rect x="32" y="466" width="70" height="24" rx="6" fill="#FC9385"/>
+    <text x="67" y="483" font-size="14" font-weight="700" fill="#4A0221" text-anchor="middle" font-stretch="87.5%">00:44,2</text>
+    <text x="112" y="483" font-size="13" font-weight="600" fill="#6B5761">кадр 1 из 3</text>
+  </g>
+  <image href="../art/desk-scene.svg" x="-21.5" y="386" width="433" height="243.6" clip-path="url(#wmFrame)"/>
+  <g font-family="Open Sans, sans-serif">
+    <text font-size="14" fill="#2A0A18"><tspan x="32" y="652">Кассир держит пачку денег 6 с, клиента</tspan><tspan x="32" y="672">у окна нет, затем деньги убраны.</tspan></text>
+    <text x="32" y="700" font-size="12.5" font-weight="600" fill="#A31551">Правила кассовых операций № 231, п. 20</text>
+  </g>
+  <g font-family="Open Sans, sans-serif" font-size="13" font-weight="600" text-anchor="middle">
+    <rect x="32" y="720" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#8A7580"/><text x="84" y="747" fill="#2A0A18">Подтвердить</text>
+    <rect x="143" y="720" width="108" height="44" rx="10" fill="#FFFFFF" stroke="#8A7580"/><text x="197" y="747" fill="#2A0A18">Не нарушение</text>
+    <rect x="258" y="720" width="100" height="44" rx="10" fill="#FFFFFF" stroke="#8A7580"/><text x="308" y="747" fill="#2A0A18">Не видно</text>
+  </g>
+  <text x="32" y="782" font-family="Open Sans, sans-serif" font-size="13" font-weight="600" fill="#A31551">Добавить заметку</text>
+
+  <g filter="url(#wmRest)"><rect x="16" y="806" width="358" height="64" rx="14" fill="#FFFFFF"/></g>
+  <path d="M34.6 822h13.8a1.7 1.7 0 0 1 1.3 2.7l-6.9 8.2a1.7 1.7 0 0 1-2.6 0l-6.9-8.2a1.7 1.7 0 0 1 1.3-2.7z" fill="none" stroke="#A3382A" stroke-width="1.6"/>
+  <text x="58" y="836" font-family="Open Sans, sans-serif" font-size="14.5" font-weight="700" fill="#2A0A18">Кассир покинул рабочее место</text>
+</svg>

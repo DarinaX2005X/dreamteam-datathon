@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    },
+    "failed_phase": {
+      "title": "Failed Phase",
+      "type": "string"
+    },
+    "at_sec": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "At Sec"
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "failed_phase"
+  ],
+  "title": "AnalysisError",
+  "type": "object"
+}

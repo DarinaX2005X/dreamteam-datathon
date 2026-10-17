@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "t": {
+      "minimum": 0,
+      "title": "T",
+      "type": "number"
+    },
+    "bbox": {
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      ],
+      "title": "Bbox",
+      "type": "array"
+    },
+    "score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Score",
+      "type": "number"
+    }
+  },
+  "required": [
+    "t",
+    "bbox",
+    "score"
+  ],
+  "title": "TrackSample",
+  "type": "object"
+}

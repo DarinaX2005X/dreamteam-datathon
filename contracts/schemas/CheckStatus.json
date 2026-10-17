@@ -1,0 +1,10 @@
+{
+  "enum": [
+    "queued",
+    "processing",
+    "done",
+    "failed",
+    "cancelled"
+  ],
+  "type": "string"
+}

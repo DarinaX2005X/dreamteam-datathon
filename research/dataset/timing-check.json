@@ -1,0 +1,9 @@
+{
+  "method": "ffprobe decoded best_effort_timestamp_time",
+  "records": [
+    {"video_id": "X-1", "decoded_frames": 776, "first_pts_sec": 0.0, "last_pts_sec": 25.9, "min_delta_sec": 0.033333, "max_delta_sec": 0.066667, "gaps_over_0_04_sec": 2, "strictly_increasing": true},
+    {"video_id": "Х-3", "decoded_frames": 599, "first_pts_sec": 0.0, "last_pts_sec": 20.0, "min_delta_sec": 0.033333, "max_delta_sec": 0.066667, "gaps_over_0_04_sec": 2, "strictly_increasing": true},
+    {"video_id": "Х-14", "decoded_frames": 4273, "first_pts_sec": 0.0, "last_pts_sec": 142.5, "min_delta_sec": 0.033333, "max_delta_sec": 0.066667, "gaps_over_0_04_sec": 3, "strictly_increasing": true},
+    {"video_id": "Х-28", "decoded_frames": 492, "first_pts_sec": 0.0, "last_pts_sec": 16.5, "min_delta_sec": 0.033333, "max_delta_sec": 0.066667, "gaps_over_0_04_sec": 4, "strictly_increasing": true}
+  ]
+}

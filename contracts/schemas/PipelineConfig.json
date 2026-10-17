@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "pattern": "^[0-9a-f]{12}$",
+      "title": "Check Id",
+      "type": "string"
+    },
+    "pipeline_version": {
+      "default": "0.1.0",
+      "title": "Pipeline Version",
+      "type": "string"
+    },
+    "models_dir": {
+      "format": "path",
+      "title": "Models Dir",
+      "type": "string"
+    },
+    "rules_dir": {
+      "format": "path",
+      "title": "Rules Dir",
+      "type": "string"
+    },
+    "device": {
+      "default": "auto",
+      "enum": [
+        "cpu",
+        "cuda",
+        "auto"
+      ],
+      "title": "Device",
+      "type": "string"
+    },
+    "analysis_fps": {
+      "default": 3.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Analysis Fps",
+      "type": "number"
+    },
+    "evidence_overlay": {
+      "default": true,
+      "title": "Evidence Overlay",
+      "type": "boolean"
+    },
+    "max_duration_sec": {
+      "default": 600,
+      "exclusiveMinimum": 0,
+      "title": "Max Duration Sec",
+      "type": "number"
+    }
+  },
+  "required": [
+    "check_id"
+  ],
+  "title": "PipelineConfig",
+  "type": "object"
+}

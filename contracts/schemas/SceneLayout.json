@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "Zone": {
+      "additionalProperties": false,
+      "properties": {
+        "zone_id": {
+          "pattern": "^z-[a-z_]+-[0-9]+$",
+          "title": "Zone Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "cashier_post",
+            "client_window",
+            "cash_desk",
+            "storage",
+            "service_door",
+            "transfer_tray",
+            "count_room"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 32,
+          "minItems": 3,
+          "title": "Polygon",
+          "type": "array"
+        },
+        "source": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "reviewer"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "zone_id",
+        "kind",
+        "polygon"
+      ],
+      "title": "Zone",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "zones": {
+      "items": {
+        "$ref": "#/$defs/Zone"
+      },
+      "title": "Zones",
+      "type": "array"
+    },
+    "camera_note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Camera Note"
+    }
+  },
+  "required": [
+    "revision"
+  ],
+  "title": "SceneLayout",
+  "type": "object"
+}

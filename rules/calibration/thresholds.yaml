@@ -1,0 +1,5 @@
+{
+  "status": "uncalibrated",
+  "policy": "Nullable semantic confidence is never replaced or thresholded as a calibrated score.",
+  "thresholds": {}
+}

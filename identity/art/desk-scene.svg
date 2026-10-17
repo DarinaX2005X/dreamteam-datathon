@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="t d">
+  <title id="t">Иллюстрация: касса сверху, эпизод «пересчёт без клиента у кассы»</title>
+  <desc id="d">Условный вид с потолочной камеры. Нижняя половина: сторона кассира со столом, денежным ящиком и кассиром, держащим пачку денег. Верхняя половина: окно клиента, пустое. Голубые рамки отмечают наблюдаемые факты, коралловые углы обозначают кадр-доказательство. Это авторская иллюстрация, а не кадр из датасета.</desc>
+  <defs>
+    <linearGradient id="dsFloorCashier" x1="0" y1="300" x2="0" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3A1225"/><stop offset="1" stop-color="#2A0B19"/>
+    </linearGradient>
+    <linearGradient id="dsFloorClient" x1="0" y1="0" x2="0" y2="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24091A"/><stop offset="1" stop-color="#321020"/>
+    </linearGradient>
+    <linearGradient id="dsCounter" x1="0" y1="226" x2="0" y2="304" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6B3550"/><stop offset="0.12" stop-color="#5A2840"/><stop offset="1" stop-color="#46192F"/>
+    </linearGradient>
+    <linearGradient id="dsDesk" x1="0" y1="300" x2="0" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5A2840"/><stop offset="1" stop-color="#4D1C33"/>
+    </linearGradient>
+    <radialGradient id="dsHead" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#B98399"/><stop offset="1" stop-color="#8A5670"/>
+    </radialGradient>
+    <radialGradient id="dsShoulders" cx="0.45" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#8E5C75"/><stop offset="1" stop-color="#5E314A"/>
+    </radialGradient>
+    <linearGradient id="dsNote" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3E7D6"/><stop offset="1" stop-color="#D9C6AE"/>
+    </linearGradient>
+    <pattern id="dsHatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="none"/><rect width="3" height="10" fill="#61CFFF" opacity="0.18"/>
+    </pattern>
+  </defs>
+
+  <!-- полы: сторона клиента (верх) и кассира (низ) -->
+  <rect width="960" height="540" fill="url(#dsFloorCashier)"/>
+  <rect width="960" height="232" fill="url(#dsFloorClient)"/>
+
+  <!-- стойка с защитным окном и лотком -->
+  <rect x="0" y="226" width="960" height="78" fill="url(#dsCounter)"/>
+  <rect x="0" y="226" width="960" height="3" fill="#CDB6C1" opacity="0.35"/>
+  <rect x="0" y="302" width="960" height="2" fill="#1E0711" opacity="0.6"/>
+  <rect x="418" y="236" width="124" height="58" rx="12" fill="#2A0B19"/>
+  <rect x="424" y="242" width="112" height="46" rx="9" fill="#3A1225"/>
+  <rect x="424" y="242" width="112" height="2" rx="1" fill="#CDB6C1" opacity="0.25"/>
+
+  <!-- стол кассира -->
+  <rect x="96" y="304" width="768" height="128" rx="6" fill="url(#dsDesk)"/>
+  <!-- монитор сверху: тонкая плита с подставкой -->
+  <rect x="180" y="318" width="150" height="16" rx="4" fill="#24091A"/>
+  <rect x="236" y="334" width="38" height="22" rx="6" fill="#3A1225"/>
+  <!-- клавиатура -->
+  <rect x="196" y="380" width="130" height="34" rx="6" fill="#3A1225"/>
+  <rect x="196" y="380" width="130" height="2" rx="1" fill="#CDB6C1" opacity="0.18"/>
+  <!-- денежный ящик, закрыт -->
+  <rect x="640" y="356" width="168" height="66" rx="8" fill="#3A1225"/>
+  <rect x="640" y="356" width="168" height="2" rx="1" fill="#CDB6C1" opacity="0.25"/>
+  <rect x="700" y="412" width="48" height="6" rx="3" fill="#7E4A63"/>
+
+  <!-- кассир сверху: плечи и голова без лица -->
+  <ellipse cx="482" cy="500" rx="118" ry="62" fill="#1E0711" opacity="0.35"/>
+  <ellipse cx="478" cy="488" rx="112" ry="56" fill="url(#dsShoulders)"/>
+  <circle cx="478" cy="474" r="40" fill="url(#dsHead)"/>
+  <!-- руки к столу -->
+  <path d="M410 462 C400 420 418 384 444 366" fill="none" stroke="#7E4A63" stroke-width="26" stroke-linecap="round"/>
+  <path d="M548 462 C560 420 540 384 514 366" fill="none" stroke="#7E4A63" stroke-width="26" stroke-linecap="round"/>
+  <!-- пачка денег в руках -->
+  <g transform="rotate(-6 479 356)">
+    <rect x="433" y="335" width="96" height="44" rx="4" fill="#B7A28A"/>
+    <rect x="430" y="331" width="96" height="44" rx="4" fill="#CBB79E"/>
+    <rect x="427" y="327" width="96" height="44" rx="4" fill="url(#dsNote)"/>
+    <rect x="463" y="327" width="18" height="44" fill="#A31551" opacity="0.55"/>
+  </g>
+  <ellipse cx="444" cy="366" rx="17" ry="14" fill="#9C6882"/>
+  <ellipse cx="514" cy="366" rx="17" ry="14" fill="#9C6882"/>
+
+  <!-- зона окна клиента: пусто -->
+  <rect x="300" y="52" width="360" height="160" rx="18" fill="url(#dsHatch)" stroke="#61CFFF" stroke-width="2" stroke-dasharray="10 8"/>
+  <g font-family="Open Sans, sans-serif" font-weight="600" font-size="15">
+    <rect x="316" y="66" width="172" height="28" rx="6" fill="#1E0711" opacity="0.85"/>
+    <text x="328" y="85" fill="#61CFFF">окно клиента: пусто</text>
+  </g>
+
+  <!-- наблюдения: кассир, деньги в руках -->
+  <rect x="352" y="414" width="252" height="118" rx="10" fill="none" stroke="#61CFFF" stroke-width="2.5"/>
+  <rect x="412" y="312" width="132" height="76" rx="8" fill="none" stroke="#61CFFF" stroke-width="2.5"/>
+  <g font-family="Open Sans, sans-serif" font-weight="600" font-size="15" fill="#1E0711">
+    <rect x="352" y="414" width="82" height="28" rx="6" fill="#61CFFF"/>
+    <text x="364" y="433">кассир</text>
+    <rect x="544" y="312" width="146" height="28" rx="6" fill="#61CFFF"/>
+    <text x="556" y="331">деньги в руках</text>
+  </g>
+
+  <!-- кадр-доказательство: коралловые углы -->
+  <g fill="none" stroke="#FC9385" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 64V28a12 12 0 0 1 12-12h36"/>
+    <path d="M896 16h36a12 12 0 0 1 12 12v36"/>
+    <path d="M944 476v36a12 12 0 0 1-12 12h-36"/>
+    <path d="M64 524H28a12 12 0 0 1-12-12v-36"/>
+  </g>
+</svg>

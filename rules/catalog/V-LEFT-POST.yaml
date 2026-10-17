@@ -1,0 +1,17 @@
+{
+  "rule_id": "V-LEFT-POST",
+  "type_label": "Кассир покинул пост во время обслуживания клиента",
+  "norm_refs": ["S231-p22"],
+  "requires_visible": ["cashier", "client"],
+  "requires_capabilities": ["handover_direction", "continuous_cashier_visibility", "continuous_client_visibility"],
+  "anchor": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}},
+  "condition": {"all": [
+    {"before": {"first": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "then": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}}, "within_sec": 60, "allow_overlap": true}},
+    {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "cashier", "zone_kind": "cashier_post"}}}}
+  ]},
+  "timecode_policy": "obligation_due",
+  "what_seen": "Обслуживание клиента продолжается, а кассира на наблюдаемом посту нет.",
+  "why_may_violate": "Кассиру нельзя покидать рабочее место до окончания обслуживания клиента.",
+  "not_claimed": "Причина ухода и действия за пределами обзора не устанавливаются.",
+  "strength": "strong"
+}

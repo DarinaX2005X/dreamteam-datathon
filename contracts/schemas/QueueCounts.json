@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "api": {
+      "minimum": 0,
+      "title": "Api",
+      "type": "integer"
+    },
+    "ui": {
+      "minimum": 0,
+      "title": "Ui",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "api",
+    "ui"
+  ],
+  "title": "QueueCounts",
+  "type": "object"
+}

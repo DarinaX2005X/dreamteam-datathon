@@ -1,0 +1,17 @@
+{
+  "rule_id": "V-BAG-OPENED-ALONE",
+  "type_label": "Повреждённая инкассаторская сумка вскрыта без инкассатора",
+  "norm_refs": ["S231-p25"],
+  "requires_visible": ["cashier", "whole"],
+  "requires_capabilities": ["bag_damage", "bag_opening", "continuous_collector_visibility"],
+  "anchor": {"observation": {"kind": "bag_opened"}},
+  "condition": {"all": [
+    {"before": {"first": {"observation": {"kind": "bag_integrity_damage"}}, "then": {"observation": {"kind": "bag_opened"}}, "within_sec": 120, "allow_overlap": true}},
+    {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "collector"}}}}
+  ]},
+  "timecode_policy": "onset",
+  "what_seen": "До вскрытия сумки виден признак повреждения; инкассатор в полностью наблюдаемой зоне отсутствует.",
+  "why_may_violate": "Повреждённая сумка вскрывается и пересчитывается в присутствии работника инкассации.",
+  "not_claimed": "Документы, скрытые дефекты и должность по одежде не устанавливаются.",
+  "strength": "strong"
+}

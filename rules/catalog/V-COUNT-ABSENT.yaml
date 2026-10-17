@@ -1,0 +1,17 @@
+{
+  "rule_id": "V-COUNT-ABSENT",
+  "type_label": "Пересчёт принятой наличности после ухода клиента",
+  "norm_refs": ["S231-p20"],
+  "requires_visible": ["client", "cashier", "desk"],
+  "requires_capabilities": ["handover_direction", "counting_action", "continuous_client_visibility"],
+  "anchor": {"observation": {"kind": "counting_motion", "role": "cashier"}},
+  "condition": {"all": [
+    {"before": {"first": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "then": {"observation": {"kind": "counting_motion"}}, "within_sec": 60}},
+    {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}}}}
+  ]},
+  "timecode_policy": "onset",
+  "what_seen": "После видимой передачи денег кассиру пересчёт продолжается после ухода клиента.",
+  "why_may_violate": "Принятые наличные пересчитываются кассовым работником в присутствии клиента.",
+  "not_claimed": "Не устанавливаются сумма, документы и действия вне кадра.",
+  "strength": "strong"
+}

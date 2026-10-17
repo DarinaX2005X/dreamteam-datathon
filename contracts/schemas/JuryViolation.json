@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "JuryEvidenceFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "timestamp_sec": {
+          "minimum": 0,
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "image_base64": {
+          "title": "Image Base64",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "image_base64"
+      ],
+      "title": "JuryEvidenceFrame",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Type",
+      "type": "string"
+    },
+    "timecode_sec": {
+      "minimum": 0,
+      "title": "Timecode Sec",
+      "type": "number"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "evidence_frames": {
+      "items": {
+        "$ref": "#/$defs/JuryEvidenceFrame"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Evidence Frames",
+      "type": "array"
+    }
+  },
+  "required": [
+    "type",
+    "timecode_sec",
+    "description",
+    "evidence_frames"
+  ],
+  "title": "JuryViolation",
+  "type": "object"
+}

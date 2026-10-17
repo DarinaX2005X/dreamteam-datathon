@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "rfdetr-nano-onnx-int8",
+      "name": "RF-DETR Nano COCO ONNX INT8 conversion",
+      "runtime": "onnxruntime",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/roboflow/rf-detr/blob/develop/LICENSE",
+      "weights_license_url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/blob/eae21cee0687a91bcf9fa071605c48d7705d2d91/README.md",
+      "source": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX",
+      "repo": "onnx-community/rfdetr_nano-ONNX",
+      "revision": "eae21cee0687a91bcf9fa071605c48d7705d2d91",
+      "local_dir": "rfdetr-nano-onnx-int8",
+      "files": [
+        {
+          "path": "rfdetr-nano-onnx-int8/README.md",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/README.md",
+          "sha256": "5def60c7a19ad0812e8de374a5b9de1c248011fae18d0b049871e879857ddbb8",
+          "size_bytes": 772
+        },
+        {
+          "path": "rfdetr-nano-onnx-int8/config.json",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/config.json",
+          "sha256": "246ba9f59fb646d9c76de7a6b8d0b36babc06f03564bb68c5d46fa01eb21faac",
+          "size_bytes": 3213
+        },
+        {
+          "path": "rfdetr-nano-onnx-int8/preprocessor_config.json",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/preprocessor_config.json",
+          "sha256": "2e1eccd7d40143055fe4be530e27dc8eee3e0fe1359928b3f27a31e80582ab37",
+          "size_bytes": 444
+        },
+        {
+          "path": "rfdetr-nano-onnx-int8/onnx/model_int8.onnx",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/onnx/model_int8.onnx",
+          "sha256": "b7ac65b911fdb07b2f3f17b4a4e3bfada76e202f8b9c536b91159945c9fea7e1",
+          "size_bytes": 28825949
+        }
+      ]
+    },
+    {
+      "id": "rfdetr-nano-onnx",
+      "name": "RF-DETR Nano COCO ONNX UINT8 conversion",
+      "runtime": "onnxruntime",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/roboflow/rf-detr/blob/develop/LICENSE",
+      "weights_license_url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/blob/eae21cee0687a91bcf9fa071605c48d7705d2d91/README.md",
+      "source": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX",
+      "repo": "onnx-community/rfdetr_nano-ONNX",
+      "revision": "eae21cee0687a91bcf9fa071605c48d7705d2d91",
+      "local_dir": "rfdetr-nano-onnx",
+      "files": [
+        {
+          "path": "rfdetr-nano-onnx/README.md",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/README.md",
+          "sha256": "5def60c7a19ad0812e8de374a5b9de1c248011fae18d0b049871e879857ddbb8",
+          "size_bytes": 772
+        },
+        {
+          "path": "rfdetr-nano-onnx/config.json",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/config.json",
+          "sha256": "246ba9f59fb646d9c76de7a6b8d0b36babc06f03564bb68c5d46fa01eb21faac",
+          "size_bytes": 3213
+        },
+        {
+          "path": "rfdetr-nano-onnx/preprocessor_config.json",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/preprocessor_config.json",
+          "sha256": "2e1eccd7d40143055fe4be530e27dc8eee3e0fe1359928b3f27a31e80582ab37",
+          "size_bytes": 444
+        },
+        {
+          "path": "rfdetr-nano-onnx/onnx/model_uint8.onnx",
+          "url": "https://huggingface.co/onnx-community/rfdetr_nano-ONNX/resolve/eae21cee0687a91bcf9fa071605c48d7705d2d91/onnx/model_uint8.onnx",
+          "sha256": "2981aa0a57781c0f1a5be171c3fded504c38fe8611326bc5e3d0f8a2e9a57085",
+          "size_bytes": 28826010
+        }
+      ]
+    }
+  ]
+}

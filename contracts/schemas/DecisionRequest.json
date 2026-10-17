@@ -1,0 +1,38 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "anyOf": [
+        {
+          "enum": [
+            "confirmed",
+            "rejected",
+            "not_visible"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Decision"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Note",
+      "type": "string"
+    },
+    "base_revision": {
+      "minimum": 1,
+      "title": "Base Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision",
+    "base_revision"
+  ],
+  "title": "DecisionRequest",
+  "type": "object"
+}

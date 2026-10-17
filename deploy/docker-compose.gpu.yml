@@ -1,0 +1,6 @@
+services:
+  worker:
+    gpus: all
+    environment:
+      NAVIDU_DEVICE: cuda
+

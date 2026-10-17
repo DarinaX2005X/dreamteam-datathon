@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "model_status": {
+      "enum": [
+        "loading",
+        "ready",
+        "missing",
+        "error"
+      ],
+      "title": "Model Status",
+      "type": "string"
+    },
+    "device": {
+      "title": "Device",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "pipeline_version": {
+      "title": "Pipeline Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model_status",
+    "device",
+    "pipeline_version"
+  ],
+  "title": "RuntimeStatus",
+  "type": "object"
+}

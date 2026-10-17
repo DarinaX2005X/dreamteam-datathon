@@ -1,0 +1,11 @@
+{
+  "name": "lado-workspace",
+  "private": true,
+  "workspaces": ["web", "landing"],
+  "scripts": {
+    "dev": "npm --workspace web run dev",
+    "typecheck": "npm --workspace landing run typecheck && npm --workspace web run typecheck",
+    "build": "npm --workspace landing run build && npm --workspace web run build",
+    "test": "npm --workspace web run test"
+  }
+}

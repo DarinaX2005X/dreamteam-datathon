@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "Decision": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "enum": [
+                "confirmed",
+                "rejected",
+                "not_visible"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Note",
+          "type": "string"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "decided_at"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "EvidenceFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "frame_id": {
+          "pattern": "^fr-[0-9]+$",
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "timestamp_sec": {
+          "minimum": 0,
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "overlay_boxes": {
+          "items": {
+            "$ref": "#/$defs/OverlayBox"
+          },
+          "title": "Overlay Boxes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame_id",
+        "timestamp_sec"
+      ],
+      "title": "EvidenceFrame",
+      "type": "object"
+    },
+    "OverlayBox": {
+      "additionalProperties": false,
+      "properties": {
+        "bbox": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Bbox",
+          "type": "array"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "tone": {
+          "enum": [
+            "observation",
+            "finding"
+          ],
+          "title": "Tone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bbox",
+        "label",
+        "tone"
+      ],
+      "title": "OverlayBox",
+      "type": "object"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "start_sec": {
+          "minimum": 0,
+          "title": "Start Sec",
+          "type": "number"
+        },
+        "end_sec": {
+          "minimum": 0,
+          "title": "End Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start_sec",
+        "end_sec"
+      ],
+      "title": "TimeWindow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "finding_id": {
+      "pattern": "^fd-[0-9a-f]{10}$",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "rule_id": {
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "type_label": {
+      "title": "Type Label",
+      "type": "string"
+    },
+    "timecode_sec": {
+      "minimum": 0,
+      "title": "Timecode Sec",
+      "type": "number"
+    },
+    "window": {
+      "$ref": "#/$defs/TimeWindow"
+    },
+    "basis": {
+      "items": {
+        "pattern": "^ob-[0-9]+$",
+        "type": "string"
+      },
+      "title": "Basis",
+      "type": "array"
+    },
+    "what_seen": {
+      "title": "What Seen",
+      "type": "string"
+    },
+    "why_may_violate": {
+      "title": "Why May Violate",
+      "type": "string"
+    },
+    "norm_refs": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Norm Refs",
+      "type": "array"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceFrame"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "strength": {
+      "enum": [
+        "strong",
+        "moderate"
+      ],
+      "title": "Strength",
+      "type": "string"
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Decision"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "finding_id",
+    "rule_id",
+    "type_label",
+    "timecode_sec",
+    "window",
+    "basis",
+    "what_seen",
+    "why_may_violate",
+    "norm_refs",
+    "description",
+    "evidence",
+    "strength"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "SourceDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "act": {
+          "title": "Act",
+          "type": "string"
+        },
+        "registry_code": {
+          "title": "Registry Code",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "edition_checked": {
+          "format": "date",
+          "title": "Edition Checked",
+          "type": "string"
+        },
+        "checked_at": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checked At"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "source_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Version"
+        }
+      },
+      "required": [
+        "title",
+        "act",
+        "registry_code",
+        "url",
+        "edition_checked"
+      ],
+      "title": "SourceDocument",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "clause_id": {
+      "title": "Clause Id",
+      "type": "string"
+    },
+    "document": {
+      "$ref": "#/$defs/SourceDocument"
+    },
+    "locator": {
+      "title": "Locator",
+      "type": "string"
+    },
+    "quote": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quote"
+    },
+    "verified_verbatim": {
+      "default": false,
+      "title": "Verified Verbatim",
+      "type": "boolean"
+    },
+    "visual_test": {
+      "title": "Visual Test",
+      "type": "string"
+    },
+    "not_visual": {
+      "title": "Not Visual",
+      "type": "string"
+    }
+  },
+  "required": [
+    "clause_id",
+    "document",
+    "locator",
+    "visual_test",
+    "not_visual"
+  ],
+  "title": "SourceClause",
+  "type": "object"
+}

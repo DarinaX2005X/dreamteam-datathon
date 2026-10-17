@@ -1,0 +1,66 @@
+{
+  "finding_set": {
+    "revision": 2,
+    "basis": "reviewer",
+    "created_at": "2026-10-17T07:30:00Z",
+    "layout_revision": 1,
+    "role_overrides": [],
+    "verdict": "violation",
+    "findings": [
+      {
+        "finding_id": "fd-288d1b1423",
+        "rule_id": "V-COUNT-ABSENT",
+        "type_label": "Пересчёт денег без клиента у кассы",
+        "timecode_sec": 44.2,
+        "window": {
+          "start_sec": 41.5,
+          "end_sec": 47.5
+        },
+        "basis": [
+          "ob-1"
+        ],
+        "what_seen": "Кассир держит деньги, место клиента у окна видно и свободно.",
+        "why_may_violate": "Условие требует проверки человеком.",
+        "norm_refs": [
+          "S231-p20"
+        ],
+        "description": "Кассир держит деньги, место клиента у окна видно и свободно. Синтетический пример структуры ответа.",
+        "evidence": [
+          {
+            "frame_id": "fr-44200",
+            "timestamp_sec": 44.2,
+            "overlay_boxes": []
+          }
+        ],
+        "strength": "moderate",
+        "decision": null
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "V-COUNT-ABSENT",
+        "status": "partly_checkable",
+        "not_checkable_windows": [
+          {
+            "start_sec": 72.0,
+            "end_sec": 80.0,
+            "reason": "Стол перекрыт."
+          }
+        ]
+      },
+      {
+        "rule_id": "V-OUTSIDER",
+        "status": "violation",
+        "not_checkable_windows": []
+      }
+    ]
+  },
+  "diff": {
+    "added": [],
+    "removed": [
+      "fd-3e26dc0700"
+    ],
+    "changed": [],
+    "verdict_changed": false
+  }
+}

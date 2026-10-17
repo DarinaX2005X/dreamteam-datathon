@@ -1,0 +1,2979 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Lado local video analysis",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/analyze": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobProcessing"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/checks/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks/{id}/findings/{finding_id}/decision": {
+      "put": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks/{id}/reevaluate": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReevaluateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReevaluateRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks/{id}/retry": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks/{id}/cancel": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/rules": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/example": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/checks/{id}/video": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Local media",
+            "content": {
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/ui/checks/{id}/frames/{frame_id}.jpg": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Local media",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "frame_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisRun": {
+        "additionalProperties": false,
+        "properties": {
+          "check_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Check Id",
+            "type": "string"
+          },
+          "pipeline_version": {
+            "title": "Pipeline Version",
+            "type": "string"
+          },
+          "analysis_fps": {
+            "exclusiveMinimum": 0,
+            "title": "Analysis Fps",
+            "type": "number"
+          },
+          "model_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Model Versions",
+            "type": "object"
+          },
+          "phase_timings_sec": {
+            "additionalProperties": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "title": "Phase Timings Sec",
+            "type": "object"
+          }
+        },
+        "required": [
+          "check_id",
+          "pipeline_version",
+          "analysis_fps"
+        ],
+        "title": "AnalysisRun",
+        "type": "object"
+      },
+      "Coverage": {
+        "additionalProperties": false,
+        "properties": {
+          "start_sec": {
+            "minimum": 0,
+            "title": "Start Sec",
+            "type": "number"
+          },
+          "end_sec": {
+            "minimum": 0,
+            "title": "End Sec",
+            "type": "number"
+          },
+          "scope": {
+            "enum": [
+              "cashier",
+              "client",
+              "desk",
+              "storage",
+              "whole"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "out_of_frame",
+              "occluded",
+              "low_light",
+              "motion_blur"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_sec",
+          "end_sec",
+          "scope",
+          "reason"
+        ],
+        "title": "Coverage",
+        "type": "object"
+      },
+      "Decision": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "enum": [
+                  "confirmed",
+                  "rejected",
+                  "not_visible"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          },
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "decided_at"
+        ],
+        "title": "Decision",
+        "type": "object"
+      },
+      "EvidenceFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "frame_id": {
+            "pattern": "^fr-[0-9]+$",
+            "title": "Frame Id",
+            "type": "string"
+          },
+          "timestamp_sec": {
+            "minimum": 0,
+            "title": "Timestamp Sec",
+            "type": "number"
+          },
+          "overlay_boxes": {
+            "items": {
+              "$ref": "#/components/schemas/OverlayBox"
+            },
+            "title": "Overlay Boxes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "frame_id",
+          "timestamp_sec"
+        ],
+        "title": "EvidenceFrame",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {
+            "pattern": "^fd-[0-9a-f]{10}$",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "type_label": {
+            "title": "Type Label",
+            "type": "string"
+          },
+          "timecode_sec": {
+            "minimum": 0,
+            "title": "Timecode Sec",
+            "type": "number"
+          },
+          "window": {
+            "$ref": "#/components/schemas/TimeWindow"
+          },
+          "basis": {
+            "items": {
+              "pattern": "^ob-[0-9]+$",
+              "type": "string"
+            },
+            "title": "Basis",
+            "type": "array"
+          },
+          "what_seen": {
+            "title": "What Seen",
+            "type": "string"
+          },
+          "why_may_violate": {
+            "title": "Why May Violate",
+            "type": "string"
+          },
+          "norm_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Norm Refs",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceFrame"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "strength": {
+            "enum": [
+              "strong",
+              "moderate"
+            ],
+            "title": "Strength",
+            "type": "string"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Decision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "finding_id",
+          "rule_id",
+          "type_label",
+          "timecode_sec",
+          "window",
+          "basis",
+          "what_seen",
+          "why_may_violate",
+          "norm_refs",
+          "description",
+          "evidence",
+          "strength"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingSet": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "basis": {
+            "enum": [
+              "auto",
+              "reviewer"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "layout_revision": {
+            "minimum": 1,
+            "title": "Layout Revision",
+            "type": "integer"
+          },
+          "role_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/RoleOverride"
+            },
+            "title": "Role Overrides",
+            "type": "array"
+          },
+          "verdict": {
+            "enum": [
+              "violation",
+              "no_violation"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleStatus"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "revision",
+          "basis",
+          "created_at",
+          "layout_revision",
+          "verdict"
+        ],
+        "title": "FindingSet",
+        "type": "object"
+      },
+      "NotCheckableWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "start_sec": {
+            "minimum": 0,
+            "title": "Start Sec",
+            "type": "number"
+          },
+          "end_sec": {
+            "minimum": 0,
+            "title": "End Sec",
+            "type": "number"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_sec",
+          "end_sec",
+          "reason"
+        ],
+        "title": "NotCheckableWindow",
+        "type": "object"
+      },
+      "Observation": {
+        "additionalProperties": false,
+        "properties": {
+          "start_sec": {
+            "minimum": 0,
+            "title": "Start Sec",
+            "type": "number"
+          },
+          "end_sec": {
+            "minimum": 0,
+            "title": "End Sec",
+            "type": "number"
+          },
+          "obs_id": {
+            "pattern": "^ob-[0-9]+$",
+            "title": "Obs Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "person_in_zone",
+              "cash_in_hands",
+              "cash_on_desk",
+              "cash_handover",
+              "counting_motion",
+              "phone_visible",
+              "bag_present",
+              "bag_opened",
+              "storage_open",
+              "visibility_low",
+              "cash_sorting",
+              "cash_packing",
+              "bag_integrity_damage",
+              "personal_item_identified",
+              "camera_device_visible"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "pattern": "^[po][0-9]+$",
+              "type": "string"
+            },
+            "title": "Subjects",
+            "type": "array"
+          },
+          "zones": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Zones",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Score"
+          },
+          "frame_ids": {
+            "items": {
+              "pattern": "^fr-[0-9]+$",
+              "type": "string"
+            },
+            "title": "Frame Ids",
+            "type": "array"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "enum": [
+                  "detector",
+                  "temporal_model",
+                  "geometry",
+                  "reviewer"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provenance"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model Id"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "pattern": "^[po][0-9]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Actor Id"
+          },
+          "recipient_id": {
+            "anyOf": [
+              {
+                "pattern": "^[po][0-9]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Recipient Id"
+          }
+        },
+        "required": [
+          "start_sec",
+          "end_sec",
+          "obs_id",
+          "kind"
+        ],
+        "title": "Observation",
+        "type": "object"
+      },
+      "OverlayBox": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            ],
+            "title": "Bbox",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "observation",
+              "finding"
+            ],
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bbox",
+          "label",
+          "tone"
+        ],
+        "title": "OverlayBox",
+        "type": "object"
+      },
+      "RoleOverride": {
+        "additionalProperties": false,
+        "properties": {
+          "track_id": {
+            "pattern": "^[po][0-9]+$",
+            "title": "Track Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "cashier",
+              "client",
+              "collector",
+              "controller",
+              "staff",
+              "outsider",
+              "unknown"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "track_id",
+          "role"
+        ],
+        "title": "RoleOverride",
+        "type": "object"
+      },
+      "RuleStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "violation",
+              "no_violation",
+              "not_checkable",
+              "partly_checkable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "not_checkable_windows": {
+            "items": {
+              "$ref": "#/components/schemas/NotCheckableWindow"
+            },
+            "title": "Not Checkable Windows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "status"
+        ],
+        "title": "RuleStatus",
+        "type": "object"
+      },
+      "SceneLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/Zone"
+            },
+            "title": "Zones",
+            "type": "array"
+          },
+          "camera_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Camera Note"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "SceneLayout",
+        "type": "object"
+      },
+      "TimeWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "start_sec": {
+            "minimum": 0,
+            "title": "Start Sec",
+            "type": "number"
+          },
+          "end_sec": {
+            "minimum": 0,
+            "title": "End Sec",
+            "type": "number"
+          }
+        },
+        "required": [
+          "start_sec",
+          "end_sec"
+        ],
+        "title": "TimeWindow",
+        "type": "object"
+      },
+      "Track": {
+        "additionalProperties": false,
+        "properties": {
+          "track_id": {
+            "pattern": "^[po][0-9]+$",
+            "title": "Track Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "person",
+              "object"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "object_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Object Class"
+          },
+          "first_sec": {
+            "minimum": 0,
+            "title": "First Sec",
+            "type": "number"
+          },
+          "last_sec": {
+            "minimum": 0,
+            "title": "Last Sec",
+            "type": "number"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrackRole"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/TrackSample"
+            },
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "track_id",
+          "kind",
+          "first_sec",
+          "last_sec"
+        ],
+        "title": "Track",
+        "type": "object"
+      },
+      "TrackRole": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "enum": [
+              "cashier",
+              "client",
+              "collector",
+              "controller",
+              "staff",
+              "outsider",
+              "unknown"
+            ],
+            "title": "Value",
+            "type": "string"
+          },
+          "source": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "reviewer"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "TrackRole",
+        "type": "object"
+      },
+      "TrackSample": {
+        "additionalProperties": false,
+        "properties": {
+          "t": {
+            "minimum": 0,
+            "title": "T",
+            "type": "number"
+          },
+          "bbox": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            ],
+            "title": "Bbox",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "t",
+          "bbox",
+          "score"
+        ],
+        "title": "TrackSample",
+        "type": "object"
+      },
+      "VideoMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_sec": {
+            "minimum": 0,
+            "title": "Duration Sec",
+            "type": "number"
+          },
+          "fps_nominal": {
+            "exclusiveMinimum": 0,
+            "title": "Fps Nominal",
+            "type": "number"
+          },
+          "width": {
+            "exclusiveMinimum": 0,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "exclusiveMinimum": 0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "rotation": {
+            "default": 0,
+            "enum": [
+              0,
+              90,
+              180,
+              270
+            ],
+            "title": "Rotation",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "duration_sec",
+          "fps_nominal",
+          "width",
+          "height"
+        ],
+        "title": "VideoMeta",
+        "type": "object"
+      },
+      "Zone": {
+        "additionalProperties": false,
+        "properties": {
+          "zone_id": {
+            "pattern": "^z-[a-z_]+-[0-9]+$",
+            "title": "Zone Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "cashier_post",
+              "client_window",
+              "cash_desk",
+              "storage",
+              "service_door",
+              "transfer_tray",
+              "count_room"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "polygon": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "maxItems": 32,
+            "minItems": 3,
+            "title": "Polygon",
+            "type": "array"
+          },
+          "source": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "reviewer"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id",
+          "kind",
+          "polygon"
+        ],
+        "title": "Zone",
+        "type": "object"
+      },
+      "AnalysisArtifacts": {
+        "additionalProperties": false,
+        "properties": {
+          "work_dir": {
+            "format": "path",
+            "title": "Work Dir",
+            "type": "string"
+          },
+          "video": {
+            "$ref": "#/components/schemas/VideoMeta"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/SceneLayout"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "title": "Tracks",
+            "type": "array"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/Coverage"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "finding_set": {
+            "$ref": "#/components/schemas/FindingSet"
+          },
+          "run": {
+            "$ref": "#/components/schemas/AnalysisRun"
+          }
+        },
+        "required": [
+          "work_dir",
+          "video",
+          "layout",
+          "tracks",
+          "observations",
+          "coverage",
+          "finding_set",
+          "run"
+        ],
+        "title": "AnalysisArtifacts",
+        "type": "object"
+      },
+      "AnalysisError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "failed_phase": {
+            "title": "Failed Phase",
+            "type": "string"
+          },
+          "at_sec": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "At Sec"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "failed_phase"
+        ],
+        "title": "AnalysisError",
+        "type": "object"
+      },
+      "CheckProgress": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "enum": [
+              "queued",
+              "decode",
+              "perception",
+              "facts",
+              "rules",
+              "evidence",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "phases": {
+            "items": {
+              "enum": [
+                "decode",
+                "perception",
+                "facts",
+                "rules",
+                "evidence"
+              ],
+              "type": "string"
+            },
+            "title": "Phases",
+            "type": "array"
+          },
+          "processed_until_sec": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Processed Until Sec"
+          },
+          "queue_position": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Queue Position"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "title": "CheckProgress",
+        "type": "object"
+      },
+      "CheckDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "processing",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Duration Sec"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "violation",
+                  "no_violation"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Verdict"
+          },
+          "findings_count": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Findings Count"
+          },
+          "is_example": {
+            "default": false,
+            "title": "Is Example",
+            "type": "boolean"
+          },
+          "analysis_origin": {
+            "default": "local",
+            "enum": [
+              "local",
+              "cache"
+            ],
+            "title": "Analysis Origin",
+            "type": "string"
+          },
+          "analyzed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analyzed At"
+          },
+          "automatic_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "violation",
+                  "no_violation"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Automatic Verdict"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VideoMeta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "progress": {
+            "$ref": "#/components/schemas/CheckProgress"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SceneLayout"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "title": "Tracks",
+            "type": "array"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/Coverage"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "finding_set": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingSet"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "id",
+          "file_name",
+          "status",
+          "created_at",
+          "progress"
+        ],
+        "title": "CheckDetail",
+        "type": "object"
+      },
+      "CheckDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "$ref": "#/components/schemas/CheckDetail"
+          }
+        },
+        "required": [
+          "check"
+        ],
+        "title": "CheckDetailResponse",
+        "type": "object"
+      },
+      "CheckSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "processing",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Duration Sec"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "violation",
+                  "no_violation"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Verdict"
+          },
+          "findings_count": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Findings Count"
+          },
+          "is_example": {
+            "default": false,
+            "title": "Is Example",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "file_name",
+          "status",
+          "created_at"
+        ],
+        "title": "CheckSummary",
+        "type": "object"
+      },
+      "CheckSummaryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "$ref": "#/components/schemas/CheckSummary"
+          }
+        },
+        "required": [
+          "check"
+        ],
+        "title": "CheckSummaryResponse",
+        "type": "object"
+      },
+      "DecisionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "enum": [
+                  "confirmed",
+                  "rejected",
+                  "not_visible"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          },
+          "base_revision": {
+            "minimum": 1,
+            "title": "Base Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision",
+          "base_revision"
+        ],
+        "title": "DecisionRequest",
+        "type": "object"
+      },
+      "DecisionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Decision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision",
+          "revision"
+        ],
+        "title": "DecisionResponse",
+        "type": "object"
+      },
+      "FieldIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "message"
+        ],
+        "title": "FieldIssue",
+        "type": "object"
+      },
+      "ErrorInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "field_issues": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldIssue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field Issues"
+          },
+          "current_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Current Revision"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorInfo",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorInfo"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ExampleResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "check_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Check Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_id"
+        ],
+        "title": "ExampleResponse",
+        "type": "object"
+      },
+      "FindingDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "items": {
+              "pattern": "^fd-[0-9a-f]{10}$",
+              "type": "string"
+            },
+            "title": "Added",
+            "type": "array"
+          },
+          "removed": {
+            "items": {
+              "pattern": "^fd-[0-9a-f]{10}$",
+              "type": "string"
+            },
+            "title": "Removed",
+            "type": "array"
+          },
+          "changed": {
+            "items": {
+              "pattern": "^fd-[0-9a-f]{10}$",
+              "type": "string"
+            },
+            "title": "Changed",
+            "type": "array"
+          },
+          "verdict_changed": {
+            "title": "Verdict Changed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "added",
+          "removed",
+          "changed",
+          "verdict_changed"
+        ],
+        "title": "FindingDiff",
+        "type": "object"
+      },
+      "QueueCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "api": {
+            "minimum": 0,
+            "title": "Api",
+            "type": "integer"
+          },
+          "ui": {
+            "minimum": 0,
+            "title": "Ui",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "api",
+          "ui"
+        ],
+        "title": "QueueCounts",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/QueueCounts"
+          },
+          "pipeline_version": {
+            "title": "Pipeline Version",
+            "type": "string"
+          },
+          "model_status": {
+            "enum": [
+              "loading",
+              "ready",
+              "missing",
+              "error"
+            ],
+            "title": "Model Status",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "device": {
+            "title": "Device",
+            "type": "string"
+          },
+          "example_check_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Example Check Id"
+          }
+        },
+        "required": [
+          "ready",
+          "queue",
+          "pipeline_version",
+          "model_status",
+          "device"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "JuryEvidenceFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "timestamp_sec": {
+            "minimum": 0,
+            "title": "Timestamp Sec",
+            "type": "number"
+          },
+          "image_base64": {
+            "title": "Image Base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timestamp_sec",
+          "image_base64"
+        ],
+        "title": "JuryEvidenceFrame",
+        "type": "object"
+      },
+      "JuryViolation": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "timecode_sec": {
+            "minimum": 0,
+            "title": "Timecode Sec",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence_frames": {
+            "items": {
+              "$ref": "#/components/schemas/JuryEvidenceFrame"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Evidence Frames",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "timecode_sec",
+          "description",
+          "evidence_frames"
+        ],
+        "title": "JuryViolation",
+        "type": "object"
+      },
+      "JobDone": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "done",
+            "default": "done",
+            "title": "Status",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "violation",
+              "no_violation"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/JuryViolation"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id",
+          "verdict",
+          "violations"
+        ],
+        "title": "JobDone",
+        "type": "object"
+      },
+      "JobError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "JobError",
+        "type": "object"
+      },
+      "JobFailed": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "failed",
+            "default": "failed",
+            "title": "Status",
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/JobError"
+          }
+        },
+        "required": [
+          "job_id",
+          "error"
+        ],
+        "title": "JobFailed",
+        "type": "object"
+      },
+      "JobProcessing": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "processing",
+            "default": "processing",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "JobProcessing",
+        "type": "object"
+      },
+      "PipelineConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "check_id": {
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Check Id",
+            "type": "string"
+          },
+          "pipeline_version": {
+            "default": "0.1.0",
+            "title": "Pipeline Version",
+            "type": "string"
+          },
+          "models_dir": {
+            "format": "path",
+            "title": "Models Dir",
+            "type": "string"
+          },
+          "rules_dir": {
+            "format": "path",
+            "title": "Rules Dir",
+            "type": "string"
+          },
+          "device": {
+            "default": "auto",
+            "enum": [
+              "cpu",
+              "cuda",
+              "auto"
+            ],
+            "title": "Device",
+            "type": "string"
+          },
+          "analysis_fps": {
+            "default": 3.0,
+            "exclusiveMinimum": 0,
+            "maximum": 60,
+            "title": "Analysis Fps",
+            "type": "number"
+          },
+          "evidence_overlay": {
+            "default": true,
+            "title": "Evidence Overlay",
+            "type": "boolean"
+          },
+          "max_duration_sec": {
+            "default": 600,
+            "exclusiveMinimum": 0,
+            "title": "Max Duration Sec",
+            "type": "number"
+          }
+        },
+        "required": [
+          "check_id"
+        ],
+        "title": "PipelineConfig",
+        "type": "object"
+      },
+      "PipelineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "enum": [
+              "decode",
+              "perception",
+              "facts",
+              "rules",
+              "evidence"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "processed_until_sec": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Processed Until Sec"
+          },
+          "observations_delta": {
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "title": "Observations Delta",
+            "type": "array"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Message"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "title": "PipelineEvent",
+        "type": "object"
+      },
+      "ReevaluateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 1,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "role_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/RoleOverride"
+            },
+            "title": "Role Overrides",
+            "type": "array"
+          },
+          "zone_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/Zone"
+            },
+            "title": "Zone Overrides",
+            "type": "array"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_revision"
+        ],
+        "title": "ReevaluateRequest",
+        "type": "object"
+      },
+      "ReevaluateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "finding_set": {
+            "$ref": "#/components/schemas/FindingSet"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/FindingDiff"
+          }
+        },
+        "required": [
+          "finding_set",
+          "diff"
+        ],
+        "title": "ReevaluateResponse",
+        "type": "object"
+      },
+      "RuleDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "type_label": {
+            "title": "Type Label",
+            "type": "string"
+          },
+          "norm_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Norm Refs",
+            "type": "array"
+          },
+          "requires_visible": {
+            "items": {
+              "enum": [
+                "cashier",
+                "client",
+                "desk",
+                "storage",
+                "whole"
+              ],
+              "type": "string"
+            },
+            "title": "Requires Visible",
+            "type": "array"
+          },
+          "requires_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requires Capabilities",
+            "type": "array"
+          },
+          "anchor": {
+            "additionalProperties": true,
+            "title": "Anchor",
+            "type": "object"
+          },
+          "condition": {
+            "additionalProperties": true,
+            "title": "Condition",
+            "type": "object"
+          },
+          "timecode_policy": {
+            "enum": [
+              "max_evidence",
+              "onset",
+              "obligation_due"
+            ],
+            "title": "Timecode Policy",
+            "type": "string"
+          },
+          "what_seen": {
+            "title": "What Seen",
+            "type": "string"
+          },
+          "why_may_violate": {
+            "title": "Why May Violate",
+            "type": "string"
+          },
+          "not_claimed": {
+            "title": "Not Claimed",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "strength": {
+            "default": "moderate",
+            "enum": [
+              "strong",
+              "moderate"
+            ],
+            "title": "Strength",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "type_label",
+          "norm_refs",
+          "requires_visible",
+          "anchor",
+          "condition",
+          "timecode_policy",
+          "what_seen",
+          "why_may_violate",
+          "not_claimed"
+        ],
+        "title": "RuleDefinition",
+        "type": "object"
+      },
+      "SourceClauseView": {
+        "additionalProperties": false,
+        "description": "Public source view: unverified quotations never reach user-facing APIs.",
+        "properties": {
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/SourceDocument"
+          },
+          "locator": {
+            "title": "Locator",
+            "type": "string"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quote"
+          },
+          "verified_verbatim": {
+            "default": false,
+            "title": "Verified Verbatim",
+            "type": "boolean"
+          },
+          "visual_test": {
+            "title": "Visual Test",
+            "type": "string"
+          },
+          "not_visual": {
+            "title": "Not Visual",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clause_id",
+          "document",
+          "locator",
+          "visual_test",
+          "not_visual"
+        ],
+        "title": "SourceClauseView",
+        "type": "object"
+      },
+      "SourceDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "act": {
+            "title": "Act",
+            "type": "string"
+          },
+          "registry_code": {
+            "title": "Registry Code",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "edition_checked": {
+            "format": "date",
+            "title": "Edition Checked",
+            "type": "string"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Checked At"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Url"
+          },
+          "source_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Version"
+          }
+        },
+        "required": [
+          "title",
+          "act",
+          "registry_code",
+          "url",
+          "edition_checked"
+        ],
+        "title": "SourceDocument",
+        "type": "object"
+      },
+      "RuleView": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "type_label": {
+            "title": "Type Label",
+            "type": "string"
+          },
+          "norm_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Norm Refs",
+            "type": "array"
+          },
+          "requires_visible": {
+            "items": {
+              "enum": [
+                "cashier",
+                "client",
+                "desk",
+                "storage",
+                "whole"
+              ],
+              "type": "string"
+            },
+            "title": "Requires Visible",
+            "type": "array"
+          },
+          "visible_sign": {
+            "title": "Visible Sign",
+            "type": "string"
+          },
+          "why_may_violate": {
+            "title": "Why May Violate",
+            "type": "string"
+          },
+          "not_claimed": {
+            "title": "Not Claimed",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceClauseView"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "type_label",
+          "norm_refs",
+          "requires_visible",
+          "visible_sign",
+          "why_may_violate",
+          "not_claimed",
+          "enabled"
+        ],
+        "title": "RuleView",
+        "type": "object"
+      },
+      "RulesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleView"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "not_checkable": {
+            "items": {
+              "$ref": "#/components/schemas/SourceClauseView"
+            },
+            "title": "Not Checkable",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules",
+          "not_checkable"
+        ],
+        "title": "RulesResponse",
+        "type": "object"
+      },
+      "RuntimeStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "model_status": {
+            "enum": [
+              "loading",
+              "ready",
+              "missing",
+              "error"
+            ],
+            "title": "Model Status",
+            "type": "string"
+          },
+          "device": {
+            "title": "Device",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "pipeline_version": {
+            "title": "Pipeline Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_status",
+          "device",
+          "pipeline_version"
+        ],
+        "title": "RuntimeStatus",
+        "type": "object"
+      },
+      "SourceClause": {
+        "additionalProperties": false,
+        "properties": {
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/SourceDocument"
+          },
+          "locator": {
+            "title": "Locator",
+            "type": "string"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quote"
+          },
+          "verified_verbatim": {
+            "default": false,
+            "title": "Verified Verbatim",
+            "type": "boolean"
+          },
+          "visual_test": {
+            "title": "Visual Test",
+            "type": "string"
+          },
+          "not_visual": {
+            "title": "Not Visual",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clause_id",
+          "document",
+          "locator",
+          "visual_test",
+          "not_visual"
+        ],
+        "title": "SourceClause",
+        "type": "object"
+      },
+      "Role": {
+        "enum": [
+          "cashier",
+          "client",
+          "collector",
+          "controller",
+          "staff",
+          "outsider",
+          "unknown"
+        ],
+        "type": "string"
+      },
+      "ZoneKind": {
+        "enum": [
+          "cashier_post",
+          "client_window",
+          "cash_desk",
+          "storage",
+          "service_door",
+          "transfer_tray",
+          "count_room"
+        ],
+        "type": "string"
+      },
+      "ObservationKind": {
+        "enum": [
+          "person_in_zone",
+          "cash_in_hands",
+          "cash_on_desk",
+          "cash_handover",
+          "counting_motion",
+          "phone_visible",
+          "bag_present",
+          "bag_opened",
+          "storage_open",
+          "visibility_low",
+          "cash_sorting",
+          "cash_packing",
+          "bag_integrity_damage",
+          "personal_item_identified",
+          "camera_device_visible"
+        ],
+        "type": "string"
+      },
+      "Verdict": {
+        "enum": [
+          "violation",
+          "no_violation"
+        ],
+        "type": "string"
+      },
+      "DecisionValue": {
+        "enum": [
+          "confirmed",
+          "rejected",
+          "not_visible"
+        ],
+        "type": "string"
+      },
+      "CheckStatus": {
+        "enum": [
+          "queued",
+          "processing",
+          "done",
+          "failed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "PipelinePhase": {
+        "enum": [
+          "decode",
+          "perception",
+          "facts",
+          "rules",
+          "evidence"
+        ],
+        "type": "string"
+      },
+      "JobResponse": {
+        "discriminator": {
+          "mapping": {
+            "done": "#/components/schemas/JobDone",
+            "failed": "#/components/schemas/JobFailed",
+            "processing": "#/components/schemas/JobProcessing"
+          },
+          "propertyName": "status"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/JobProcessing"
+          },
+          {
+            "$ref": "#/components/schemas/JobDone"
+          },
+          {
+            "$ref": "#/components/schemas/JobFailed"
+          }
+        ]
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}

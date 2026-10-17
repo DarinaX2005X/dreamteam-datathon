@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "CheckSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "file_name": {
+          "title": "File Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "processing",
+            "done",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "duration_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Sec"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "violation",
+                "no_violation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        },
+        "findings_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Findings Count"
+        },
+        "is_example": {
+          "default": false,
+          "title": "Is Example",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "file_name",
+        "status",
+        "created_at"
+      ],
+      "title": "CheckSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "check": {
+      "$ref": "#/$defs/CheckSummary"
+    }
+  },
+  "required": [
+    "check"
+  ],
+  "title": "CheckSummaryResponse",
+  "type": "object"
+}

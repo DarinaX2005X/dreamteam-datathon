@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "start_sec": {
+      "minimum": 0,
+      "title": "Start Sec",
+      "type": "number"
+    },
+    "end_sec": {
+      "minimum": 0,
+      "title": "End Sec",
+      "type": "number"
+    },
+    "scope": {
+      "enum": [
+        "cashier",
+        "client",
+        "desk",
+        "storage",
+        "whole"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "reason": {
+      "enum": [
+        "out_of_frame",
+        "occluded",
+        "low_light",
+        "motion_blur"
+      ],
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "start_sec",
+    "end_sec",
+    "scope",
+    "reason"
+  ],
+  "title": "Coverage",
+  "type": "object"
+}

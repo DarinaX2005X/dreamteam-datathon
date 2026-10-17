@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "QueueCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "api": {
+          "minimum": 0,
+          "title": "Api",
+          "type": "integer"
+        },
+        "ui": {
+          "minimum": 0,
+          "title": "Ui",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "api",
+        "ui"
+      ],
+      "title": "QueueCounts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ready": {
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "queue": {
+      "$ref": "#/$defs/QueueCounts"
+    },
+    "pipeline_version": {
+      "title": "Pipeline Version",
+      "type": "string"
+    },
+    "model_status": {
+      "enum": [
+        "loading",
+        "ready",
+        "missing",
+        "error"
+      ],
+      "title": "Model Status",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "device": {
+      "title": "Device",
+      "type": "string"
+    },
+    "example_check_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Example Check Id"
+    }
+  },
+  "required": [
+    "ready",
+    "queue",
+    "pipeline_version",
+    "model_status",
+    "device"
+  ],
+  "title": "HealthResponse",
+  "type": "object"
+}

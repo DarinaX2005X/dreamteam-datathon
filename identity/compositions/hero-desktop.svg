@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="t d">
+  <title id="t">Дизайн-образец: первый экран лендинга, 1440×900</title>
+  <desc id="d">Образец композиции, не скриншот работающего продукта. Слева заголовок, пояснение, основная кнопка «Открыть дашборд» и ссылка на презентацию. Справа тёмная сцена: вид кассы сверху, лента фактов и карточка эпизода с пунктом нормы.</desc>
+  <defs>
+    <radialGradient id="hdField" cx="0.16" cy="0" r="0.9">
+      <stop offset="0" stop-color="#F6DCE6"/><stop offset="0.45" stop-color="#FBF0F4"/><stop offset="1" stop-color="#FCFAFB"/>
+    </radialGradient>
+    <linearGradient id="hdSunrise" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#4A0221"/><stop offset="0.48" stop-color="#A31551"/><stop offset="1" stop-color="#FC9385"/>
+    </linearGradient>
+    <linearGradient id="hdCta" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B21C5C"/><stop offset="1" stop-color="#A31551"/>
+    </linearGradient>
+    <filter id="hdLift" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#4A0221" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#4A0221" flood-opacity="0.20"/>
+    </filter>
+    <filter id="hdStage" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#1E0711" flood-opacity="0.25"/>
+      <feDropShadow dx="0" dy="30" stdDeviation="28" flood-color="#4A0221" flood-opacity="0.28"/>
+    </filter>
+    <filter id="hdCtaShadow" x="-20%" y="-30%" width="140%" height="190%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#4A0221" flood-opacity="0.24"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#A31551" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+
+  <!-- поле света: рассвет приходит сверху слева, к сцене -->
+  <rect width="1440" height="900" fill="#FCFAFB"/>
+  <rect width="1440" height="900" fill="url(#hdField)"/>
+  <path d="M760 0 C 980 40, 1240 10, 1440 110 L1440 0 Z" fill="url(#hdSunrise)" opacity="0.10"/>
+
+  <!-- шапка: 72px -->
+  <image href="../logo/navidu-logo.svg" x="64" y="20" width="176" height="40"/>
+  <g font-family="Open Sans, sans-serif" font-size="15" font-weight="600">
+    <text x="1028" y="46" fill="#A31551">Презентация проекта</text>
+    <rect x="1224" y="20" width="152" height="40" rx="10" fill="#FFFFFF" stroke="#A31551" stroke-width="1.5"/>
+    <text x="1300" y="46" fill="#A31551" text-anchor="middle">Открыть дашборд</text>
+  </g>
+
+  <!-- сообщение: колонка до x=620 -->
+  <g font-family="Open Sans, sans-serif" fill="#2A0A18">
+    <text x="64" y="232" font-size="58" font-weight="800" letter-spacing="-1.1">Смотрите главное,</text>
+    <text x="64" y="296" font-size="58" font-weight="800" letter-spacing="-1.1">а не всю запись</text>
+    <text font-size="18" font-weight="400" fill="#52414A">
+      <tspan x="64" y="360">Навиду находит на записи кассы моменты,</tspan>
+      <tspan x="64" y="389">похожие на нарушение кассовой дисциплины,</tspan>
+      <tspan x="64" y="418">и для каждого показывает кадр, время и пункт</tspan>
+      <tspan x="64" y="447">нормативного акта РК.</tspan>
+    </text>
+  </g>
+
+  <!-- основное действие и вторичная ссылка -->
+  <g filter="url(#hdCtaShadow)">
+    <rect x="64" y="488" width="228" height="56" rx="12" fill="url(#hdCta)"/>
+  </g>
+  <rect x="64" y="488" width="228" height="1.5" rx="0.75" fill="#FFFFFF" opacity="0.28"/>
+  <g font-family="Open Sans, sans-serif" font-weight="700">
+    <text x="178" y="523" font-size="17" fill="#FFFFFF" text-anchor="middle">Открыть дашборд</text>
+    <text x="324" y="523" font-size="16" fill="#A31551">Презентация проекта</text>
+    <rect x="324" y="530" width="166" height="1.5" fill="#A31551" opacity="0.45"/>
+  </g>
+  <text font-family="Open Sans, sans-serif" font-size="14" font-weight="400" fill="#6B5761">
+    <tspan x="64" y="590">Принимает записи .mov. Модели работают внутри сервиса,</tspan>
+    <tspan x="64" y="612">видео не уходит в облачные AI-сервисы.</tspan>
+  </text>
+
+  <!-- сцена: 672×576 -->
+  <g filter="url(#hdStage)">
+    <rect x="704" y="112" width="672" height="576" rx="28" fill="#2A0B19"/>
+  </g>
+  <rect x="704" y="112" width="672" height="576" rx="28" fill="none" stroke="#F7EDF1" stroke-opacity="0.07"/>
+  <clipPath id="hdFrameClip"><rect x="720" y="128" width="640" height="360" rx="18"/></clipPath>
+  <image href="../art/desk-scene.svg" x="720" y="128" width="640" height="360" clip-path="url(#hdFrameClip)"/>
+  <image href="../art/fact-strip-compact.svg" x="720" y="500" width="640" height="172"/>
+
+  <!-- карточка эпизода: мост между текстом и сценой -->
+  <g filter="url(#hdLift)">
+    <rect x="600" y="300" width="348" height="188" rx="16" fill="#FFFFFF"/>
+  </g>
+  <path d="M624.6 324h14.8a1.8 1.8 0 0 1 1.4 2.9l-7.4 8.8a1.8 1.8 0 0 1-2.8 0l-7.4-8.8a1.8 1.8 0 0 1 1.4-2.9z" fill="#FC9385" stroke="#4A0221" stroke-width="1.5"/>
+  <g font-family="Open Sans, sans-serif">
+    <text x="648" y="337" font-size="15" font-weight="700" fill="#2A0A18">Пересчёт денег без клиента у кассы</text>
+    <rect x="624" y="352" width="72" height="24" rx="6" fill="#FC9385"/>
+    <text x="660" y="369" font-size="14" font-weight="700" fill="#4A0221" text-anchor="middle" font-stretch="87.5%">00:44,2</text>
+    <text x="708" y="369" font-size="14" font-weight="600" fill="#6B5761">длится 6 с</text>
+    <text font-size="14" font-weight="400" fill="#2A0A18">
+      <tspan x="624" y="404">Кассир держит пачку денег, клиента</tspan>
+      <tspan x="624" y="424">у окна нет.</tspan>
+    </text>
+    <rect x="624" y="440" width="300" height="1" fill="#E1D5DB"/>
+    <text x="624" y="466" font-size="13" font-weight="600" fill="#A31551">Правила кассовых операций НБРК № 231, п. 20</text>
+  </g>
+
+  <text x="1376" y="716" font-family="Open Sans, sans-serif" font-size="13" font-weight="600" fill="#6B5761" text-anchor="end">Иллюстрация. Так эпизод выглядит в отчёте проверки.</text>
+
+  <!-- начало следующего блока виден у нижнего края -->
+  <rect x="64" y="812" width="1312" height="1" fill="#E1D5DB"/>
+  <text x="64" y="868" font-family="Open Sans, sans-serif" font-size="30" font-weight="700" fill="#2A0A18">Что Навиду проверяет на записи</text>
+</svg>

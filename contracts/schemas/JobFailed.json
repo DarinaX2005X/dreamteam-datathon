@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "JobError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "JobError",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "pattern": "^[0-9a-f]{12}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "failed",
+      "default": "failed",
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "$ref": "#/$defs/JobError"
+    }
+  },
+  "required": [
+    "job_id",
+    "error"
+  ],
+  "title": "JobFailed",
+  "type": "object"
+}

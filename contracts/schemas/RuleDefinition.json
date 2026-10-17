@@ -1,0 +1,101 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "rule_id": {
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "type_label": {
+      "title": "Type Label",
+      "type": "string"
+    },
+    "norm_refs": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Norm Refs",
+      "type": "array"
+    },
+    "requires_visible": {
+      "items": {
+        "enum": [
+          "cashier",
+          "client",
+          "desk",
+          "storage",
+          "whole"
+        ],
+        "type": "string"
+      },
+      "title": "Requires Visible",
+      "type": "array"
+    },
+    "requires_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Requires Capabilities",
+      "type": "array"
+    },
+    "anchor": {
+      "additionalProperties": true,
+      "title": "Anchor",
+      "type": "object"
+    },
+    "condition": {
+      "additionalProperties": true,
+      "title": "Condition",
+      "type": "object"
+    },
+    "timecode_policy": {
+      "enum": [
+        "max_evidence",
+        "onset",
+        "obligation_due"
+      ],
+      "title": "Timecode Policy",
+      "type": "string"
+    },
+    "what_seen": {
+      "title": "What Seen",
+      "type": "string"
+    },
+    "why_may_violate": {
+      "title": "Why May Violate",
+      "type": "string"
+    },
+    "not_claimed": {
+      "title": "Not Claimed",
+      "type": "string"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "strength": {
+      "default": "moderate",
+      "enum": [
+        "strong",
+        "moderate"
+      ],
+      "title": "Strength",
+      "type": "string"
+    }
+  },
+  "required": [
+    "rule_id",
+    "type_label",
+    "norm_refs",
+    "requires_visible",
+    "anchor",
+    "condition",
+    "timecode_policy",
+    "what_seen",
+    "why_may_violate",
+    "not_claimed"
+  ],
+  "title": "RuleDefinition",
+  "type": "object"
+}

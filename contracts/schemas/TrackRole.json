@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "value": {
+      "enum": [
+        "cashier",
+        "client",
+        "collector",
+        "controller",
+        "staff",
+        "outsider",
+        "unknown"
+      ],
+      "title": "Value",
+      "type": "string"
+    },
+    "source": {
+      "default": "auto",
+      "enum": [
+        "auto",
+        "reviewer"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "value"
+  ],
+  "title": "TrackRole",
+  "type": "object"
+}

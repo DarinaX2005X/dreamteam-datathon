@@ -1,0 +1,7 @@
+{
+  "enum": [
+    "violation",
+    "no_violation"
+  ],
+  "type": "string"
+}

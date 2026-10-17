@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "OverlayBox": {
+      "additionalProperties": false,
+      "properties": {
+        "bbox": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Bbox",
+          "type": "array"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "tone": {
+          "enum": [
+            "observation",
+            "finding"
+          ],
+          "title": "Tone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bbox",
+        "label",
+        "tone"
+      ],
+      "title": "OverlayBox",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "frame_id": {
+      "pattern": "^fr-[0-9]+$",
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "timestamp_sec": {
+      "minimum": 0,
+      "title": "Timestamp Sec",
+      "type": "number"
+    },
+    "overlay_boxes": {
+      "items": {
+        "$ref": "#/$defs/OverlayBox"
+      },
+      "title": "Overlay Boxes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "frame_id",
+    "timestamp_sec"
+  ],
+  "title": "EvidenceFrame",
+  "type": "object"
+}

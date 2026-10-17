@@ -1,0 +1,52 @@
+# Local inputs and runtime: never publish submitted or jury videos.
+data/
+datasets/
+runtime/
+weights/
+*.mp4
+*.mov
+*.m4v
+*.avi
+*.mkv
+*.webm
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.sqlite3
+*.sqlite3-*
+*.db
+*.log
+*.pid
+*.zip
+
+# Python and JavaScript environments/build output.
+.venv/
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+.cache/
+
+# Downloaded public model assets and local analysis artifacts.
+models/*/
+research/spike/artifacts/
+research/spike/downloads/
+eval/runs/
+
+# Secrets and local configuration.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+Thumbs.db

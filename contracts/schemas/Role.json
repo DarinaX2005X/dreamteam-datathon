@@ -1,0 +1,12 @@
+{
+  "enum": [
+    "cashier",
+    "client",
+    "collector",
+    "controller",
+    "staff",
+    "outsider",
+    "unknown"
+  ],
+  "type": "string"
+}

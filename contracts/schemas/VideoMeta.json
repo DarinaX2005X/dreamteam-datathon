@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "duration_sec": {
+      "minimum": 0,
+      "title": "Duration Sec",
+      "type": "number"
+    },
+    "fps_nominal": {
+      "exclusiveMinimum": 0,
+      "title": "Fps Nominal",
+      "type": "number"
+    },
+    "width": {
+      "exclusiveMinimum": 0,
+      "title": "Width",
+      "type": "integer"
+    },
+    "height": {
+      "exclusiveMinimum": 0,
+      "title": "Height",
+      "type": "integer"
+    },
+    "rotation": {
+      "default": 0,
+      "enum": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "title": "Rotation",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "duration_sec",
+    "fps_nominal",
+    "width",
+    "height"
+  ],
+  "title": "VideoMeta",
+  "type": "object"
+}
