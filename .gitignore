@@ -24,6 +24,8 @@ weights/
 # Python and JavaScript environments/build output.
 .venv/
 .venv*/
+.modal-venv/
+.modal.toml
 venv/
 __pycache__/
 *.py[cod]

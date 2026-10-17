@@ -72,6 +72,32 @@ class TrainingRunnerTests(unittest.TestCase):
         self.assertEqual(result["gpu_name"], "NVIDIA L40S")
         self.assertGreaterEqual(result["gpu_memory_bytes"], train_proposal.MIN_CUDA_MEMORY_BYTES)
 
+    def test_modal_l4_requires_explicit_profile_remote_task_and_enough_memory(self) -> None:
+        properties = SimpleNamespace(name="NVIDIA L4", total_memory=23 * 1024**3)
+        fake_torch = SimpleNamespace(
+            cuda=SimpleNamespace(is_available=lambda: True, get_device_properties=lambda _: properties),
+            version=SimpleNamespace(cuda="12.4"),
+        )
+        with mock.patch.object(train_proposal.platform, "system", return_value="Linux"):
+            with (mock.patch.dict(train_proposal.os.environ, {}, clear=True),
+                  self.assertRaisesRegex(train_proposal.TrainingError, "Modal task")):
+                train_proposal.enforce_training_host(fake_torch, "modal-l4")
+            with mock.patch.dict(train_proposal.os.environ, {"MODAL_TASK_ID": "test"}):
+                self.assertEqual(train_proposal.enforce_training_host(fake_torch, "modal-l4")["profile"], "modal-l4")
+                with self.assertRaisesRegex(train_proposal.TrainingError, "L40S"):
+                    train_proposal.enforce_training_host(fake_torch)
+                properties.total_memory = 16 * 1024**3
+                with self.assertRaisesRegex(train_proposal.TrainingError, "24 GB"):
+                    train_proposal.enforce_training_host(fake_torch, "modal-l4")
+
+    def test_minimum_epochs_and_learning_rate_are_bounded(self) -> None:
+        train_proposal.Recipe(epochs=3, minimum_epochs=3, learning_rate=5e-5).validate()
+        for recipe in (train_proposal.Recipe(minimum_epochs=4),
+                       train_proposal.Recipe(learning_rate=float("nan")),
+                       train_proposal.Recipe(learning_rate=0)):
+            with self.assertRaises(train_proposal.TrainingError):
+                recipe.validate()
+
     def test_artifact_hashes_are_deterministic_and_include_safetensors(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

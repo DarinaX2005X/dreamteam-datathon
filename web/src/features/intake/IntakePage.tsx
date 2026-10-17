@@ -6,6 +6,7 @@ import type {
 } from "../../../../contracts/ts/types.gen";
 import product from "../../../../contracts/product.json";
 import { ApiError, api, uploadCheck } from "../../api/client";
+import { waitForReady } from "../../api/waitForReady";
 import { Button, InlineNotice } from "../../ui";
 import { errors } from "../../i18n/ru";
 import {
@@ -48,7 +49,7 @@ export function IntakePage() {
         const next = await api.health(controller.signal);
         setHealth(next);
         setHealthError("");
-        timer = setTimeout(loadHealth, next.ready ? 8000 : 3000);
+        if (!next.ready) timer = setTimeout(loadHealth, 3000);
       } catch (requestError) {
         if ((requestError as Error).name !== "AbortError") {
           setHealthError(
@@ -99,8 +100,11 @@ export function IntakePage() {
     const controller = new AbortController();
     activeUpload.current = controller;
     setUploadController(controller);
-    setProgress(-1);
+    setProgress(-2);
     try {
+      await waitForReady(controller.signal);
+      if (controller.signal.aborted || !mounted.current) return;
+      setProgress(-1);
       const check = await uploadCheck(
         file,
         (loaded, total) => setProgress(total ? loaded / total : -1),
@@ -198,9 +202,11 @@ export function IntakePage() {
           >
             {progress == null
               ? "Передать и начать анализ"
-              : progress < 0
-                ? "Передаём файл…"
-                : `Передано ${(progress * 100).toFixed(0)}%`}
+              : progress === -2
+                ? "Готовим сервис…"
+                : progress < 0
+                  ? "Передаём файл…"
+                  : `Передано ${(progress * 100).toFixed(0)}%`}
           </Button>
         </div>
         {uploadController && (

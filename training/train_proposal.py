@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train and select the native InternVL proposal LoRA on an L40S-class host."""
+"""Train and select the native InternVL proposal LoRA on an authorized cloud GPU."""
 
 from __future__ import annotations
 
@@ -117,6 +117,7 @@ class ProgressReporter:
 class Recipe:
     seed: int = 1729
     epochs: int = 3
+    minimum_epochs: int = 1
     frame_count: int = 16
     fps: float = 2.0
     windows_per_video: int = 6
@@ -132,6 +133,10 @@ class Recipe:
     def validate(self) -> None:
         if not 1 <= self.epochs <= 3:
             raise TrainingError("epochs must be between 1 and 3")
+        if not 1 <= self.minimum_epochs <= self.epochs:
+            raise TrainingError("minimum epochs must be between 1 and epochs")
+        if not math.isfinite(self.learning_rate) or not 0 < self.learning_rate <= 2e-4:
+            raise TrainingError("learning rate must be positive and at most 2e-4")
         if (self.frame_count, self.fps, self.windows_per_video) != (16, 2.0, 6):
             raise TrainingError("the approved recipe requires 16 frames, 2 fps, and 6 windows")
         if (self.rank, self.alpha, self.dropout) != (8, 16, 0.05):
@@ -148,7 +153,7 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def enforce_training_host(torch_module: Any) -> dict[str, Any]:
+def enforce_training_host(torch_module: Any, profile: str = "brev-l40s") -> dict[str, Any]:
     if platform.system() != "Linux":
         raise TrainingError("proposal training is allowed only on the authorized Linux GPU host")
     if not torch_module.cuda.is_available():
@@ -156,9 +161,16 @@ def enforce_training_host(torch_module: Any) -> dict[str, Any]:
     properties = torch_module.cuda.get_device_properties(0)
     name = str(properties.name)
     memory = int(properties.total_memory)
-    if "L40S" not in name.upper() or memory < MIN_CUDA_MEMORY_BYTES:
-        raise TrainingError("proposal training requires the authorized NVIDIA L40S 48 GB class GPU")
-    return {"gpu_name": name, "gpu_memory_bytes": memory, "cuda": torch_module.version.cuda}
+    if profile == "modal-l4":
+        if not os.getenv("MODAL_TASK_ID") or name.upper() not in {"NVIDIA L4", "L4"} or memory < 22 * 1024**3:
+            raise TrainingError("modal-l4 requires a Modal task with an NVIDIA L4 24 GB GPU")
+    elif profile == "brev-l40s":
+        if "L40S" not in name.upper() or memory < MIN_CUDA_MEMORY_BYTES:
+            raise TrainingError("proposal training requires the authorized NVIDIA L40S 48 GB class GPU")
+    else:
+        raise TrainingError("unknown training host profile")
+    return {"gpu_name": name, "gpu_memory_bytes": memory, "cuda": torch_module.version.cuda,
+            "profile": profile}
 
 
 def seed_everything(seed: int, torch_module: Any) -> None:
@@ -568,6 +580,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     recipe = Recipe(
         seed=args.seed,
         epochs=args.epochs,
+        minimum_epochs=args.minimum_epochs,
         learning_rate=args.learning_rate,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
     )
@@ -584,7 +597,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from eval.training import load_training_partition
     from training.data import make_training_windows
 
-    host = enforce_training_host(torch)
+    host = enforce_training_host(torch, args.host_profile)
     if not math.isfinite(args.cuda_memory_fraction) or not 0 < args.cuda_memory_fraction <= 1:
         raise TrainingError("CUDA allocator fraction must be in (0, 1]")
     torch.cuda.set_per_process_memory_fraction(args.cuda_memory_fraction, device=0)
@@ -797,9 +810,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
         write_json_atomic(args.output_dir / "run-manifest.json", partial_manifest)
         epoch_seconds = time.time() - epoch_started
-        # Continue only if there is evidence of improvement and room for a
-        # complete next epoch plus validation and checkpoint reserve.
-        if best_epoch is None:
+        # A bounded continuation may train the requested minimum epochs even
+        # without an early gain. Selection still requires paired improvement.
+        if best_epoch is None and epoch >= recipe.minimum_epochs:
             stop_reason = "no_paired_validation_gain"
             break
         if epoch < recipe.epochs and time.time() + max(epoch_seconds, baseline_seconds) + 60 >= reporter.deadline:
@@ -855,6 +868,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--folds", type=Path, default=ROOT / "eval/folds.csv")
     parser.add_argument("--dataset-dir", type=Path, required=True)
     parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--minimum-epochs", type=int, default=1)
+    parser.add_argument("--host-profile", choices=("brev-l40s", "modal-l4"), default="brev-l40s")
     parser.add_argument("--seed", type=int, default=1729)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=8)
