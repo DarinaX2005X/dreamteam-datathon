@@ -21,6 +21,7 @@ _OPTIONS = {
     "NAVIDU_SEMANTIC_FPS": "1",
     "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": "512",
     "NAVIDU_SEMANTIC_MAX_PATCHES": "1",
+    "NAVIDU_SEMANTIC_DTYPE": "auto",
 }
 _PACKAGES = ("numpy", "pillow", "av", "supervision", "onnxruntime", "onnxruntime-gpu",
              "torch", "torchvision", "transformers", "safetensors", "tokenizers")

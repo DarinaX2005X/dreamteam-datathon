@@ -48,6 +48,18 @@ Other recipient fields are null. Never invent a person ID. At most six events.
 """
 
 
+def resolve_dtype(device: str, requested: str, *, bf16_supported: bool = False) -> str:
+    """Keep existing defaults; explicit precision never silently falls back."""
+    if requested not in {"auto", "bf16", "fp16", "fp32"}:
+        raise RuntimeError("INVALID_CONFIG: NAVIDU_SEMANTIC_DTYPE должен быть auto, bf16, fp16 или fp32.")
+    selected = ("fp16" if device == "cuda" else "fp32") if requested == "auto" else requested
+    if device == "cpu" and selected != "fp32":
+        raise RuntimeError("INVALID_CONFIG: CPU-профиль временной модели поддерживает только fp32.")
+    if selected == "bf16" and not bf16_supported:
+        raise RuntimeError("INVALID_CONFIG: выбранный CUDA-адаптер не поддерживает bf16.")
+    return selected
+
+
 def _samples_at(tracks: list[Track], timestamp: float) -> dict[str, tuple]:
     found = {}
     for track in tracks:
@@ -178,7 +190,11 @@ class TemporalVerifier:
         if device == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA_UNAVAILABLE: временная модель не видит CUDA.")
         self.device = "cuda" if device in {"auto", "cuda"} and torch.cuda.is_available() else "cpu"
-        self.dtype = torch.float16 if self.device == "cuda" else torch.float32
+        requested_dtype = os.getenv("NAVIDU_SEMANTIC_DTYPE", "auto")
+        self.dtype_name = resolve_dtype(self.device, requested_dtype,
+            bf16_supported=(self.device == "cuda" and requested_dtype == "bf16"
+                            and torch.cuda.is_bf16_supported(including_emulation=False)))
+        self.dtype = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[self.dtype_name]
         path = (directory / entry["local_dir"]).resolve()
         if not path.is_relative_to(directory.resolve()):
             raise RuntimeError("MODEL_MANIFEST_INVALID: неверный каталог временной модели.")

@@ -3,12 +3,21 @@
   "type_label": "Пересчёт принятой наличности после ухода клиента",
   "norm_refs": ["S231-p20"],
   "requires_visible": ["client", "cashier", "desk"],
-  "requires_capabilities": ["handover_direction", "counting_action", "continuous_client_visibility"],
+  "requires_capabilities": ["handover_direction", "counting_action", "zone_departure"],
   "anchor": {"observation": {"kind": "counting_motion", "role": "cashier"}},
-  "condition": {"all": [
-    {"before": {"first": {"handover": {"actor_role": "client", "recipient_role": "cashier"}}, "then": {"observation": {"kind": "counting_motion"}}, "within_sec": 60}},
-    {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "client", "zone_kind": "client_window"}}}}
-  ]},
+  "condition": {"sequence": {
+    "steps": [
+      {"handover": {"actor_role": "client", "recipient_role": "cashier"}},
+      {"observation": {"kind": "person_left_zone", "role": "client", "zone_kind": "client_window"}},
+      {"observation": {"kind": "counting_motion", "role": "cashier"}}
+    ],
+    "anchor_step": 2,
+    "relations": [
+      {"left": 0, "right": 1, "relation": "before", "within_sec": 60, "shared": "actor"},
+      {"left": 1, "right": 2, "relation": "before", "within_sec": 60},
+      {"left": 0, "right": 2, "relation": "before", "within_sec": 60, "shared": "relation_id"}
+    ]
+  }},
   "timecode_policy": "onset",
   "what_seen": "После видимой передачи денег кассиру пересчёт продолжается после ухода клиента.",
   "why_may_violate": "Принятые наличные пересчитываются кассовым работником в присутствии клиента.",

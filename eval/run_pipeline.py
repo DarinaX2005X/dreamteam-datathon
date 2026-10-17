@@ -10,6 +10,7 @@ import contextlib
 import hashlib
 import json
 import os
+import platform
 import re
 import secrets
 import signal
@@ -96,6 +97,68 @@ def failure_code(error: BaseException) -> str:
     return match.group(1) if match else type(error).__name__
 
 
+def hardware_snapshot(runtime_device: str) -> dict:
+    """Public machine characteristics only; no hostname, paths or user identity.
+
+    Called after the pipeline has prepared its runtime. Inspect only an already
+    loaded torch module, and never initialize CUDA merely to describe a CPU run.
+    """
+    processor = platform.processor() or platform.machine()
+    if sys.platform.startswith("linux"):
+        try:
+            for line in Path("/proc/cpuinfo").read_text(encoding="utf-8").splitlines():
+                if line.startswith("model name"):
+                    processor = line.split(":", 1)[1].strip()
+                    break
+        except OSError:
+            pass
+    memory_bytes = None
+    try:
+        import psutil
+
+        memory_bytes = psutil.virtual_memory().total
+    except ImportError:
+        pass
+    accelerators = []
+    torch = sys.modules.get("torch")
+    if "cuda" in runtime_device:
+        if torch is None or not torch.cuda.is_initialized():
+            raise RuntimeError("HARDWARE_METADATA_UNAVAILABLE: prepared CUDA runtime is unavailable")
+        # The runtime currently uses one CUDA device. Record the actual selected
+        # device rather than every unrelated adapter visible on the machine.
+        device = torch.cuda.current_device()
+        properties = torch.cuda.get_device_properties(device)
+        accelerators.append({"type": "cuda", "index": device, "name": properties.name,
+                             "memory_bytes": properties.total_memory,
+                             "compute_capability": f"{properties.major}.{properties.minor}"})
+    return {"schema_version": 1, "os": platform.system(), "os_release": platform.release(),
+            "architecture": platform.machine(), "cpu": processor,
+            "logical_cpu_count": os.cpu_count(), "memory_bytes": memory_bytes,
+            "python_implementation": platform.python_implementation(),
+            "python_version": platform.python_version(),
+            "cuda_runtime": torch.version.cuda if accelerators else None,
+            "accelerators": accelerators}
+
+
+def hardware_fingerprint(hardware: dict) -> str:
+    return hashlib.sha256(json.dumps(hardware, sort_keys=True, separators=(",", ":"),
+                                     allow_nan=False).encode("utf-8")).hexdigest()
+
+
+def save_profile(path: Path, profile: dict) -> None:
+    """Do not reuse cached latency from another machine under the same model."""
+    if path.exists():
+        previous = read_json(path)
+        if previous.get("hardware_fingerprint") != profile["hardware_fingerprint"] \
+                or previous.get("runtime_label") != profile.get("runtime_label"):
+            raise ValueError("HARDWARE_PROFILE_MISMATCH: use a separate output root for another hardware profile")
+        for key in ("fingerprint", "algorithm_fingerprint", "pipeline_version"):
+            if previous.get(key) != profile.get(key):
+                raise ValueError("PROFILE_IDENTITY_MISMATCH: persisted profile identity differs")
+        return
+    atomic_json(path, profile)
+
+
 class RunStore:
     def __init__(self, root: Path, fingerprint: str):
         if not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
@@ -163,12 +226,13 @@ def freeze_profile(root: Path, profile: dict, dataset_hash: str) -> dict:
     frozen = {
         "schema_version": 1, "fingerprint": profile["fingerprint"],
         "algorithm_fingerprint": profile["algorithm_fingerprint"],
+        "hardware_fingerprint": profile.get("hardware_fingerprint"),
         "pipeline_version": profile["pipeline_version"], "dataset_fingerprint": dataset_hash,
         "frozen_at": utc_now(), "holdout_fold": 0,
     }
     if path.exists():
         previous = read_json(path)
-        if any(previous.get(key) != frozen[key] for key in ("fingerprint", "algorithm_fingerprint", "pipeline_version", "dataset_fingerprint", "holdout_fold")):
+        if any(previous.get(key) != frozen[key] for key in ("fingerprint", "algorithm_fingerprint", "hardware_fingerprint", "pipeline_version", "dataset_fingerprint", "holdout_fold")):
             raise ValueError("FROZEN_PROFILE_MISMATCH: a different final profile is already frozen")
         return previous
     atomic_json(path, frozen)
@@ -184,11 +248,13 @@ def guard_holdout(root: Path, profile: dict, dataset_hash: str, selected: list[E
     frozen = read_json(frozen_path)
     if (profile["detector_only"] or frozen.get("fingerprint") != profile["fingerprint"]
             or frozen.get("algorithm_fingerprint") != profile["algorithm_fingerprint"]
+            or frozen.get("hardware_fingerprint") != profile.get("hardware_fingerprint")
             or frozen.get("dataset_fingerprint") != dataset_hash):
         raise ValueError("HOLDOUT_PROFILE_MISMATCH: holdout requires the unchanged frozen profile and labels")
     claim = {
         "schema_version": 1, "fingerprint": profile["fingerprint"],
         "algorithm_fingerprint": profile["algorithm_fingerprint"],
+        "hardware_fingerprint": profile.get("hardware_fingerprint"),
         "pipeline_version": profile["pipeline_version"], "dataset_fingerprint": dataset_hash,
         "source_sha256": sorted(source.sha256 for source in selected),
     }
@@ -209,6 +275,7 @@ def require_combined_report_scope(root: Path, profile: dict, dataset_hash: str, 
     frozen, session = read_json(frozen_path), read_json(session_path)
     expected = {"fingerprint": profile["fingerprint"],
                 "algorithm_fingerprint": profile["algorithm_fingerprint"],
+                "hardware_fingerprint": profile.get("hardware_fingerprint"),
                 "pipeline_version": profile["pipeline_version"], "dataset_fingerprint": dataset_hash}
     if profile["detector_only"] or any(frozen.get(key) != value or session.get(key) != value
                                        for key, value in expected.items()):
@@ -307,9 +374,12 @@ def _runtime_profile(args, output_root: Path):
     if not args.detector_only:
         model_ids.append(os.getenv("NAVIDU_SEMANTIC_MODEL", "internvl3_5-1b"))
     snapshot = configuration_snapshot(config, [model_entry(manifest, model_id) for model_id in model_ids], require_semantic=not args.detector_only)
+    hardware = hardware_snapshot(status.device)
     profile = {
         "schema_version": 1, "fingerprint": fingerprint, "pipeline_version": status.pipeline_version,
         "algorithm_fingerprint": runtime.quality_binding,
+        "hardware": hardware, "hardware_fingerprint": hardware_fingerprint(hardware),
+        "runtime_label": args.runtime_label,
         "detector_only": args.detector_only, "created_at": utc_now(), "prepare_sec": prepare_sec,
         "diagnostic_only": True,
         "candidate_semantic_capabilities": [] if args.detector_only else sorted(SEMANTIC_CAPABILITIES),
@@ -326,6 +396,8 @@ def write_report(store: RunStore, sources: list[EvaluationSource], records: dict
         "schema_version": 1, "created_at": utc_now(), "split": split,
         "fingerprint": profile["fingerprint"], "pipeline_version": profile["pipeline_version"],
         "algorithm_fingerprint": profile["algorithm_fingerprint"],
+        "hardware": profile.get("hardware"), "hardware_fingerprint": profile.get("hardware_fingerprint"),
+        "runtime_label": profile.get("runtime_label"),
         "dataset_fingerprint": dataset_hash, "runtime": profile["runtime"],
         "diagnostic_only": profile.get("diagnostic_only", True),
         "candidate_semantic_capabilities": profile.get("candidate_semantic_capabilities", []),
@@ -377,8 +449,7 @@ def run(args) -> int:
         runtime, config, profile = prepared
         store = RunStore(output_root, profile["fingerprint"])
         profile_path = store.directory / "profile.json"
-        if not profile_path.exists():
-            atomic_json(profile_path, profile)
+        save_profile(profile_path, profile)
         if args.command == "freeze":
             frozen = freeze_profile(output_root, profile, dataset_hash)
             print(json.dumps({"event": "profile_frozen", "fingerprint": frozen["fingerprint"], "holdout_fold": 0}), flush=True)
@@ -512,11 +583,14 @@ def main() -> int:
     parser.add_argument("--video-id", action="append", help="Optional development subset; exact Unicode identifier")
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"])
     parser.add_argument("--analysis-fps", type=float)
+    parser.add_argument("--runtime-label", help="Optional public machine/profile label, for example brev-l40s-4b-cpu-detector")
     parser.add_argument("--detector-only", action="store_true", help="Object diagnostic only; disables quality metrics")
     parser.add_argument("--retry-failed", action="store_true", help="Retry only failed attempts under unchanged parameters")
     parser.add_argument("--profile", help="Existing SHA256 profile for report-only mode")
     parser.add_argument("--aggregate-report", type=Path, help="Optional shareable aggregate JSON/Markdown path; never raw artifacts")
     args = parser.parse_args()
+    if args.runtime_label is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}", args.runtime_label):
+        parser.error("--runtime-label must be a short ASCII machine/profile label without paths or spaces")
     if args.command == "report" and not args.profile:
         parser.error("--profile is required for report-only mode")
     try:

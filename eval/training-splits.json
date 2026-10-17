@@ -1,0 +1,607 @@
+{
+  "counts": {
+    "development": {
+      "ambiguous_timing_sources": 0,
+      "clean_sources": 16,
+      "positive_sources": 16,
+      "source_rows": 33,
+      "timestamp_supervised_sources": 16,
+      "unique_sources": 32
+    },
+    "reserved_final_holdout": {
+      "ambiguous_timing_sources": 1,
+      "clean_sources": 3,
+      "positive_sources": 5,
+      "source_rows": 9,
+      "timestamp_supervised_sources": 4,
+      "unique_sources": 8
+    },
+    "train": {
+      "ambiguous_timing_sources": 0,
+      "clean_sources": 12,
+      "positive_sources": 12,
+      "source_rows": 25,
+      "timestamp_supervised_sources": 12,
+      "unique_sources": 24
+    },
+    "validation": {
+      "ambiguous_timing_sources": 0,
+      "clean_sources": 4,
+      "positive_sources": 4,
+      "source_rows": 8,
+      "timestamp_supervised_sources": 4,
+      "unique_sources": 8
+    }
+  },
+  "dataset_fingerprint": "e35f46baf71bb3c00ffac14b80ed4d8a1a908ef157266707ca98510bd30c67e8",
+  "reserved_holdout_examples_included": false,
+  "samples": [
+    {
+      "annotation_time_secs": [
+        7.0
+      ],
+      "duration_sec": 14.733333,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "0378b8026b2e6afd1775a5d0fdd12dd09c491785b626e9c20428f7dc6bd59364",
+      "source_row_count": 1,
+      "source_sha256": "0378b8026b2e6afd1775a5d0fdd12dd09c491785b626e9c20428f7dc6bd59364",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 7.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-17.mov"
+    },
+    {
+      "annotation_time_secs": [
+        13.0
+      ],
+      "duration_sec": 18.8,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "05af66ce27b83d7c10c5d33b6f1847ec042c01ed21afdcbd43a13abcefd28199",
+      "source_row_count": 1,
+      "source_sha256": "05af66ce27b83d7c10c5d33b6f1847ec042c01ed21afdcbd43a13abcefd28199",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 13.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-30.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 57.433021,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "16065504b21260bff18698c7bbf048ffa356c9de43d43b92643b6c2eddedac0f",
+      "source_row_count": 1,
+      "source_sha256": "16065504b21260bff18698c7bbf048ffa356c9de43d43b92643b6c2eddedac0f",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-19.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 71.6,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "1f5840bff58f298e89c4afa00cb1c18f6dafc5c4096c251d9b507604ebefe906",
+      "source_row_count": 2,
+      "source_sha256": "1f5840bff58f298e89c4afa00cb1c18f6dafc5c4096c251d9b507604ebefe906",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-5.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 20.033021,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "21468fcef4ea5f45ce7d465e620f84e09c8b50314f4ecdc06f69224c701b3a5b",
+      "source_row_count": 1,
+      "source_sha256": "21468fcef4ea5f45ce7d465e620f84e09c8b50314f4ecdc06f69224c701b3a5b",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-3.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 23.366667,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "39e28d7be01cdb090ede1881ce3ef704fa413271deb69d6735c1953f340d6069",
+      "source_row_count": 1,
+      "source_sha256": "39e28d7be01cdb090ede1881ce3ef704fa413271deb69d6735c1953f340d6069",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-43.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 22.733021,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "3f516431cf37e3900b7eae857a7b09be258f485702ab56bc6e5b6129103f1fa5",
+      "source_row_count": 1,
+      "source_sha256": "3f516431cf37e3900b7eae857a7b09be258f485702ab56bc6e5b6129103f1fa5",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-16.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 33.333021,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "524bf9ff2d5e81211dbbeff73129dbb5f3a5e5e35a64f443f53e16b1c2d471c7",
+      "source_row_count": 1,
+      "source_sha256": "524bf9ff2d5e81211dbbeff73129dbb5f3a5e5e35a64f443f53e16b1c2d471c7",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-45.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 15.566667,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "57a0e46c7a45f0e831f61d9c80722fefe4b74dbcfe1d3031ff58307d481f9a5c",
+      "source_row_count": 1,
+      "source_sha256": "57a0e46c7a45f0e831f61d9c80722fefe4b74dbcfe1d3031ff58307d481f9a5c",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-10.mov"
+    },
+    {
+      "annotation_time_secs": [
+        11.0
+      ],
+      "duration_sec": 19.133021,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "66fc5d28c2371592f9260305589bdc86636fdd2ebe7a7ec976eec00a23d43df4",
+      "source_row_count": 1,
+      "source_sha256": "66fc5d28c2371592f9260305589bdc86636fdd2ebe7a7ec976eec00a23d43df4",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 11.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-46.mov"
+    },
+    {
+      "annotation_time_secs": [
+        15.0
+      ],
+      "duration_sec": 20.866667,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "69caf59620fcd80bedcb664514730ab38f2f800da27000a8e037d7440be5dc7a",
+      "source_row_count": 1,
+      "source_sha256": "69caf59620fcd80bedcb664514730ab38f2f800da27000a8e037d7440be5dc7a",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 15.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-15.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 38.033021,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "6a53e10acdcf52396ad5b1697eead32d8322c0911d792523a5c33fe5b388f4e7",
+      "source_row_count": 1,
+      "source_sha256": "6a53e10acdcf52396ad5b1697eead32d8322c0911d792523a5c33fe5b388f4e7",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-8.mov"
+    },
+    {
+      "annotation_time_secs": [
+        17.0
+      ],
+      "duration_sec": 25.266667,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "6a81739ced0efdcd4a4feb76ea16562a20ceb53a2232a801528716c450366c9f",
+      "source_row_count": 1,
+      "source_sha256": "6a81739ced0efdcd4a4feb76ea16562a20ceb53a2232a801528716c450366c9f",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 17.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-40.mov"
+    },
+    {
+      "annotation_time_secs": [
+        5.0
+      ],
+      "duration_sec": 11.633333,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "7e585e33517f7258bd2d1ed3e139556609bc997bb07b78355555060ef193b77a",
+      "source_row_count": 1,
+      "source_sha256": "7e585e33517f7258bd2d1ed3e139556609bc997bb07b78355555060ef193b77a",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 5.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-20.mov"
+    },
+    {
+      "annotation_time_secs": [
+        22.0
+      ],
+      "duration_sec": 25.933333,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "8911a9219b9433091824e553a70bb80335f075fd8ac982d2062d2ecf023c16bc",
+      "source_row_count": 1,
+      "source_sha256": "8911a9219b9433091824e553a70bb80335f075fd8ac982d2062d2ecf023c16bc",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 22.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/X-1.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 31.7,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "901f61cf1a1b8754dda56466308c19fc203a1a4c0e85d1e7827849d34e2d52f0",
+      "source_row_count": 1,
+      "source_sha256": "901f61cf1a1b8754dda56466308c19fc203a1a4c0e85d1e7827849d34e2d52f0",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-25.mov"
+    },
+    {
+      "annotation_time_secs": [
+        20.0
+      ],
+      "duration_sec": 22.6,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "90607b0b0cb772fcf29b0c7e0e56fa6af36da6fac0efe93b8a616b5de94a156c",
+      "source_row_count": 1,
+      "source_sha256": "90607b0b0cb772fcf29b0c7e0e56fa6af36da6fac0efe93b8a616b5de94a156c",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 20.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-18.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 42.3,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "955755baf54418b48ea645dcd98e7e8dcca1d1e227e9b286a9427062db304fd4",
+      "source_row_count": 1,
+      "source_sha256": "955755baf54418b48ea645dcd98e7e8dcca1d1e227e9b286a9427062db304fd4",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-12.mov"
+    },
+    {
+      "annotation_time_secs": [
+        16.0
+      ],
+      "duration_sec": 20.433333,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "9774ed882153af3ba1a7e71c9b9249619e2b3a97ae336aad6143369802ca3522",
+      "source_row_count": 1,
+      "source_sha256": "9774ed882153af3ba1a7e71c9b9249619e2b3a97ae336aad6143369802ca3522",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 16.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-44.mov"
+    },
+    {
+      "annotation_time_secs": [
+        10.0
+      ],
+      "duration_sec": 17.066667,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "9932ae0a10d3b9371bf52ea558dc19092fcf47adcd275a73a52a56b95464bca6",
+      "source_row_count": 1,
+      "source_sha256": "9932ae0a10d3b9371bf52ea558dc19092fcf47adcd275a73a52a56b95464bca6",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 10.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/X-2.mov"
+    },
+    {
+      "annotation_time_secs": [
+        47.0
+      ],
+      "duration_sec": 65.3,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "a37930cf119bb691be77d8624b18333b04d9c67066a7f4627d63e3208dfa6057",
+      "source_row_count": 1,
+      "source_sha256": "a37930cf119bb691be77d8624b18333b04d9c67066a7f4627d63e3208dfa6057",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 47.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-13.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 15.866667,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "ac4cf04844c0aa08a5e19f5f7fe984f1477943294922d6ef77bdc5b88b97160e",
+      "source_row_count": 1,
+      "source_sha256": "ac4cf04844c0aa08a5e19f5f7fe984f1477943294922d6ef77bdc5b88b97160e",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-37.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 18.266667,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "b637677ef5a7f0fa54d9f116ce6493cf74a4c99b8149a9c9916b96ef257535bd",
+      "source_row_count": 1,
+      "source_sha256": "b637677ef5a7f0fa54d9f116ce6493cf74a4c99b8149a9c9916b96ef257535bd",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-23.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 17.3,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "b9bfb76ac8ea47eb368fc78a2f6370e4d98e79185972f63cf301ee22f12b5941",
+      "source_row_count": 1,
+      "source_sha256": "b9bfb76ac8ea47eb368fc78a2f6370e4d98e79185972f63cf301ee22f12b5941",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-29.mov"
+    },
+    {
+      "annotation_time_secs": [
+        8.0
+      ],
+      "duration_sec": 14.7,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "c175a683749401d5a9ecf6f1c188b64fa8a09543f41482c1e4eb2232255715d3",
+      "source_row_count": 1,
+      "source_sha256": "c175a683749401d5a9ecf6f1c188b64fa8a09543f41482c1e4eb2232255715d3",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 8.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-24.mov"
+    },
+    {
+      "annotation_time_secs": [
+        14.0
+      ],
+      "duration_sec": 21.033021,
+      "fold": 2,
+      "partition": "train",
+      "sample_id": "c9a30d44907e4a41b3a8ccf101774cd2e0804de20927bfbc9e1ccba1f2326b78",
+      "source_row_count": 1,
+      "source_sha256": "c9a30d44907e4a41b3a8ccf101774cd2e0804de20927bfbc9e1ccba1f2326b78",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 14.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-22.mov"
+    },
+    {
+      "annotation_time_secs": [
+        7.0
+      ],
+      "duration_sec": 16.533021,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "d15ef04bcfae571bd2d7fc4e4d709ba595ae19f44136a43e7277f17e7b6e5b6d",
+      "source_row_count": 1,
+      "source_sha256": "d15ef04bcfae571bd2d7fc4e4d709ba595ae19f44136a43e7277f17e7b6e5b6d",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 7.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-28.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 26.433021,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "d3d21494d74e40a7586fe4f6164e515f6621a2d413538c4e15c67d394e85fc2d",
+      "source_row_count": 1,
+      "source_sha256": "d3d21494d74e40a7586fe4f6164e515f6621a2d413538c4e15c67d394e85fc2d",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-27.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 78.733021,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "deeeee54539fb894b17447296bd7f0807b9dc662bad9af4dcd27f4fbdd677187",
+      "source_row_count": 1,
+      "source_sha256": "deeeee54539fb894b17447296bd7f0807b9dc662bad9af4dcd27f4fbdd677187",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-39.mov"
+    },
+    {
+      "annotation_time_secs": [
+        9.0
+      ],
+      "duration_sec": 19.8,
+      "fold": 1,
+      "partition": "train",
+      "sample_id": "e3a00b6e0f38b1d9b5498140f14906c71e204359262a90ce7a9974d64bf081e9",
+      "source_row_count": 1,
+      "source_sha256": "e3a00b6e0f38b1d9b5498140f14906c71e204359262a90ce7a9974d64bf081e9",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 9.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-26.mov"
+    },
+    {
+      "annotation_time_secs": [],
+      "duration_sec": 19.6,
+      "fold": 4,
+      "partition": "validation",
+      "sample_id": "efd876a04224cac781ac64bf5d6e107ded67340b7b7715fd9ca3408b240a1075",
+      "source_row_count": 1,
+      "source_sha256": "efd876a04224cac781ac64bf5d6e107ded67340b7b7715fd9ca3408b240a1075",
+      "targets": {
+        "has_violation": false,
+        "time_sec": null,
+        "time_supervision": false
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-21.mov"
+    },
+    {
+      "annotation_time_secs": [
+        13.0
+      ],
+      "duration_sec": 17.733333,
+      "fold": 3,
+      "partition": "train",
+      "sample_id": "f3e351bea71150f4e8c76e2c8f0656a4e92063319d7cd39e264078c5ba9139c3",
+      "source_row_count": 1,
+      "source_sha256": "f3e351bea71150f4e8c76e2c8f0656a4e92063319d7cd39e264078c5ba9139c3",
+      "targets": {
+        "has_violation": true,
+        "time_sec": 13.0,
+        "time_supervision": true
+      },
+      "timing_ambiguous": false,
+      "video_relative_file": "open/videos/Х-34.mov"
+    }
+  ],
+  "schema_version": 1,
+  "split_rule": {
+    "group_key": "sha256",
+    "reserved_final_holdout_folds": [
+      0
+    ],
+    "train_folds": [
+      1,
+      2,
+      3
+    ],
+    "validation_folds": [
+      4
+    ]
+  },
+  "target_policy": {
+    "ambiguous_timing": "Preserve the positive binary target but mask localization when byte-identical rows disagree on timestamp; these are not two confirmed events.",
+    "model_inputs": "Video frames and label-blind temporal coordinates only. Never include source path, filename, sample ID, SHA, fold, label, or target-derived crop location in an inference prompt.",
+    "negative_timing": "Negative sources have no event timestamp and no localization loss.",
+    "refit": "The development partition may be used for a final 32-source refit only after hyperparameters are selected using train/validation. Freeze the resulting model before the reserved final holdout.",
+    "source": "Organizer binary and timestamp annotations only; no inferred action or role labels.",
+    "validation_sampling": "Validation and final inference frame/window selection must not use labels or organizer timestamps."
+  }
+}

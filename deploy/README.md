@@ -56,6 +56,14 @@ warns that credit exhaustion can eventually delete resources. Run `deploy/export
 user-selected mounted/local destination before that risk. The export excludes source videos by
 default.
 
+For the selected stoppable instance, run `bash deploy/brev-bootstrap.sh` after placing the checkout at
+`/home/ubuntu/workspace/dreamteam`. Before an overnight stop, run `bash deploy/brev-stop-safe.sh`; it
+stops the worker before the API, makes a SQLite backup under `backups/`, and flushes the persistent
+workspace. Then run `brev stop INSTANCE_NAME` on the connecting computer. Resume with
+`brev start INSTANCE_NAME`, `brev refresh`, reconnect, and run `bash deploy/brev-resume.sh`. Restart can
+fail temporarily when the provider has no free GPU of the same type and region; the workspace stays
+bound to that provider until capacity returns.
+
 After the source and verified models are present:
 
 ```bash

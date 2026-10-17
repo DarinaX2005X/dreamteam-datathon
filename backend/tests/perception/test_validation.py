@@ -74,6 +74,7 @@ def _end_to_end_evidence(tmp_path):
         "metrics": {"mode": "semantic_pipeline_evaluation",
             "counts": {"selected_unique_sources": 5, "completed_unique_sources": 5,
                 "failed_unique_sources": 0, "missing_unique_sources": 0,
+                "true_negatives_with_checkable_rules": 3,
                 "completed_sources_with_all_rules_not_checkable": 0},
             "verdict": {"tp": 2, "fp": 0, "tn": 3, "fn": 0},
             "timing_error_sec": {"count": 2, "p90": 1.0},

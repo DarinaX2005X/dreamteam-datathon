@@ -29,7 +29,10 @@ if (-not (Test-Path -LiteralPath $VenvPython)) {
 & $VenvPython -m pip install --timeout 120 --retries 10 --upgrade pip
 $SelectedDevice = $Device
 if ($SelectedDevice -eq "auto") {
-    $SelectedDevice = if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) { "cuda" } else { "cpu" }
+    $GpuMemory = if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
+        [double](nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | Select-Object -First 1)
+    } else { 0 }
+    $SelectedDevice = if ($GpuMemory -ge 8192) { "cuda" } else { "cpu" }
 }
 $TorchIndex = if ($SelectedDevice -eq "cuda") { "https://download.pytorch.org/whl/cu124" } else { "https://download.pytorch.org/whl/cpu" }
 Write-Host "Installing the $SelectedDevice runtime in $Venv"
@@ -56,7 +59,7 @@ if ($FetchModels) {
     if ($LASTEXITCODE -ne 0) { throw "Model download or integrity verification failed." }
 }
 if (-not $SkipModels) {
-    & $VenvPython (Join-Path $ProjectRoot "scripts\preflight.py") --require-models
+    & $VenvPython (Join-Path $ProjectRoot "scripts\preflight.py") --device $SelectedDevice --require-models
     if ($LASTEXITCODE -ne 0) {
         throw "Runtime/model preflight failed. Use -FetchModels after model pins are available, or -SkipModels only for API development."
     }

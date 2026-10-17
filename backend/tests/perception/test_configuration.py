@@ -2,6 +2,7 @@
 
 from navidu.contracts.pipeline import PipelineConfig
 from navidu.perception.configuration import configuration_snapshot, effective_version
+from navidu.perception.validation import validation_binding
 
 
 def _version(config, *, semantic=False, model_hash="a" * 64):
@@ -46,3 +47,22 @@ def test_threshold_and_generation_options_are_part_of_cache_identity(tmp_path, m
     monkeypatch.setenv("NAVIDU_DETECTION_THRESHOLD", "0.45")
     monkeypatch.setenv("NAVIDU_SEMANTIC_MAX_NEW_TOKENS", "256")
     assert _version(config) != original
+
+
+def test_requested_precision_invalidates_cache_and_quality_binding(tmp_path, monkeypatch):
+    config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
+    monkeypatch.setenv("NAVIDU_SEMANTIC_DTYPE", "auto")
+    initial = configuration_snapshot(config, [], require_semantic=True)
+    monkeypatch.setenv("NAVIDU_SEMANTIC_DTYPE", "bf16")
+    changed = configuration_snapshot(config, [], require_semantic=True)
+    devices = {"detector": "cpu", "semantic": "cuda", "semantic_dtype": "bf16"}
+    assert effective_version(initial, devices=devices) != effective_version(changed, devices=devices)
+    assert validation_binding(initial, devices=devices) != validation_binding(changed, devices=devices)
+
+
+def test_effective_precision_is_part_of_loaded_cache_and_quality_identity():
+    snapshot = {"base_version": "test", "options": {"NAVIDU_SEMANTIC_DTYPE": "auto"}}
+    fp16 = {"detector": "cpu", "semantic": "cuda", "semantic_dtype": "fp16"}
+    bf16 = {**fp16, "semantic_dtype": "bf16"}
+    assert effective_version(snapshot, devices=fp16) != effective_version(snapshot, devices=bf16)
+    assert validation_binding(snapshot, devices=fp16) != validation_binding(snapshot, devices=bf16)

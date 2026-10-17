@@ -6,7 +6,7 @@
   "requires_capabilities": ["bag_damage", "bag_opening", "continuous_collector_visibility"],
   "anchor": {"observation": {"kind": "bag_opened"}},
   "condition": {"all": [
-    {"before": {"first": {"observation": {"kind": "bag_integrity_damage"}}, "then": {"observation": {"kind": "bag_opened"}}, "within_sec": 120, "allow_overlap": true}},
+    {"before": {"first": {"observation": {"kind": "bag_integrity_damage"}}, "then": {"observation": {"kind": "bag_opened"}}, "within_sec": 120, "allow_overlap": true, "shared": "any"}},
     {"absent": {"predicate": {"observation": {"kind": "person_in_zone", "role": "collector"}}}}
   ]},
   "timecode_policy": "onset",

@@ -21,10 +21,31 @@ def prediction(item: EvaluationSource, verdict: int, times: tuple[float, ...] = 
             "analysis_ready": False, "analysis_mode": "diagnostic",
             "verdict": "violation" if verdict else "no_violation",
             "findings": [{"timecode_sec": time, "rule_id": "synthetic-test-rule"} for time in times],
+            "rule_statuses": ["violation" if verdict else "no_violation"],
             "model_versions": {"synthetic-unit-test": "0"}}
 
 
 class MetricsTests(unittest.TestCase):
+    def test_uncheckable_or_empty_rules_never_supply_qualified_negative_evidence(self) -> None:
+        items = [source(key, int(key == "e"), (10.0,) if key == "e" else (None,))
+                 for key in "abcdef"]
+        records = {item.sha256: prediction(item, int(item.sha256.startswith("d")),
+                                          (2.0,) if item.sha256.startswith("d") else ())
+                   for item in items}
+        for key, statuses in {"a": ["not_checkable"], "b": ["partly_checkable"],
+                              "e": ["not_checkable"], "f": []}.items():
+            records[key * 64]["rule_statuses"] = statuses
+        result = aggregate(items, records)
+        counts = result["counts"]
+        self.assertEqual(result["verdict"]["tn"], 4)
+        self.assertEqual(counts["completed_clean_sources_with_checkable_rules"], 3)
+        self.assertEqual(counts["completed_sources_with_all_rules_not_checkable"], 2)
+        self.assertEqual(counts["completed_sources_with_no_checkable_rules"], 3)
+        self.assertEqual(counts["completed_clean_sources_with_all_rules_not_checkable"], 1)
+        self.assertEqual(counts["completed_clean_sources_with_no_checkable_rules"], 2)
+        self.assertEqual(counts["true_negatives_with_checkable_rules"], 2)
+        self.assertEqual(counts["true_negatives_with_fully_checkable_rules"], 1)
+
     def test_sha_headline_confusion_failures_and_rows_are_separate(self) -> None:
         a = source("a", 1, (57.0, 68.0))
         b = source("b", 1, (10.0,))
@@ -73,7 +94,8 @@ class MetricsTests(unittest.TestCase):
 
     def test_invalid_or_nonfinal_predictions_cannot_enter_metrics(self) -> None:
         a = source("a", 1, (10.0,))
-        variants = [prediction(a, 1), prediction(a, 1, (101.0,)), prediction(a, 0, (), float("nan"))]
+        variants = [prediction(a, 1), prediction(a, 1, (101.0,)), prediction(a, 0, (), float("nan")),
+                    {**prediction(a, 0), "rule_statuses": ["PRIVATE_MODEL_DESCRIPTION"]}]
         for value in variants:
             with self.assertRaises(ValueError):
                 validate_prediction(value, a)

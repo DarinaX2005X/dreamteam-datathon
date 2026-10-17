@@ -25,7 +25,11 @@ if [[ ! -x "$venv/bin/python" ]]; then
 fi
 "$venv/bin/python" -m pip install --timeout 120 --retries 10 --upgrade pip
 if [[ "$device" == auto ]]; then
-  if command -v nvidia-smi >/dev/null 2>&1; then device=cuda; else device=cpu; fi
+  gpu_memory=0
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    gpu_memory="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n1 | tr -d '[:space:]')"
+  fi
+  if [[ "$gpu_memory" =~ ^[0-9]+([.][0-9]+)?$ ]] && awk "BEGIN {exit !($gpu_memory >= 8192)}"; then device=cuda; else device=cpu; fi
 fi
 [[ "$device" == cpu || "$device" == cuda ]] || { echo "Device must be auto, cpu, or cuda." >&2; exit 2; }
 if [[ "$device" == cuda ]]; then torch_index="https://download.pytorch.org/whl/cu124"; else torch_index="https://download.pytorch.org/whl/cpu"; fi
@@ -44,7 +48,7 @@ if (( fetch_models )); then
   "$venv/bin/python" scripts/fetch_models.py --profile "$device"
 fi
 if (( ! skip_models )); then
-  "$venv/bin/python" scripts/preflight.py --require-models || {
+  "$venv/bin/python" scripts/preflight.py --device "$device" --require-models || {
     echo "Runtime/model preflight failed. Use --fetch-models after pins are available, or --skip-models only for API development." >&2
     exit 1
   }

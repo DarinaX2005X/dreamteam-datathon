@@ -76,6 +76,11 @@ def validate_prediction(record: dict, source: EvaluationSource, *, fingerprint: 
         timestamp = finding.get("timecode_sec")
         if not isinstance(timestamp, (int, float)) or not math.isfinite(timestamp) or not 0 <= timestamp <= source.duration_sec:
             raise ValueError("A finding timestamp lies outside its source video")
+    statuses = record.get("rule_statuses", [])
+    if not isinstance(statuses, list) or any(not isinstance(status, str) or status not in {
+        "violation", "no_violation", "not_checkable", "partly_checkable"
+    } for status in statuses):
+        raise ValueError("Rule statuses must use the pipeline contract vocabulary")
 
 
 def aggregate(
@@ -99,6 +104,12 @@ def aggregate(
     missing = 0
     source_count = len(sources)
     not_checkable = 0
+    no_checkable = 0
+    clean_checkable = 0
+    clean_not_checkable = 0
+    clean_no_checkable = 0
+    checkable_tn = 0
+    fully_checkable_tn = 0
     analysis_modes = Counter()
     analysis_ready = 0
     versions: set[tuple[tuple[str, str], ...]] = set()
@@ -124,8 +135,16 @@ def aggregate(
         row_pairs.extend([(source.has_violation, predicted)] * len(source.rows))
         statuses = record.get("rule_statuses", [])
         rule_counts.update(statuses)
+        has_checkable_rule = any(status in {"violation", "no_violation", "partly_checkable"} for status in statuses)
+        no_checkable += int(not has_checkable_rule)
         if statuses and all(status == "not_checkable" for status in statuses):
             not_checkable += 1
+            clean_not_checkable += int(not source.has_violation)
+        if not source.has_violation:
+            clean_checkable += int(has_checkable_rule)
+            clean_no_checkable += int(not has_checkable_rule)
+            checkable_tn += int(not predicted and any(status in {"no_violation", "partly_checkable"} for status in statuses))
+            fully_checkable_tn += int(not predicted and "no_violation" in statuses)
         if source.has_violation and predicted:
             timestamps = [float(finding["timecode_sec"]) for finding in record["findings"]]
             for row in source.rows:
@@ -152,6 +171,12 @@ def aggregate(
             "previous_and_current_failed_attempts": failure_attempts,
             "sources_with_ambiguous_timing": sum(source.timing_ambiguous for source in sources),
             "completed_sources_with_all_rules_not_checkable": not_checkable,
+            "completed_sources_with_no_checkable_rules": no_checkable,
+            "completed_clean_sources_with_checkable_rules": clean_checkable,
+            "completed_clean_sources_with_all_rules_not_checkable": clean_not_checkable,
+            "completed_clean_sources_with_no_checkable_rules": clean_no_checkable,
+            "true_negatives_with_checkable_rules": checkable_tn,
+            "true_negatives_with_fully_checkable_rules": fully_checkable_tn,
             "completed_sources_marked_analysis_ready": analysis_ready,
         },
         "completion_rate": _ratio(completed, source_count),
@@ -160,6 +185,7 @@ def aggregate(
         "failed_attempt_latency_sec": distribution(failed_latencies),
         "rule_status_counts": dict(sorted(rule_counts.items())),
         "analysis_mode_counts": dict(sorted(analysis_modes.items())),
+        "checkable_negative_policy": "Ground-truth clean, predicted no_violation, and at least one rule with no_violation or partly_checkable status. Fully-checkable count requires at least one no_violation rule. Neither proves that every rule or every interval was checkable; empty status lists never qualify.",
         "model_version_sets": [dict(values) for values in sorted(versions)],
         "classification": {
             "available": False, "accuracy": None, "rows_with_type_annotations": labelled_types,
@@ -208,6 +234,7 @@ def markdown_report(report: dict) -> str:
         f"Выбрано {counts['selected_unique_sources']} уникальных источников / {counts['selected_source_rows']} исходных строк. Завершено {counts['completed_unique_sources']}; ошибок {counts['failed_unique_sources']}; без результата {counts['missing_unique_sources']}.",
         f"Положительных источников {counts['selected_positive_sources']}, отрицательных {counts['selected_clean_sources']}. Спорных временных аннотаций {counts['sources_with_ambiguous_timing']}.",
         f"Завершённых источников, у которых все правила помечены непроверяемыми: {counts['completed_sources_with_all_rules_not_checkable']}. Это не подтверждение корректности действий на записи.",
+        f"Истинно отрицательных результатов хотя бы с одним проверяемым правилом: {counts['true_negatives_with_checkable_rules']}; хотя бы с одним полностью проверяемым правилом: {counts['true_negatives_with_fully_checkable_rules']}. Чистых источников без проверяемых правил: {counts['completed_clean_sources_with_no_checkable_rules']}.",
         "",
     ]
     if report.get("split") == "all":
@@ -245,6 +272,16 @@ def markdown_report(report: dict) -> str:
     lines.extend(["", "Измеряется полное время analyze для каждого видео при уже подготовленных весах. Время загрузки модели учитывается отдельно; чтение кэша не считается новым inference.", "", "## Ограничения", "", "Точность классификации недоступна: независимых меток типов нет. Разбиение группирует SHA256-копии, но не доказывает перенос на новых актёров, новую сцену или ракурс. Fold 0 предназначен для итоговой проверки после заморозки параметров; остальные фолды — разработка.", ""])
     runtime = report.get("runtime", {})
     lines.extend(["## Среда", "", f"Устройство: `{runtime.get('device', 'unknown')}`. Подготовка модели: `{report.get('prepare_sec', 'unknown')}` с."])
+    hardware = report.get("hardware")
+    if hardware:
+        lines.extend([f"Профиль машины: `{report.get('runtime_label') or 'не задан'}`. Hardware fingerprint: `{report.get('hardware_fingerprint', 'unknown')}`.",
+                      f"ОС: `{hardware['os']} {hardware['os_release']}`. Архитектура: `{hardware['architecture']}`.",
+                      f"CPU: `{hardware['cpu']}`. Логических CPU: `{hardware['logical_cpu_count']}`. RAM, байт: `{hardware['memory_bytes']}`.",
+                      f"Python: `{hardware['python_implementation']} {hardware['python_version']}`. CUDA runtime: `{hardware.get('cuda_runtime')}`."])
+        for accelerator in hardware.get("accelerators", []):
+            lines.append(f"GPU: `{accelerator['name']}`. Память, байт: `{accelerator['memory_bytes']}`. Compute capability: `{accelerator['compute_capability']}`.")
+    else:
+        lines.append("Аппаратные характеристики этого исторического запуска не были записаны оценщиком.")
     versions = report.get("package_versions", {})
     for name, version in sorted(versions.items()):
         lines.append(f"- `{name}`: `{version}`")

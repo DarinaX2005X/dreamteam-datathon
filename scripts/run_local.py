@@ -19,6 +19,33 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+MIN_AUTO_CUDA_MIB = 8192
+
+
+def select_device(requested: str, gpu_memory_mib: float | None) -> str:
+    if requested in {"cpu", "cuda"}:
+        return requested
+    return "cuda" if gpu_memory_mib is not None and gpu_memory_mib >= MIN_AUTO_CUDA_MIB else "cpu"
+
+
+def default_detector(device: str) -> str:
+    return "rfdetr-nano-onnx-fp32" if device == "cuda" else "rfdetr-nano-onnx"
+
+
+def detected_gpu_memory_mib() -> float | None:
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode == 0:
+            return max(float(line.strip()) for line in result.stdout.splitlines() if line.strip())
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
 
 
 def load_dotenv(path: Path) -> None:
@@ -73,6 +100,9 @@ def main() -> int:
     except (OSError, UnicodeError, ValueError) as exc:
         print(f"Cannot read .env: {exc}", file=sys.stderr)
         return 2
+    device = select_device(os.getenv("NAVIDU_DEVICE", "auto").lower(), detected_gpu_memory_mib())
+    os.environ["NAVIDU_DEVICE"] = device
+    os.environ.setdefault("NAVIDU_DETECTOR_MODEL", default_detector(device))
     parser = argparse.ArgumentParser(
         description="Start the local API and model worker; Ctrl+C stops only these children."
     )

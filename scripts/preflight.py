@@ -87,7 +87,9 @@ def load_manifest(models_dir: Path) -> tuple[dict | None, str]:
         return None, f"invalid {manifest_path}: {exc}"
 
 
-def manifest_files(manifest: dict) -> list[tuple[Path, str | None, int | None]]:
+def manifest_files(
+    manifest: dict, selected_ids: set[str] | None = None
+) -> list[tuple[Path, str | None, int | None]]:
     found: list[tuple[Path, str | None, int | None]] = []
     entries = manifest.get("files") or manifest.get("artifacts") or []
     if not entries and isinstance(manifest.get("models"), list):
@@ -95,6 +97,8 @@ def manifest_files(manifest: dict) -> list[tuple[Path, str | None, int | None]]:
             file_entry
             for model in manifest["models"]
             if isinstance(model, dict)
+            and model.get("status") != "rejected"
+            and (selected_ids is None or model.get("id") in selected_ids)
             for file_entry in model.get("files", [])
         ]
     if isinstance(entries, dict):
@@ -119,6 +123,20 @@ def sha256(path: Path) -> str:
         while chunk := stream.read(4 * 1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def configured_model_ids(device: str) -> list[str]:
+    default_detector = (
+        "rfdetr-nano-onnx-fp32" if device == "cuda" else "rfdetr-nano-onnx"
+    )
+    model_ids = [os.getenv("NAVIDU_DETECTOR_MODEL", default_detector)]
+    if os.getenv("NAVIDU_REQUIRE_SEMANTIC", "1").lower() not in {
+        "0",
+        "false",
+        "no",
+    }:
+        model_ids.append(os.getenv("NAVIDU_SEMANTIC_MODEL", "internvl3_5-1b"))
+    return model_ids
 
 
 def run_checks(args: argparse.Namespace) -> list[Check]:
@@ -249,17 +267,13 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
         )
     )
     if manifest is not None:
-        configured_ids = [os.getenv("NAVIDU_DETECTOR_MODEL", "rfdetr-nano-onnx")]
-        if os.getenv("NAVIDU_REQUIRE_SEMANTIC", "1").lower() not in {
-            "0",
-            "false",
-            "no",
-        }:
-            configured_ids.append(os.getenv("NAVIDU_SEMANTIC_MODEL", "internvl3_5-1b"))
+        configured_ids = configured_model_ids(args.device)
         available_ids = {
             model.get("id")
             for model in manifest.get("models", [])
-            if isinstance(model, dict) and isinstance(model.get("id"), str)
+            if isinstance(model, dict)
+            and model.get("status") != "rejected"
+            and isinstance(model.get("id"), str)
         }
         missing_ids = [
             model_id for model_id in configured_ids if model_id not in available_ids
@@ -274,7 +288,7 @@ def run_checks(args: argparse.Namespace) -> list[Check]:
                 required=args.require_models,
             )
         )
-        listed = manifest_files(manifest)
+        listed = manifest_files(manifest, set(configured_ids))
         missing = [
             str(path) for path, _, _ in listed if not (models_dir / path).is_file()
         ]

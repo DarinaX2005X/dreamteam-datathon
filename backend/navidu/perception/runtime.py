@@ -140,7 +140,8 @@ class LocalPerceptionRuntime:
                     [detector_entry] + ([semantic_entry] if semantic_entry else []),
                     require_semantic=require_semantic)
                 devices = {"detector": detector.device,
-                           "semantic": semantic.device if semantic is not None else "disabled"}
+                           "semantic": semantic.device if semantic is not None else "disabled",
+                           "semantic_dtype": semantic.dtype_name if semantic is not None else "disabled"}
                 capabilities, limitations = validated_capabilities(config.models_dir, snapshot,
                     devices=devices, end_to_end_only=True)
                 from navidu.rules.catalog import load_catalog
@@ -196,11 +197,14 @@ class LocalPerceptionRuntime:
             last_emit, previous_t = -5.0, -1.0
             semantic_frames = []
             next_semantic_t = 0.0
+            last_semantic_end = -1.0
 
             def observe_window(window):
+                nonlocal last_semantic_end
                 previous = {item.obs_id: item.model_dump_json() for item in artifacts.observations}
                 self._semantic.observe(window, list(tracks.values()), artifacts,
                                        should_stop=should_stop)
+                last_semantic_end = window[-1][0]
                 changed = [item for item in artifacts.observations
                            if previous.get(item.obs_id) != item.model_dump_json()]
                 emit(PipelineEvent(phase="perception", processed_until_sec=window[-1][0],
@@ -222,7 +226,10 @@ class LocalPerceptionRuntime:
                     mask = class_ids == class_id
                     if class_id not in trackers:
                         trackers[class_id] = sv.ByteTrack(
-                            frame_rate=max(1, round(config.analysis_fps)), minimum_consecutive_frames=2,
+                            frame_rate=max(1, round(config.analysis_fps)),
+                            # Supervision counts updates after birth. One update
+                            # confirms a late-arriving object on its second frame.
+                            minimum_consecutive_frames=1,
                             # ByteTrack scales this 30 fps value by frame_rate.
                             lost_track_buffer=60,
                         )
@@ -273,7 +280,8 @@ class LocalPerceptionRuntime:
                     emit(PipelineEvent(phase="perception", processed_until_sec=timestamp,
                                        message="Анализируются последовательные кадры записи."))
                     last_emit = timestamp
-            if self._semantic is not None and len(semantic_frames) >= 2:
+            if (self._semantic is not None and len(semantic_frames) >= 2
+                    and semantic_frames[-1][0] > last_semantic_end):
                 observe_window(semantic_frames)
             if self._semantic is not None:
                 from .temporal import apply_semantic_roles

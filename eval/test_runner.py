@@ -13,12 +13,30 @@ from eval.run_pipeline import (
     exclusive_lock,
     freeze_profile,
     guard_holdout,
+    hardware_fingerprint,
     require_combined_report_scope,
+    save_profile,
 )
 from eval.test_metrics import FINGERPRINT, prediction, source
 
 
 class CacheTests(unittest.TestCase):
+    def test_cache_profile_rejects_different_or_unknown_hardware(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profile.json"
+            hardware = {"cpu": "synthetic-cpu", "accelerators": [{"name": "synthetic-gpu"}]}
+            profile = {"fingerprint": FINGERPRINT, "algorithm_fingerprint": "a" * 64,
+                       "pipeline_version": "test-only", "hardware": hardware,
+                       "hardware_fingerprint": hardware_fingerprint(hardware), "runtime_label": "test-only"}
+            save_profile(path, profile)
+            save_profile(path, {**profile, "prepare_sec": 3})
+            for change in ({"hardware_fingerprint": "b" * 64}, {"runtime_label": "another-machine"}):
+                with self.subTest(change=change), self.assertRaisesRegex(ValueError, "HARDWARE_PROFILE_MISMATCH"):
+                    save_profile(path, {**profile, **change})
+            atomic_json(path, {key: value for key, value in profile.items() if key != "hardware_fingerprint"})
+            with self.assertRaisesRegex(ValueError, "HARDWARE_PROFILE_MISMATCH"):
+                save_profile(path, profile)
+
     def test_evaluation_cannot_accept_publishable_artifacts(self) -> None:
         item = source("a", 0, (None,))
         for ready, mode in ((True, "diagnostic"), (False, "validated"), (True, "validated")):
@@ -113,6 +131,8 @@ class HoldoutTests(unittest.TestCase):
                 guard_holdout(root, {**profile, "fingerprint": "0" * 64}, "dataset-v1", selected)
             with self.assertRaises(ValueError):
                 guard_holdout(root, {**profile, "algorithm_fingerprint": "0" * 64}, "dataset-v1", selected)
+            with self.assertRaises(ValueError):
+                guard_holdout(root, {**profile, "hardware_fingerprint": "0" * 64}, "dataset-v1", selected)
             with self.assertRaises(ValueError):
                 freeze_profile(root, {**profile, "fingerprint": "0" * 64}, "dataset-v1")
             with self.assertRaises(ValueError):

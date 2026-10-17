@@ -59,6 +59,8 @@ def _end_to_end_capabilities(directory: Path, profile: dict, binding: str) -> di
             or counts.get("completed_unique_sources") != selected \
             or counts.get("failed_unique_sources") != 0 \
             or counts.get("missing_unique_sources") != 0 \
+            or type(counts.get("true_negatives_with_checkable_rules")) is not int \
+            or counts["true_negatives_with_checkable_rules"] < 1 \
             or counts.get("completed_sources_with_all_rules_not_checkable", selected) == selected:
         return disabled
     confusion = [verdict.get(key) for key in ("tp", "fp", "tn", "fn")]

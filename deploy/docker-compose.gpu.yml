@@ -3,4 +3,5 @@ services:
     gpus: all
     environment:
       NAVIDU_DEVICE: cuda
+      NAVIDU_DETECTOR_MODEL: rfdetr-nano-onnx-fp32
 

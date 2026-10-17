@@ -27,6 +27,7 @@ runtime = [
 cpu = ["onnxruntime==1.23.2"]
 cuda = ["onnxruntime-gpu==1.23.2"]
 pose = ["rtmlib==0.0.16"]
+adapters = ["peft==0.17.1", "accelerate==1.10.1"]
 
 [tool.setuptools.packages.find]
 where = ["."]
