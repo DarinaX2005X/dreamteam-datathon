@@ -38,6 +38,15 @@ def test_rule_content_changes_invalidate_cache_even_with_same_size(tmp_path):
     assert _version(config) != original
 
 
+def test_publication_modes_share_quality_binding_but_not_cached_results(tmp_path):
+    config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
+    devices = {"detector": "cpu", "semantic": "cuda", "semantic_dtype": "bf16"}
+    snapshots = [configuration_snapshot(config.model_copy(update=flags), [], require_semantic=True)
+                 for flags in ({}, {"experimental_analysis": True}, {"diagnostic_only": True})]
+    assert len({validation_binding(snapshot, devices=devices) for snapshot in snapshots}) == 1
+    assert len({effective_version(snapshot, devices=devices) for snapshot in snapshots}) == 3
+
+
 def test_threshold_and_generation_options_are_part_of_cache_identity(tmp_path, monkeypatch):
     config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
     monkeypatch.setenv("NAVIDU_DETECTION_THRESHOLD", "0.45")

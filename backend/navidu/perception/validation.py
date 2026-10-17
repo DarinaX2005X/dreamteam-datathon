@@ -17,10 +17,10 @@ SEMANTIC_CAPABILITIES = frozenset({
 
 def validation_binding(snapshot: dict, *, devices: dict[str, str] | None = None) -> str:
     # Evidence affects result reuse, but cannot be part of its own key. The
-    # diagnostic flag changes publication semantics rather than inference, so a
-    # diagnostic measurement promotes the otherwise identical production setup.
+    # publication flags change access rather than inference, so a measured
+    # experimental/diagnostic setup can promote the identical production setup.
     algorithm = {key: value for key, value in snapshot.items()
-                 if key not in {"validation", "diagnostic_only"}}
+                 if key not in {"validation", "diagnostic_only", "experimental_analysis"}}
     algorithm["implemented_semantic_capabilities"] = sorted(SEMANTIC_CAPABILITIES)
     if devices is not None:
         algorithm["devices"] = devices
