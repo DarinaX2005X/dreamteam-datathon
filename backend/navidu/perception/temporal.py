@@ -20,7 +20,7 @@ from navidu.pipeline.interfaces import PerceptionArtifacts, SemanticSignal
 
 from .reflections import validate_reflections
 
-PROMPT_VERSION = "cash-actions-v4-batch-schema"
+PROMPT_VERSION = "cash-actions-v5-local-frame-indices"
 EVENT_KINDS = frozenset({
     "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
     "cash_sorting", "cash_packing", "bag_opened", "bag_integrity_damage",
@@ -30,7 +30,8 @@ _ACTION_KINDS = EVENT_KINDS - {"cash_in_hands", "cash_on_desk", "phone_visible",
                               "camera_device_visible", "personal_item_identified"}
 _ROLES = frozenset({"cashier", "client", "unknown"})
 _INSTRUCTIONS = """Label the visible actions in this ordered video sequence. Yellow p1, p2,
-etc. are tracked people. Use their IDs. Give first/last supporting frame indices.
+etc. are tracked people. Use their IDs. Give first/last supporting frame indices
+from THIS window only. They are zero-based integer indices, not video seconds.
 Labels: cash_in_hands, cash_on_desk, cash_handover, counting_motion, cash_sorting,
 cash_packing, bag_opened, bag_integrity_damage, personal_item_identified,
 camera_device_visible, phone_visible, bag_present.
@@ -296,9 +297,13 @@ class TemporalVerifier:
                 draw.text((x1 + 2, y1 + 2), track_id, font=font, fill=(255, 225, 55),
                           stroke_width=1, stroke_fill=(0, 0, 0))
             images.append(np.array(image, copy=True))
-            content.extend([{"type": "text", "text": f"\nFrame {index}, source time {timestamp:.3f} seconds.\n"},
+            content.extend([{"type": "text", "text": f"\nFrame {index}:\n"},
                             {"type": "image"}])
-        content.append({"type": "text", "text": "\n" + _INSTRUCTIONS})
+        content.append({"type": "text", "text": "\n" + _INSTRUCTIONS +
+            f"\nThis window has {len(frames)} frames. The only allowed frame indices are "
+            f"0 through {len(frames) - 1}. Every start_frame, end_frame and frames entry "
+            "must use these indices. Use start_frame < end_frame for every event. "
+            "Combine a continuing action into one interval; do not emit one event per frame.\n"})
         prompt = self.processor.apply_chat_template([{"role": "user", "content": content}],
                                                    add_generation_prompt=True, tokenize=False)
         image_options = {"crop_to_patches": self.max_patches > 1,
