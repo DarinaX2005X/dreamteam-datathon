@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "focus": "Working solution, demonstrated output, review workflow, actual models, temporal evidence, rules and private deployment",
+  "removed": [
+    "Private repository invitation notice",
+    "Generic problem-first opening",
+    "Future-pilot proposal in the closing slide",
+    "Development-status phrasing in the closing title"
+  ],
+  "slides": 8,
+  "pdf_pages": 8,
+  "speaker_notes": 8,
+  "minimum_font_size_pt": 18,
+  "structural_inspector_warnings": 0,
+  "service_and_repository_hyperlinks": true,
+  "editable_text": true,
+  "video_prism_included": false,
+  "new_accuracy_claim": false,
+  "pptx_sha256": "a21ba6221ae3fa0a6ae1d1b1f73e9bd16c1134a85a1465f96918d9bcca3d700f",
+  "pdf_sha256": "ec8026b57c6400aa00835ef06e3da3744d59b2c64e0f5bd723c6f44a9fe8c8f9",
+  "cpu_export_app": "ap-xDIpyxqpR0x4Q1jyd0kxYh",
+  "published": true,
+  "website": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+  "deployment_elapsed_seconds": 107.606,
+  "pipeline_runtime_unchanged": "0.1.0+runtime.12cc82a195efa0d45a8d",
+  "visual_review": "user_owned_not_performed_by_agents",
+  "browser_used": false,
+  "http_verification_report": "eval/reports/submission-readiness.json"
+}

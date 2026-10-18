@@ -71,6 +71,16 @@ were selected. `training/refine_qwen_onset_probe.py` and
 `eval/reports/modal-qwen-onset-refinement.json`. These experiments did not change
 the deployed 2 TP / 4 TN / 0 FP / 2 FN development result.
 
+The separate VideoPrism-B experiment in `deploy/modal_videoprism_probe.py` is
+**not a validated runtime**. Public pinned weights passed size/SHA verification,
+but the CPU synthetic forward failed under Flax 0.10.4. The Flax 0.10.6 retry
+was stopped during image preparation for the submission deadline. No GPU training,
+bank-video processing, OOF or validation was run. Do not connect this proposer to
+production or claim a quality result. Static helpers passed five tests; the model
+forward remains to be verified remotely. The saved deadline bounds are 270 seconds
+for Modal, 240 for the subprocess and 210 internally. Exact pins, attribution and
+the uncompleted setup are recorded in `eval/reports/modal-videoprism-probe.json`.
+
 Checkpoints are written before validation, committed to a private Volume, and copied
 automatically to ignored `training/runs/<run-id>` on the local computer, including after
 an ordinary training failure. Interrupted client connections may require manual export:

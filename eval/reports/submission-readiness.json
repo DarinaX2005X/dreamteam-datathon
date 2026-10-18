@@ -1,0 +1,26 @@
+{
+  "base_url": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+  "browser_used": false,
+  "checks": {
+    "readiness": true,
+    "/": 200,
+    "/app": 200,
+    "key_required": true,
+    "jury_key_accepted": true,
+    "pdf": {
+      "status": 200,
+      "sha256": "ec8026b57c6400aa00835ef06e3da3744d59b2c64e0f5bd723c6f44a9fe8c8f9",
+      "matches_final": true
+    },
+    "pptx": {
+      "status": 200,
+      "sha256": "a21ba6221ae3fa0a6ae1d1b1f73e9bd16c1134a85a1465f96918d9bcca3d700f",
+      "matches_final": true
+    }
+  },
+  "runtime": "0.1.0+runtime.12cc82a195efa0d45a8d",
+  "elapsed_seconds": 98.859,
+  "checked_at_utc": "2026-10-18T06:48:23Z",
+  "repository_visibility": "PUBLIC",
+  "repository_default_branch": "codex/lado-local-video"
+}

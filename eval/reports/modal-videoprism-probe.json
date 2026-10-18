@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "outcome": "setup_incomplete_stopped_for_submission_deadline",
+  "role": "experimental_source_review_proposer_not_normative_verdict",
+  "model": "google/videoprism-base-f16r288",
+  "model_revision": "be719a406d563b66f0ac969e7c94bab8e997c81a",
+  "official_code_revision": "c6eba0ece3dd49a24ffc44582966997a4a59f1d8",
+  "weights_file": "flax_base_f16r288_repeated.npz",
+  "weights_bytes": 457475296,
+  "weights_sha256": "61fa62eedbe4f8d4ba76a99a8b79abd0137426a4931c48204ab70446b6411f29",
+  "weights_size_and_sha_verified_remotely": true,
+  "recipe": {
+    "train_sources": 24,
+    "validation_sources": 8,
+    "input": "16 RGB frames at 2 fps; aspect-preserving 288x288 letterbox; float32 [0,1]",
+    "pooling": "Mean spatial tokens per time step, then mean across pretrained temporal embeddings",
+    "head": "Source-balanced logistic regression, fixed C=0.01, fit-fold-only standardization",
+    "positive_fit": "One organizer-onset-centered clip per positive fit source",
+    "negative_fit": "Six label-blind clips per clean fit source; no inferred negatives from positive sources",
+    "held_and_validation": "Label-blind full-source sliding clips, stride 4 seconds, identical aggregation",
+    "calibration": "Three training folds; specificity >= 0.75 and recall >= 0.50",
+    "selection": "Preserve two baseline positives and all four clean sources; recover at least one previous miss"
+  },
+  "checks": {
+    "local_pure_helper_tests_passed": 5,
+    "local_ruff": "passed",
+    "local_syntax_compile": "passed",
+    "independent_static_review": "no launch blockers",
+    "remote_synthetic_model_forward": "not_passed",
+    "local_model_processing": false
+  },
+  "setup_history": [
+    "Added git to the isolated image for pinned official source installation.",
+    "Added the required deployment module to the remote image.",
+    "Flax 0.10.4 did not support the Dense promote_dtype argument used by the pinned model source.",
+    "Updated to Flax 0.10.6; the final image-build retry was interrupted before a successful synthetic forward."
+  ],
+  "last_setup_app": "ap-eWSoo9NgrV1qTYzuk0Zt53",
+  "stopped_at_utc": "2026-10-18T06:44:48Z",
+  "gpu_allocated": false,
+  "bank_video_decoded_by_this_experiment": false,
+  "training_run": false,
+  "validation_run": false,
+  "validation_metrics": null,
+  "selected": false,
+  "deployed": false,
+  "quality_improvement_claimed": false,
+  "holdout_used": false,
+  "attribution": {
+    "authors": "VideoPrism Authors / Google LLC",
+    "paper": "https://arxiv.org/abs/2402.13217",
+    "official_source": "https://github.com/google-deepmind/videoprism/tree/c6eba0ece3dd49a24ffc44582966997a4a59f1d8",
+    "model_card": "https://huggingface.co/google/videoprism-base-f16r288/tree/be719a406d563b66f0ac969e7c94bab8e997c81a",
+    "license_notice": "Official software: Apache-2.0. Other official materials: CC-BY-4.0. Model card tag: Apache-2.0."
+  }
+}
