@@ -78,6 +78,7 @@ def configuration_snapshot(config: PipelineConfig, entries: list[dict], *, requi
                     "revision": item.get("revision"),
                     "base_model": item.get("base_model"), "task": item.get("task"),
                     "detection_thresholds": item.get("detection_thresholds"),
+                    "identity_specialist": item.get("identity_specialist"),
                     "files": [{key: file[key] for key in ("path", "size_bytes", "sha256")}
                               for file in sorted(item["files"], key=lambda file: file["path"])]}
                    for item in entries],

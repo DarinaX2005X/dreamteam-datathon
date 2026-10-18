@@ -1,10 +1,14 @@
 import numpy as np
 import pytest
-
 from navidu.contracts.domain import Track, TrackSample
 from navidu.contracts.pipeline import PipelineConfig
 from navidu.perception.grounding import bind_grounded_events, ground_objects
-from navidu.perception.object_detector import CombinedDetector, object_views, suppress_duplicates
+from navidu.perception.object_detector import (
+    CombinedDetector,
+    identity_views,
+    object_views,
+    suppress_duplicates,
+)
 from navidu.perception.qwen import spatial_bindings, spatial_context
 from navidu.perception.runtime import LocalPerceptionRuntime
 from navidu.pipeline.interfaces import PerceptionArtifacts
@@ -32,6 +36,17 @@ def test_spatial_crop_uses_only_actual_current_window_boxes_and_preserves_ambigu
     assert spatial_context([track], [0.])[0] is None
 
 
+def test_identity_search_uses_observed_desk_objects_and_bounds_its_work():
+    objects = [{"kind": kind, "bbox_xyxy": box, "score": .8} for kind, box in [
+        ("money_counter", [70, 350, 140, 430]), ("hand", [170, 390, 190, 410]),
+        ("hand", [430, 10, 450, 30])]]
+    selected = identity_views(464, 848, objects)
+    assert 1 <= len(selected) <= 4
+    assert all(view in object_views(464, 848) for view in selected)
+    assert any(x1 <= 180 <= x2 and y1 <= 430 <= y2 for x1, y1, x2, y2 in selected)
+    assert identity_views(464, 848, []) == object_views(464, 848)
+
+
 def test_distant_hand_does_not_remove_the_money_detail_but_remains_a_candidate():
     cash = Track(track_id="o1", kind="object", object_class="cash", first_sec=0, last_sec=1,
         samples=[TrackSample(t=t, bbox=(.1, .4, .2, .45), score=.8) for t in (0, 1)])
@@ -40,6 +55,20 @@ def test_distant_hand_does_not_remove_the_money_detail_but_remains_a_candidate()
     crop, hints = spatial_context([cash, hand], [0., 1.])
     assert crop == pytest.approx((.05, .36, .25, .49))
     assert '"kind":"hand"' in hints and '"box":[800,10,900,50]' in hints
+
+
+def test_fragmented_hands_cannot_hide_the_counter_from_cash_context():
+    def track(index, kind, box):
+        return Track(track_id=f"o{index}", kind="object", object_class=kind, first_sec=0, last_sec=1,
+            samples=[TrackSample(t=t, bbox=box, score=.8) for t in (0, 1)])
+
+    tracks = [track(index, "hand", (.1, .4, .2, .45)) for index in range(20)]
+    tracks.extend([track(20, "cash", (.1, .4, .2, .45)),
+                   track(21, "money_counter", (.5, .3, .65, .5))])
+    crop, hints = spatial_context(tracks, [0., 1.])
+    assert crop == pytest.approx((.05, .26, .7, .54))
+    assert hints.count('"kind":"hand"') == 4
+    assert '"kind":"money_counter"' in hints
 
 
 def test_combined_detectors_keep_people_and_objects_in_separate_namespaces(monkeypatch):

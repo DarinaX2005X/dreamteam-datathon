@@ -43,7 +43,15 @@ def spatial_candidates(tracks, timestamps, thresholds=None):
         if len(samples) >= 2:
             candidates.append((track, samples))
     candidates.sort(key=lambda item: (priority[item[0].object_class], -len(item[1])))
-    return candidates[:10]
+    # Fragmented hand tracks must not crowd the counting machine out of the
+    # context. Each class gets bounded room, including stationary equipment.
+    limits = {"cash": 4, "identity_document": 2, "hand": 4, "money_counter": 2}
+    selected = []
+    for track, samples in candidates:
+        if limits[track.object_class]:
+            selected.append((track, samples))
+            limits[track.object_class] -= 1
+    return selected
 
 
 def spatial_bindings(tracks, timestamps, thresholds=None):
@@ -83,8 +91,17 @@ def spatial_context(tracks, timestamps, thresholds=None):
             ". Inspect the pixels to accept or reject each candidate. A hand overlapping money "
             "does not by itself prove holding or handover. Follow the same notes over time; compare "
             "money on the desk, held in one or both hands, and entering or leaving the counting machine. "
-            "Use provided c-IDs in events when visually confirmed. You may omit their repeated boxes "
-            "from the objects array; their source boxes are already retained. Give new objects unused c-IDs. "
+            "Use provided c-IDs in events only when visually confirmed. Do NOT repeat these supplied "
+            "objects or their boxes in the objects array: their source boxes are already retained. "
+            "Leave objects empty unless you find a NEW object; give it an unused c-ID and FULL-scene "
+            "coordinates with view=full. The detail view helps recognition but does not change these coordinates. "
+            "For confirmed visible money, report its state even if it stays still: cash_on_desk, "
+            "cash_in_hands, cash_in_both_hands or cash_in_counter. Use both_hands only when BOTH "
+            "hands of the SAME person visibly hold the SAME notes, not merely two nearby hands. "
+            "Use in_counter only for visible notes in its hopper/tray, never empty machine plastic. "
+            "Choose the most specific supported state; do not duplicate it with a generic state. "
+            "Report one interval per continuing state, not one event per frame. A movement between one "
+            "person's hands is not a handover. Omit handover when the recipient is unknown or the same person. "
             "A machine's presence alone is not a counting action. Return only visibly supported events.\n") if hints else ""
     return detail, text
 

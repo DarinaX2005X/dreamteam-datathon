@@ -31,6 +31,21 @@ def suppress_duplicates(detections):
     return result
 
 
+def identity_views(width, height, detections):
+    """Select existing tiles from observed work-area objects, without fixed ROIs."""
+    views = object_views(width, height)
+    anchors = [item for item in detections if item["kind"] in {"hand", "cash", "money_counter"}]
+    if not anchors:
+        return views
+    ranked = []
+    for index, view in enumerate(views[1:]):
+        score = sum((2. if item["kind"] == "money_counter" else 1.) *
+                    overlap(view, item["bbox_xyxy"])[1] for item in anchors)
+        if score > 0:
+            ranked.append((score, index, view))
+    return [view for _, _, view in sorted(ranked, key=lambda item: (-item[0], item[1]))[:4]]
+
+
 class ReviewedObjectDetector:
     def __init__(self, directory, entry, device):
         import torch
@@ -54,24 +69,32 @@ class ReviewedObjectDetector:
         if any(not math.isfinite(value) or not 0 < value < 1 for value in self.thresholds.values()):
             raise RuntimeError("MODEL_MANIFEST_INVALID: invalid spatial threshold")
         self.labels = {str(CLASS_OFFSET + index): kind for index, kind in enumerate(CLASSES)}
+        self.identity = None
+        specialist = entry.get("identity_specialist")
+        if specialist is not None:
+            threshold = float(specialist["detection_threshold"])
+            if not math.isfinite(threshold) or not 0 < threshold < 1:
+                raise RuntimeError("MODEL_MANIFEST_INVALID: invalid identity threshold")
+            identity_path = artifact_path(directory, specialist["local_dir"])
+            identity_processor = AutoImageProcessor.from_pretrained(identity_path, local_files_only=True)
+            identity_model = AutoModelForObjectDetection.from_pretrained(
+                identity_path, local_files_only=True).to(self.device).eval()
+            if tuple(identity_model.config.id2label[index] for index in range(len(CLASSES))) != CLASSES:
+                raise RuntimeError("MODEL_MANIFEST_INVALID: unexpected identity specialist classes")
+            self.identity = (identity_model, identity_processor, threshold)
+            self.thresholds["identity_document"] = threshold
 
-    def predict(self, rgb):
-        import numpy as np
+    def _predict_views(self, pixels, views, model, processor, thresholds):
         import torch
-        from PIL import Image
 
-        if rgb.ndim != 3 or rgb.shape[-1] != 3 or rgb.dtype != np.uint8:
-            raise ValueError("Object detector expects RGB uint8")
-        pixels = Image.fromarray(rgb)
-        views = object_views(*pixels.size)
         detections = []
         for offset in range(0, len(views), 4):
             current = views[offset:offset + 4]
             crops = [pixels.crop(crop) for crop in current]
-            inputs = self.processor(images=crops, return_tensors="pt").to(self.device)
+            inputs = processor(images=crops, return_tensors="pt").to(self.device)
             with torch.inference_mode():
-                outputs = self.model(**inputs)
-            found = self.processor.post_process_object_detection(outputs, threshold=min(self.thresholds.values()),
+                outputs = model(**inputs)
+            found = processor.post_process_object_detection(outputs, threshold=min(thresholds.values()),
                 target_sizes=[image.size[::-1] for image in crops])
             for crop, result in zip(current, found, strict=True):
                 for box, score, label in zip(result["boxes"].tolist(), result["scores"].tolist(),
@@ -79,12 +102,29 @@ class ReviewedObjectDetector:
                     if not 0 <= label < len(CLASSES) or not math.isfinite(score):
                         continue
                     kind = CLASSES[label]
-                    if score < self.thresholds[kind] or not all(map(math.isfinite, box)):
+                    if kind not in thresholds or score < thresholds[kind] or not all(map(math.isfinite, box)):
                         continue
                     full = [box[0] + crop[0], box[1] + crop[1], box[2] + crop[0], box[3] + crop[1]]
                     full = [min(pixels.size[i % 2], max(0., value)) for i, value in enumerate(full)]
                     if full[2] - full[0] >= 2 and full[3] - full[1] >= 2:
                         detections.append({"kind": kind, "bbox_xyxy": full, "score": score})
+        return suppress_duplicates(detections)
+
+    def predict(self, rgb):
+        import numpy as np
+        from PIL import Image
+
+        if rgb.ndim != 3 or rgb.shape[-1] != 3 or rgb.dtype != np.uint8:
+            raise ValueError("Object detector expects RGB uint8")
+        pixels = Image.fromarray(rgb)
+        views = object_views(*pixels.size)
+        thresholds = {kind: score for kind, score in self.thresholds.items()
+                      if self.identity is None or kind != "identity_document"}
+        detections = self._predict_views(pixels, views, self.model, self.processor, thresholds)
+        if self.identity is not None:
+            model, processor, threshold = self.identity
+            detections.extend(self._predict_views(pixels, identity_views(*pixels.size, detections),
+                model, processor, {"identity_document": threshold}))
         detections = suppress_duplicates(detections)
         boxes = np.array([item["bbox_xyxy"] for item in detections], dtype=np.float32).reshape(-1, 4)
         boxes /= np.array([pixels.width, pixels.height, pixels.width, pixels.height])

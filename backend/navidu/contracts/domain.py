@@ -24,7 +24,8 @@ ZoneKind = Literal[
     "count_room",
 ]
 ObservationKind = Literal[
-    "person_in_zone", "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
+    "person_in_zone", "cash_in_hands", "cash_in_both_hands", "cash_in_counter",
+    "cash_on_desk", "cash_handover", "counting_motion",
     "phone_visible", "bag_present", "bag_opened", "storage_open", "visibility_low",
     "cash_sorting", "cash_packing", "bag_integrity_damage", "personal_item_identified",
     "camera_device_visible", "person_left_zone", "extra_person_present", "identity_document_visible",

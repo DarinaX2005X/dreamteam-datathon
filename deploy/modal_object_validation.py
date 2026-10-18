@@ -58,7 +58,7 @@ def extract(run_id):
 
 @app.function(image=image, gpu="L4", cpu=(2, 2), memory=(8192, 8192), timeout=300,
               retries=0, max_containers=1, scaledown_window=2, volumes={"/private": private})
-def evaluate(training_run_id, annotations):
+def evaluate(training_run_id, annotations, identity_training_run_id=""):
     import time
 
     import numpy as np
@@ -87,8 +87,21 @@ def evaluate(training_run_id, annotations):
         raise ValueError("Training must finish before evaluating the selected checkpoint")
     calibration = run / "calibrated-thresholds.json"
     thresholds = json.loads(calibration.read_text())["detection_thresholds"] if calibration.is_file() else DETECTION_THRESHOLDS
-    detector = ReviewedObjectDetector(run, {"id": training_run_id, "local_dir": "best",
-        "detection_thresholds": thresholds}, "cuda")
+    entry = {"id": training_run_id, "local_dir": training_run_id + "/best",
+             "detection_thresholds": thresholds}
+    if identity_training_run_id:
+        valid_run_id(identity_training_run_id)
+        identity_run = Path("/private/object-training") / identity_training_run_id
+        identity_report = json.loads((identity_run / "run-manifest.json").read_text())
+        if identity_report["state"] != "complete":
+            raise ValueError("Identity training must be complete")
+        identity_calibration = json.loads((identity_run / "calibrated-thresholds.json").read_text())
+        if identity_calibration["annotation_sha256"] != identity_report["annotation_sha256"]:
+            raise ValueError("Identity calibration fingerprint differs")
+        entry["identity_specialist"] = {"local_dir": identity_training_run_id + "/best",
+            "detection_threshold": identity_calibration["detection_thresholds"]["identity_document"]}
+        thresholds = {**thresholds, "identity_document": entry["identity_specialist"]["detection_threshold"]}
+    detector = ReviewedObjectDetector(run.parent, entry, "cuda")
     predictions, times = [], []
     for record in records:
         path = Path(record["remote_frame"]).resolve()
@@ -101,16 +114,18 @@ def evaluate(training_run_id, annotations):
             predictions.append([{"kind": CLASSES[int(kind) - CLASS_OFFSET], "bbox_xyxy": box.tolist(), "score": float(score)}
                                 for box, kind, score in zip(boxes, classes, scores, strict=True)])
         times.append(time.monotonic() - started)
-    result = {"training_run_id": training_run_id, "partition": "development-validation",
+    result = {"training_run_id": training_run_id, "identity_training_run_id": identity_training_run_id or None,
+        "partition": "development-validation",
         "frames": len(records), "sources": len({record["source_sha256"] for record in records}),
         "selected_epoch": report["selected_epoch"], "metrics": detection_metrics(predictions,
             [record["objects"] for record in records], threshold=thresholds), "max_frame_sec": max(times, default=0),
         "mean_frame_sec": sum(times) / len(times) if times else 0,
         "quality_approved": False, "peak_cuda_mib": torch.cuda.max_memory_allocated() / 1048576}
     result["class_support"] = {kind: values["tp"] + values["fn"] for kind, values in result["metrics"]["classes"].items()}
-    (run / "external-spatial-validation.json").write_text(json.dumps(result, indent=2) + "\n")
-    (run / "external-spatial-annotations.json").write_text(json.dumps(annotations) + "\n")
-    (run / "external-spatial-predictions.json").write_text(json.dumps(predictions) + "\n")
+    suffix = "-with-identity" if identity_training_run_id else ""
+    (run / f"external-spatial-validation{suffix}.json").write_text(json.dumps(result, indent=2) + "\n")
+    (run / f"external-spatial-annotations{suffix}.json").write_text(json.dumps(annotations) + "\n")
+    (run / f"external-spatial-predictions{suffix}.json").write_text(json.dumps(predictions) + "\n")
     private.commit()
     return result
 
@@ -168,7 +183,8 @@ def diagnose(run_id):
 
 @app.local_entrypoint()
 def main(stage: str = "extract", run_id: str = "objects-validation-20261018",
-         annotations: str = "training/runs/manual-object-labels/manual-validation.json"):
+         annotations: str = "training/runs/manual-object-labels/manual-validation.json",
+         identity_run_id: str = ""):
     if stage == "extract":
         records = extract.remote(run_id)
         output = Path("training/runs/manual-object-labels") / run_id
@@ -176,8 +192,9 @@ def main(stage: str = "extract", run_id: str = "objects-validation-20261018",
         (output / "proposals.json").write_text(json.dumps(records) + "\n")
         result = {"frames": len(records), "sources": 8, "gpu_allocated": False}
     elif stage == "evaluate":
-        result = evaluate.remote(run_id, json.loads(Path(annotations).read_text()))
-        Path("eval/runs", run_id + "-spatial-validation.json").write_text(json.dumps(result, indent=2) + "\n")
+        result = evaluate.remote(run_id, json.loads(Path(annotations).read_text()), identity_run_id)
+        suffix = "-with-identity" if identity_run_id else ""
+        Path("eval/runs", run_id + suffix + "-spatial-validation.json").write_text(json.dumps(result, indent=2) + "\n")
     elif stage == "diagnose":
         result = diagnose.remote(run_id)
         Path("eval/runs", run_id + "-diagnostics.json").write_text(json.dumps(result, indent=2) + "\n")

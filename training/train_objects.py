@@ -177,6 +177,7 @@ def train(args):
     manifest = {"recipe": "reviewed-spatial-v5-rare-class-crops", "annotation_sha256": annotation_fingerprint(payload),
         "base_model": "rtdetr-v2-r18", "base_revision": "5650961749fa93567c0d46fc7f43ea4f9e914107",
         "classes": list(CLASSES), "seed": args.seed, "epochs_requested": args.epochs,
+        "minimum_epochs": args.minimum_epochs, "plateau_patience": args.patience,
         "learning_rate": args.learning_rate, "backbone_learning_rate": args.backbone_learning_rate,
         "train_sources": len({r["source_sha256"] for r in train_records}),
         "validation_sources": len({r["source_sha256"] for r in valid_records}),
@@ -259,7 +260,7 @@ def train(args):
             no_gain += 1
         save_json(output / "run-manifest.json", manifest)
         print(json.dumps({"stage": "validation", **record, "selected_epoch": manifest["selected_epoch"]}), flush=True)
-        if epoch >= 24 and no_gain >= 12:
+        if epoch >= args.minimum_epochs and no_gain >= args.patience:
             manifest["stop_reason"] = "validation_plateau"
             break
         # Decay after the head has learned the new classes; no validation labels
@@ -284,12 +285,15 @@ def main():
     parser.add_argument("--base-model", default="/models/rtdetr-v2-r18")
     parser.add_argument("--output", required=True)
     parser.add_argument("--epochs", type=int, default=40)
+    parser.add_argument("--minimum-epochs", type=int, default=12)
+    parser.add_argument("--patience", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=5e-5)
     parser.add_argument("--backbone-learning-rate", type=float, default=5e-6)
     parser.add_argument("--max-wall-minutes", type=float, default=30)
     parser.add_argument("--seed", type=int, default=1729)
     args = parser.parse_args()
-    if not 1 <= args.epochs <= 60 or not 1 <= args.max_wall_minutes <= 40 \
+    if not 1 <= args.epochs <= 60 or not 1 <= args.minimum_epochs <= args.epochs \
+            or not 1 <= args.patience <= args.epochs or not 1 <= args.max_wall_minutes <= 40 \
             or not math.isfinite(args.learning_rate) or not 1e-6 <= args.learning_rate <= 1e-3 \
             or not math.isfinite(args.backbone_learning_rate) \
             or not 1e-7 <= args.backbone_learning_rate <= args.learning_rate:

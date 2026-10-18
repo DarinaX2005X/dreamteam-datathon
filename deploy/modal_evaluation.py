@@ -170,12 +170,13 @@ def cpu_preflight() -> dict:
     return result
 
 
-@app.function(image=image, gpu="L4", cpu=(4, 4), memory=(32768, 32768),
+@app.function(image=image, gpu="L4", cpu=(2, 2), memory=(24576, 24576),
               timeout=3000, retries=0, max_containers=1, min_containers=0,
               scaledown_window=2, volumes={"/models": models, "/private": private})
 def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels: int = 451584,
              input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
-             detail_view: bool = False, object_model: str = "") -> dict:
+             detail_view: bool = False, object_model: str = "", source_sha256: str = "",
+             semantic_fps: float = 1., max_new_tokens: int = 2048) -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run ID")
     if model_id not in {"internvl3_5-4b", "qwen3-vl-4b", "qwen3-vl-8b"} or prompt_variant not in {"v5", "v6-evidence", "v7-context", "v8-focused"}:
@@ -190,6 +191,10 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
         raise ValueError("Invalid frame budget")
     if object_model and not re.fullmatch(r"lado-objects-[a-z0-9-]{1,40}", object_model):
         raise ValueError("Invalid object model profile")
+    if source_sha256 and not re.fullmatch(r"[a-f0-9]{64}", source_sha256):
+        raise ValueError("Invalid source fingerprint")
+    if semantic_fps not in {1., 2., 3.} or not 512 <= max_new_tokens <= 2048:
+        raise ValueError("Invalid temporal sampling or output budget")
     from eval.dataset import load_sources
 
     dataset = Path("/private/dataset")
@@ -200,7 +205,11 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
     selected = sorted((source for source in sources if source.fold == 4), key=lambda source: source.sha256)
     if len(selected) != 8:
         raise RuntimeError("Validation split changed")
-    if max_sources == 2:
+    if source_sha256:
+        selected = [source for source in selected if source.sha256 == source_sha256]
+        if not selected:
+            raise ValueError("Requested source is outside development validation")
+    elif max_sources == 2:
         selected = [max((source for source in selected if bool(source.has_violation) == positive),
                         key=lambda source: source.duration_sec) for positive in (True, False)]
     output = Path("/private/evaluation") / run_id
@@ -208,8 +217,8 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
     aggregate = output / "aggregate.json"
     env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
            "NAVIDU_DETECTOR_MODEL": "rfdetr-nano-onnx", "NAVIDU_SEMANTIC_MODEL": model_id,
-           "NAVIDU_SEMANTIC_WINDOW_FRAMES": str(window_frames), "NAVIDU_SEMANTIC_FPS": "1",
-           "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": "2048" if prompt_variant in {"v7-context", "v8-focused"} else "1024",
+           "NAVIDU_SEMANTIC_WINDOW_FRAMES": str(window_frames), "NAVIDU_SEMANTIC_FPS": str(semantic_fps),
+           "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": str(max_new_tokens),
            "NAVIDU_SEMANTIC_MAX_PATCHES": "4",
            "NAVIDU_SEMANTIC_DTYPE": "bf16", "NAVIDU_SEMANTIC_STRUCTURED_OUTPUT": "0",
            "NAVIDU_QWEN_MAX_PIXELS": str(max_pixels), "NAVIDU_SEMANTIC_PROMPT_VARIANT": prompt_variant,
@@ -217,7 +226,7 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
            "NAVIDU_QWEN_DETAIL_VIEW": "1" if detail_view else "0",
            "NAVIDU_OBJECT_MODEL": object_model,
            "NAVIDU_MODEL_INPUT_CAPTURE_DIR": str(output / "private-model-inputs"),
-           "NAVIDU_CPU_THREADS": "4", "NAVIDU_PROPOSAL_ADAPTER": ""}
+           "NAVIDU_CPU_THREADS": "2", "NAVIDU_PROPOSAL_ADAPTER": ""}
     command = [sys.executable, "eval/run_pipeline.py", "run", "--device", "auto",
                "--analysis-fps", "3", "--models-dir", "/models", "--rules-dir", "/workspace/rules",
                "--dataset-dir", str(dataset / "data/dataset"),
@@ -259,10 +268,12 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
 @app.local_entrypoint()
 def main(run_id: str, model_id: str = "qwen3-vl-4b", prompt_variant: str = "v5", max_pixels: int = 451584,
          input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
-         detail_view: bool = False, object_model: str = ""):
+         detail_view: bool = False, object_model: str = "", source_sha256: str = "",
+         semantic_fps: float = 1., max_new_tokens: int = 2048):
     try:
         print(json.dumps(evaluate.remote(run_id, model_id, prompt_variant, max_pixels,
-                                         input_mode, window_frames, max_sources, detail_view, object_model)))
+                                         input_mode, window_frames, max_sources, detail_view, object_model,
+                                         source_sha256, semantic_fps, max_new_tokens)))
     finally:
         destination = ROOT / "eval/runs/modal" / run_id
         destination.parent.mkdir(parents=True, exist_ok=True)

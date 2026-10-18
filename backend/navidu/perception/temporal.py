@@ -22,12 +22,13 @@ from .reflections import validate_reflections
 
 PROMPT_VERSION = "cash-actions-v5-local-frame-indices"
 EVENT_KINDS = frozenset({
-    "cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
+    "cash_in_hands", "cash_in_both_hands", "cash_in_counter", "cash_on_desk", "cash_handover", "counting_motion",
     "cash_sorting", "cash_packing", "bag_opened", "bag_integrity_damage",
     "personal_item_identified", "camera_device_visible", "phone_visible", "bag_present",
     "identity_document_visible",
 })
-_ACTION_KINDS = EVENT_KINDS - {"cash_in_hands", "cash_on_desk", "phone_visible", "bag_present",
+_ACTION_KINDS = EVENT_KINDS - {"cash_in_hands", "cash_in_both_hands", "cash_in_counter",
+                              "cash_on_desk", "phone_visible", "bag_present",
                               "camera_device_visible", "personal_item_identified", "identity_document_visible"}
 _ROLES = frozenset({"cashier", "client", "unknown"})
 _INSTRUCTIONS = """Label the visible actions in this ordered video sequence. Yellow p1, p2,
@@ -167,11 +168,14 @@ Return JSON with six arrays:
    coordinate scale; view is full (or detail when a detail view is supplied).
    Reuse an object ID only for the same visible physical batch; keep clients' batches separate.
 4. events: {kind,start_frame,end_frame,subjects,actor,recipient,objects}.
-   Kinds: cash_in_hands,cash_on_desk,cash_handover,counting_motion,cash_sorting,
+   Kinds: cash_in_hands,cash_in_both_hands,cash_in_counter,cash_on_desk,cash_handover,counting_motion,cash_sorting,
    cash_packing,identity_document_visible,phone_visible,bag_present,bag_opened,
    bag_integrity_damage,personal_item_identified,camera_device_visible.
    subjects are p-IDs, objects are c-IDs. Cash handover needs distinct actor and
    recipient p-IDs; other recipients are null. Actions need an actor. At most 10 events.
+   cash_in_both_hands means the SAME person visibly holds the SAME notes in BOTH
+   hands; otherwise use cash_in_hands. cash_in_counter means visible notes in its
+   hopper or tray. An empty machine is not cash, and this state alone is not counting.
 5. same_cash_batches: {events:[event indices],frames:[supporting frame indices]}.
    Link two or more events only for visibly continuous handling of the SAME notes.
 6. reflections: {reflected_track,source_track,frames}. Require the visible physical
@@ -335,7 +339,8 @@ def validate_events(payload: dict, frame_tracks: list[dict], timestamps: list[fl
 def bind_cash_relations(payload: dict, events: list[dict], frame_tracks: list[dict],
                         timestamps: list[float], model_id: str) -> None:
     by_index = {event["_source_index"]: event for event in events}
-    cash_kinds = {"cash_in_hands", "cash_on_desk", "cash_handover", "counting_motion",
+    cash_kinds = {"cash_in_hands", "cash_in_both_hands", "cash_in_counter",
+                  "cash_on_desk", "cash_handover", "counting_motion",
                   "cash_sorting", "cash_packing"}
     claimed = set()
     for index, batch in enumerate(payload.get("same_cash_batches", [])[:12]):

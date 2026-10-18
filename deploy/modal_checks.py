@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import modal
 
@@ -43,6 +44,29 @@ def check() -> dict:
     return {"gpu_allocated": False, "passed": True, "summary": result.stdout.splitlines()[-1]}
 
 
+@app.function(image=image, cpu=(1, 1), memory=(2048, 2048), timeout=120,
+              retries=0, max_containers=1, scaledown_window=2)
+def generate_contracts():
+    from navidu.contracts import generate
+
+    generate.ROOT = Path("/tmp/lado-generated-contracts")
+    generate.generate()
+    return {path.relative_to(generate.ROOT).as_posix(): path.read_text(encoding="utf-8")
+            for path in generate.ROOT.rglob("*") if path.is_file()}
+
+
 @app.local_entrypoint()
-def main():
-    print(json.dumps(check.remote()))
+def main(stage: str = "check"):
+    if stage == "contracts":
+        files = generate_contracts.remote()
+        for relative, content in files.items():
+            destination = (ROOT / "contracts" / relative).resolve()
+            if not destination.is_relative_to((ROOT / "contracts").resolve()):
+                raise ValueError("Generated contract path escaped its directory")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(content, encoding="utf-8")
+        print(json.dumps({"generated_contract_files": len(files), "gpu_allocated": False}))
+    elif stage == "check":
+        print(json.dumps(check.remote()))
+    else:
+        raise ValueError("Unknown code-check stage")

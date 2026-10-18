@@ -84,7 +84,8 @@ def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...],
     }
     if variant in {"v7-context", "v8-focused"}:
         local_id = {"type": "string", "pattern": "^c[1-6]$"}
-        event["properties"]["kind"]["enum"].append("identity_document_visible")
+        event["properties"]["kind"]["enum"].extend(
+            ["identity_document_visible", "cash_in_both_hands", "cash_in_counter"])
         event["properties"]["objects"] = _array(local_id, 6)
         event["required"].append("objects")
         schema["properties"]["events"]["maxItems"] = 10

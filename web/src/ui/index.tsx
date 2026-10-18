@@ -141,6 +141,8 @@ const factNames: Record<string, string> = {
   extra_person_present: "Более двух людей одновременно",
   identity_document_visible: "Документ, удостоверяющий личность",
   cash_in_hands: "Деньги в руках",
+  cash_in_both_hands: "Деньги в обеих руках",
+  cash_in_counter: "Деньги в счётчике",
   cash_on_desk: "Деньги на столе",
   cash_handover: "Передача денег",
   counting_motion: "Пересчёт",

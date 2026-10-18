@@ -39,6 +39,15 @@ def test_a_single_detection_does_not_bind_a_temporal_actor():
     assert _validate(_event(), [{"p1": (), "p2": ()}, {"p2": ()}]) == []
 
 
+@pytest.mark.parametrize("kind", ["cash_in_both_hands", "cash_in_counter"])
+def test_specific_money_states_remain_states_without_inventing_counting(kind):
+    accepted = _validate(_event(kind=kind, actor="p1", recipient=None, subjects=["p1"]))
+    assert len(accepted) == 1 and accepted[0]["kind"] == kind
+    assert accepted[0]["recipient_id"] is None
+    assert all(event["kind"] != "counting_motion" for event in accepted)
+    assert not _validate(_event(kind=kind, actor="p1", recipient="p2"))
+
+
 def test_event_diagnostics_distinguish_index_and_actor_errors_without_private_values():
     private = "private-generated-value"
     payload = {"events": [_event(), _event(start_frame=17, end_frame=18),

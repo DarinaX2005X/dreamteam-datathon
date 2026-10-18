@@ -746,6 +746,67 @@
         }
       ],
       "status": "experimental"
+    },
+    {
+      "id": "lado-objects-v7-composite",
+      "name": "Lado hands, cash, identity documents and money counters",
+      "runtime": "transformers-rt-detr-v2",
+      "local_dir": "lado-objects-v7-composite",
+      "revision": "21d2512c60d121aecd112d30d2a92d5fdf59152975b3a792bbf1fa6d442b71cb",
+      "base_model": "rtdetr-v2-r18",
+      "base_revision": "5650961749fa93567c0d46fc7f43ea4f9e914107",
+      "training_run_id": "reviewed-objects-v4-20261018",
+      "annotation_sha256": "263c5fe9bd36bca4ea406dd591762a05fda0b894ad69e5dbccd8569f7d33c54a",
+      "selected_epoch": 19,
+      "license": "Apache-2.0",
+      "distribution": "private",
+      "status": "experimental",
+      "task": "object-detection",
+      "files": [
+        {
+          "path": "lado-objects-v7-composite/config.json",
+          "sha256": "6d9ff06b6b0480034a6aa308ffde5065c65793eb9211533f8ff3fb13aede5a80",
+          "size_bytes": 2731
+        },
+        {
+          "path": "lado-objects-v7-composite/model.safetensors",
+          "sha256": "21d2512c60d121aecd112d30d2a92d5fdf59152975b3a792bbf1fa6d442b71cb",
+          "size_bytes": 80514296
+        },
+        {
+          "path": "lado-objects-v7-composite/preprocessor_config.json",
+          "sha256": "cd38cd59999e7a95d68e487fbe5132df3d4e5c32a0836add57e6126ba0c4eaf1",
+          "size_bytes": 444
+        },
+        {
+          "path": "lado-objects-v7-composite/identity-specialist/config.json",
+          "sha256": "6d9ff06b6b0480034a6aa308ffde5065c65793eb9211533f8ff3fb13aede5a80",
+          "size_bytes": 2731
+        },
+        {
+          "path": "lado-objects-v7-composite/identity-specialist/model.safetensors",
+          "sha256": "bd84dfafba9cadec2e067a4ee61d272633a6110f050c2e334fbb7909c2790241",
+          "size_bytes": 80514296
+        },
+        {
+          "path": "lado-objects-v7-composite/identity-specialist/preprocessor_config.json",
+          "sha256": "cd38cd59999e7a95d68e487fbe5132df3d4e5c32a0836add57e6126ba0c4eaf1",
+          "size_bytes": 444
+        }
+      ],
+      "detection_thresholds": {
+        "hand": 0.1,
+        "cash": 0.125,
+        "identity_document": 0.2,
+        "money_counter": 0.55
+      },
+      "identity_specialist": {
+        "local_dir": "lado-objects-v7-composite/identity-specialist",
+        "training_run_id": "reviewed-objects-v6-20261018",
+        "annotation_sha256": "7d7bcaeacee8eb65fae4e0e580baf96e4b3adfa33521e6e6caaa509f365c2e8e",
+        "selected_epoch": 2,
+        "detection_threshold": 0.2
+      }
     }
   ]
 }

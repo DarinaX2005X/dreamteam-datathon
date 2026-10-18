@@ -892,6 +892,8 @@
             "enum": [
               "person_in_zone",
               "cash_in_hands",
+              "cash_in_both_hands",
+              "cash_in_counter",
               "cash_on_desk",
               "cash_handover",
               "counting_motion",
@@ -3049,6 +3051,8 @@
         "enum": [
           "person_in_zone",
           "cash_in_hands",
+          "cash_in_both_hands",
+          "cash_in_counter",
           "cash_on_desk",
           "cash_handover",
           "counting_motion",

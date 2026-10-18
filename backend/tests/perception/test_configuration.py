@@ -101,6 +101,16 @@ def test_opt_in_adapter_and_task_metadata_require_their_own_quality_profile(tmp_
     assert validation_binding(first) != validation_binding(changed)
 
 
+def test_identity_specialist_threshold_requires_a_new_quality_profile(tmp_path):
+    config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
+    entry = {"id": "reviewed", "files": [], "identity_specialist": {
+        "local_dir": "reviewed/identity", "detection_threshold": .2}}
+    first = configuration_snapshot(config, [entry], require_semantic=True)
+    updated = {**entry, "identity_specialist": {**entry["identity_specialist"], "detection_threshold": .3}}
+    changed = configuration_snapshot(config, [updated], require_semantic=True)
+    assert validation_binding(first) != validation_binding(changed)
+
+
 def test_object_weights_and_thresholds_invalidate_cached_analysis(tmp_path, monkeypatch):
     config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
     monkeypatch.delenv("NAVIDU_OBJECT_MODEL", raising=False)

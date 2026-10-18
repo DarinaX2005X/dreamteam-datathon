@@ -1,0 +1,473 @@
+{
+  "schema_version": 1,
+  "status": "candidate_selected_full_pipeline_pending",
+  "selected_model": "lado-objects-v7-composite",
+  "quality_approved": false,
+  "annotation_origin": "assistant_manual_review",
+  "training_sources": 24,
+  "training_frames_reviewed": 106,
+  "development_validation": {
+    "sources": 8,
+    "frames": 31,
+    "objects": {
+      "hand": 66,
+      "cash": 14,
+      "identity_document": 0,
+      "money_counter": 31
+    },
+    "iou_threshold": 0.5,
+    "scope": "Iteratively used development data, not an untouched final test. No identity-document recall can be measured on these frames."
+  },
+  "holdout_used": false,
+  "candidates": {
+    "v3": {
+      "training_run_id": "reviewed-objects-v3-20261018",
+      "selected_epoch": 10,
+      "train_frames": 33,
+      "inner_validation_frames": 9,
+      "inner_validation": {
+        "classes": {
+          "hand": {
+            "tp": 11,
+            "fp": 3,
+            "fn": 6,
+            "precision": 0.7857142857142857,
+            "recall": 0.6470588235294118,
+            "f1": 0.7096774193548386
+          },
+          "cash": {
+            "tp": 3,
+            "fp": 2,
+            "fn": 1,
+            "precision": 0.6,
+            "recall": 0.75,
+            "f1": 0.6666666666666665
+          },
+          "identity_document": {
+            "tp": 2,
+            "fp": 1,
+            "fn": 0,
+            "precision": 0.6666666666666666,
+            "recall": 1.0,
+            "f1": 0.8
+          },
+          "money_counter": {
+            "tp": 9,
+            "fp": 0,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          }
+        },
+        "macro_f1": 0.7940860215053762,
+        "threshold": {
+          "hand": 0.1,
+          "cash": 0.1,
+          "identity_document": 0.1,
+          "money_counter": 0.35
+        },
+        "iou_threshold": 0.5
+      },
+      "training_seconds": 741.25,
+      "development_validation": {
+        "classes": {
+          "hand": {
+            "tp": 18,
+            "fp": 13,
+            "fn": 48,
+            "precision": 0.5806451612903226,
+            "recall": 0.2727272727272727,
+            "f1": 0.3711340206185567
+          },
+          "cash": {
+            "tp": 9,
+            "fp": 8,
+            "fn": 5,
+            "precision": 0.5294117647058824,
+            "recall": 0.6428571428571429,
+            "f1": 0.5806451612903226
+          },
+          "identity_document": {
+            "tp": 0,
+            "fp": 7,
+            "fn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "money_counter": {
+            "tp": 30,
+            "fp": 1,
+            "fn": 1,
+            "precision": 0.967741935483871,
+            "recall": 0.967741935483871,
+            "f1": 0.967741935483871
+          }
+        },
+        "macro_f1": 0.47988027934818756,
+        "threshold": {
+          "hand": 0.1,
+          "cash": 0.1,
+          "identity_document": 0.1,
+          "money_counter": 0.55
+        },
+        "iou_threshold": 0.5
+      },
+      "mean_spatial_frame_seconds": 0.5029368522258059
+    },
+    "v4": {
+      "training_run_id": "reviewed-objects-v4-20261018",
+      "selected_epoch": 19,
+      "train_frames": 44,
+      "inner_validation_frames": 10,
+      "inner_validation": {
+        "classes": {
+          "hand": {
+            "tp": 18,
+            "fp": 1,
+            "fn": 6,
+            "precision": 0.9473684210526315,
+            "recall": 0.75,
+            "f1": 0.8372093023255814
+          },
+          "cash": {
+            "tp": 2,
+            "fp": 3,
+            "fn": 0,
+            "precision": 0.4,
+            "recall": 1.0,
+            "f1": 0.5714285714285715
+          },
+          "identity_document": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 3,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "money_counter": {
+            "tp": 10,
+            "fp": 0,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          }
+        },
+        "macro_f1": 0.6021594684385383,
+        "threshold": {
+          "hand": 0.1,
+          "cash": 0.1,
+          "identity_document": 0.1,
+          "money_counter": 0.35
+        },
+        "iou_threshold": 0.5
+      },
+      "training_seconds": 867.48,
+      "development_validation": {
+        "classes": {
+          "hand": {
+            "tp": 44,
+            "fp": 14,
+            "fn": 22,
+            "precision": 0.7586206896551724,
+            "recall": 0.6666666666666666,
+            "f1": 0.7096774193548386
+          },
+          "cash": {
+            "tp": 10,
+            "fp": 1,
+            "fn": 4,
+            "precision": 0.9090909090909091,
+            "recall": 0.7142857142857143,
+            "f1": 0.8
+          },
+          "identity_document": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "money_counter": {
+            "tp": 31,
+            "fp": 1,
+            "fn": 0,
+            "precision": 0.96875,
+            "recall": 1.0,
+            "f1": 0.9841269841269841
+          }
+        },
+        "macro_f1": 0.6234511008704557,
+        "threshold": {
+          "hand": 0.1,
+          "cash": 0.125,
+          "identity_document": 0.55,
+          "money_counter": 0.55
+        },
+        "iou_threshold": 0.5
+      },
+      "mean_spatial_frame_seconds": 0.39616587693548366
+    },
+    "v5": {
+      "training_run_id": "reviewed-objects-v5-20261018",
+      "selected_epoch": 3,
+      "train_frames": 72,
+      "inner_validation_frames": 18,
+      "inner_validation": {
+        "classes": {
+          "hand": {
+            "tp": 35,
+            "fp": 3,
+            "fn": 2,
+            "precision": 0.9210526315789473,
+            "recall": 0.9459459459459459,
+            "f1": 0.9333333333333332
+          },
+          "cash": {
+            "tp": 5,
+            "fp": 4,
+            "fn": 1,
+            "precision": 0.5555555555555556,
+            "recall": 0.8333333333333334,
+            "f1": 0.6666666666666667
+          },
+          "identity_document": {
+            "tp": 2,
+            "fp": 3,
+            "fn": 2,
+            "precision": 0.4,
+            "recall": 0.5,
+            "f1": 0.4444444444444445
+          },
+          "money_counter": {
+            "tp": 18,
+            "fp": 0,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          }
+        },
+        "macro_f1": 0.7611111111111112,
+        "threshold": {
+          "hand": 0.15,
+          "cash": 0.125,
+          "identity_document": 0.125,
+          "money_counter": 0.125
+        },
+        "iou_threshold": 0.5
+      },
+      "training_seconds": 1251.86,
+      "development_validation": {
+        "classes": {
+          "hand": {
+            "tp": 47,
+            "fp": 5,
+            "fn": 19,
+            "precision": 0.9038461538461539,
+            "recall": 0.7121212121212122,
+            "f1": 0.7966101694915254
+          },
+          "cash": {
+            "tp": 10,
+            "fp": 15,
+            "fn": 4,
+            "precision": 0.4,
+            "recall": 0.7142857142857143,
+            "f1": 0.5128205128205129
+          },
+          "identity_document": {
+            "tp": 0,
+            "fp": 6,
+            "fn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "money_counter": {
+            "tp": 31,
+            "fp": 1,
+            "fn": 0,
+            "precision": 0.96875,
+            "recall": 1.0,
+            "f1": 0.9841269841269841
+          }
+        },
+        "macro_f1": 0.5733894166097556,
+        "threshold": {
+          "hand": 0.15,
+          "cash": 0.125,
+          "identity_document": 0.125,
+          "money_counter": 0.125
+        },
+        "iou_threshold": 0.5
+      },
+      "mean_spatial_frame_seconds": 0.27754813929032257
+    },
+    "v6": {
+      "training_run_id": "reviewed-objects-v6-20261018",
+      "selected_epoch": 2,
+      "train_frames": 82,
+      "inner_validation_frames": 18,
+      "inner_validation": {
+        "classes": {
+          "hand": {
+            "tp": 30,
+            "fp": 5,
+            "fn": 7,
+            "precision": 0.8571428571428571,
+            "recall": 0.8108108108108109,
+            "f1": 0.8333333333333334
+          },
+          "cash": {
+            "tp": 4,
+            "fp": 1,
+            "fn": 2,
+            "precision": 0.8,
+            "recall": 0.6666666666666666,
+            "f1": 0.7272727272727272
+          },
+          "identity_document": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "money_counter": {
+            "tp": 18,
+            "fp": 1,
+            "fn": 0,
+            "precision": 0.9473684210526315,
+            "recall": 1.0,
+            "f1": 0.972972972972973
+          }
+        },
+        "macro_f1": 0.8833947583947583,
+        "threshold": {
+          "hand": 0.15,
+          "cash": 0.125,
+          "identity_document": 0.2,
+          "money_counter": 0.7
+        },
+        "iou_threshold": 0.5
+      },
+      "training_seconds": 1057.87,
+      "development_validation": {
+        "classes": {
+          "hand": {
+            "tp": 37,
+            "fp": 8,
+            "fn": 29,
+            "precision": 0.8222222222222222,
+            "recall": 0.5606060606060606,
+            "f1": 0.6666666666666666
+          },
+          "cash": {
+            "tp": 8,
+            "fp": 17,
+            "fn": 6,
+            "precision": 0.32,
+            "recall": 0.5714285714285714,
+            "f1": 0.41025641025641024
+          },
+          "identity_document": {
+            "tp": 0,
+            "fp": 3,
+            "fn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "money_counter": {
+            "tp": 25,
+            "fp": 7,
+            "fn": 6,
+            "precision": 0.78125,
+            "recall": 0.8064516129032258,
+            "f1": 0.7936507936507936
+          }
+        },
+        "macro_f1": 0.46764346764346765,
+        "threshold": {
+          "hand": 0.15,
+          "cash": 0.125,
+          "identity_document": 0.2,
+          "money_counter": 0.7
+        },
+        "iou_threshold": 0.5
+      },
+      "mean_spatial_frame_seconds": 0.39482853316129013
+    }
+  },
+  "reviewed_usable_frames": 100,
+  "composite": {
+    "primary_training_run": "reviewed-objects-v4-20261018",
+    "identity_training_run": "reviewed-objects-v6-20261018",
+    "development_validation": {
+      "classes": {
+        "hand": {
+          "tp": 44,
+          "fp": 14,
+          "fn": 22,
+          "precision": 0.7586206896551724,
+          "recall": 0.6666666666666666,
+          "f1": 0.7096774193548386
+        },
+        "cash": {
+          "tp": 10,
+          "fp": 1,
+          "fn": 4,
+          "precision": 0.9090909090909091,
+          "recall": 0.7142857142857143,
+          "f1": 0.8
+        },
+        "identity_document": {
+          "tp": 0,
+          "fp": 3,
+          "fn": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "money_counter": {
+          "tp": 31,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.96875,
+          "recall": 1.0,
+          "f1": 0.9841269841269841
+        }
+      },
+      "macro_f1": 0.6234511008704557,
+      "threshold": {
+        "hand": 0.1,
+        "cash": 0.125,
+        "identity_document": 0.2,
+        "money_counter": 0.55
+      },
+      "iou_threshold": 0.5
+    },
+    "mean_spatial_frame_seconds": 0.35218783141935484,
+    "identity_inner_validation": {
+      "model_id": "lado-objects-v7-composite",
+      "frames": 18,
+      "positive_frames": 4,
+      "scope": "Identity specialist inner validation. Primary detector partitions may overlap; not a final test.",
+      "metrics": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "quality_approved": false
+    }
+  }
+}
