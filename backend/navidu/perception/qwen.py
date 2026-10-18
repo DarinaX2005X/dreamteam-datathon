@@ -58,7 +58,13 @@ def spatial_context(tracks, timestamps, thresholds=None):
     indices = {timestamp: index for index, timestamp in enumerate(timestamps)}
     candidates = spatial_candidates(tracks, timestamps, thresholds)
     ids = {track.track_id: local_id for local_id, (track, _) in spatial_bindings(tracks, timestamps, thresholds).items()}
-    boxes = [sample.bbox for _, samples in candidates for sample in samples]
+    focus = candidates
+    if any(track.object_class in {"cash", "identity_document"} for track, _ in candidates):
+        # A hand at the door must not expand a banknote/card detail to the whole
+        # scene. The full video and all candidate hints remain available.
+        focus = [(track, samples) for track, samples in candidates
+                 if track.object_class in {"cash", "identity_document", "money_counter"}]
+    boxes = [sample.bbox for _, samples in focus for sample in samples]
     detail = None
     if boxes:
         x1, y1 = min(box[0] for box in boxes), min(box[1] for box in boxes)

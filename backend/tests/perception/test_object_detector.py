@@ -32,6 +32,16 @@ def test_spatial_crop_uses_only_actual_current_window_boxes_and_preserves_ambigu
     assert spatial_context([track], [0.])[0] is None
 
 
+def test_distant_hand_does_not_remove_the_money_detail_but_remains_a_candidate():
+    cash = Track(track_id="o1", kind="object", object_class="cash", first_sec=0, last_sec=1,
+        samples=[TrackSample(t=t, bbox=(.1, .4, .2, .45), score=.8) for t in (0, 1)])
+    hand = Track(track_id="o2", kind="object", object_class="hand", first_sec=0, last_sec=1,
+        samples=[TrackSample(t=t, bbox=(.8, .01, .9, .05), score=.8) for t in (0, 1)])
+    crop, hints = spatial_context([cash, hand], [0., 1.])
+    assert crop == pytest.approx((.05, .36, .25, .49))
+    assert '"kind":"hand"' in hints and '"box":[800,10,900,50]' in hints
+
+
 def test_combined_detectors_keep_people_and_objects_in_separate_namespaces(monkeypatch):
     class General:
         labels, model_id, device = {"1": "person"}, "general", "cpu"
