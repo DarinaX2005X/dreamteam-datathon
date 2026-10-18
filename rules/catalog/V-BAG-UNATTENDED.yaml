@@ -1,0 +1,14 @@
+{
+  "rule_id": "V-BAG-UNATTENDED",
+  "type_label": "Инкассаторская сумка оставлена без наблюдения",
+  "norm_refs": ["CASE-20261018-unattended-bag"],
+  "requires_visible": [],
+  "requires_capabilities": ["unattended_bag_assessment"],
+  "anchor": {"observation": {"kind": "bag_left_unattended"}},
+  "condition": {"observation": {"kind": "bag_left_unattended"}},
+  "timecode_policy": "onset",
+  "what_seen": "Сотрудник ушёл к выходу из помещения; та же инкассаторская сумка осталась на рабочем столе без видимого сотрудника рядом.",
+  "why_may_violate": "Сценарий оставленной инкассаторской сумки выделен для проверки в разметке кейса и уточнении его содержания владельцем проекта.",
+  "not_claimed": "Содержимое сумки, внутренний порядок хранения и передача ответственности за пределами обзора не установлены. Это критерий кейса, а не подтверждение нарушения конкретного пункта законодательства.",
+  "strength": "moderate"
+}

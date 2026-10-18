@@ -201,6 +201,8 @@ class LocalPerceptionRuntime:
                         dict.fromkeys(SEMANTIC_CAPABILITIES, True)
                         if config.diagnostic_only or config.experimental_analysis else capabilities
                     )
+                    if getattr(semantic, "prompt_variant", None) != "v10-questions":
+                        semantic.capabilities["unattended_bag_assessment"] = False
                 self._detector, self._semantic = detector, semantic
                 self._versions, self._prepared_key = versions, key
                 self._validated_capabilities = capabilities if semantic is not None else {}

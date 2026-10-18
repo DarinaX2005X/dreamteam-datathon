@@ -29,6 +29,7 @@ ObservationKind = Literal[
     "phone_visible", "bag_present", "bag_opened", "storage_open", "visibility_low",
     "cash_sorting", "cash_packing", "bag_integrity_damage", "personal_item_identified",
     "camera_device_visible", "person_left_zone", "extra_person_present", "identity_document_visible",
+    "bag_left_unattended",
 ]
 Verdict = Literal["violation", "no_violation"]
 DecisionValue = Literal["confirmed", "rejected", "not_visible"]

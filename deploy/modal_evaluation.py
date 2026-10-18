@@ -179,8 +179,10 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
              semantic_fps: float = 1., max_new_tokens: int = 2048) -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run ID")
-    if model_id not in {"internvl3_5-4b", "qwen3-vl-4b", "qwen3-vl-8b"} or prompt_variant not in {"v5", "v6-evidence", "v7-context", "v8-focused"}:
+    if model_id not in {"internvl3_5-4b", "qwen3-vl-4b", "qwen3-vl-8b"} or prompt_variant not in {"v5", "v6-evidence", "v7-context", "v8-focused", "v9-questions", "v10-questions"}:
         raise ValueError("Unknown comparison profile")
+    if prompt_variant == "v10-questions" and not model_id.startswith("qwen3-vl-"):
+        raise ValueError("Independent video questions require Qwen")
     if not 65536 <= max_pixels <= 1048576:
         raise ValueError("Invalid image budget")
     if input_mode not in {"images", "video"} or max_sources not in {2, 8}:
@@ -273,7 +275,7 @@ def main(run_id: str, model_id: str = "qwen3-vl-4b", prompt_variant: str = "v5",
     try:
         print(json.dumps(evaluate.remote(run_id, model_id, prompt_variant, max_pixels,
                                          input_mode, window_frames, max_sources, detail_view, object_model,
-                                         source_sha256, semantic_fps, max_new_tokens)))
+                                         source_sha256, semantic_fps, max_new_tokens)), flush=True)
     finally:
         destination = ROOT / "eval/runs/modal" / run_id
         destination.parent.mkdir(parents=True, exist_ok=True)

@@ -3,7 +3,14 @@
 import json
 
 import pytest
-from navidu.perception.temporal import _decode_payload, bind_cash_relations, validate_events
+
+from navidu.perception.temporal import (
+    TemporalVerifier,
+    _decode_payload,
+    bind_cash_relations,
+    validate_events,
+)
+from navidu.pipeline.interfaces import PerceptionArtifacts
 
 
 def _event(**updates):
@@ -29,7 +36,7 @@ def test_handover_preserves_pts_and_explicit_direction():
     {"end_frame": 999}, {"start_frame": -1}, {"start_frame": True},
     {"start_frame": 1, "end_frame": 0}, {"start_frame": 0, "end_frame": 0},
     {"subjects": ["p99"]}, {"actor": "p99"}, {"recipient": "p1"},
-    {"recipient": None}, {"actor": None}, {"kind": "fraud"},
+    {"recipient": None}, {"actor": None}, {"kind": "fraud"}, {"kind": "bag_left_unattended"},
 ])
 def test_invented_event_fields_are_discarded(changes):
     assert _validate(_event(**changes)) == []
@@ -37,6 +44,38 @@ def test_invented_event_fields_are_discarded(changes):
 
 def test_a_single_detection_does_not_bind_a_temporal_actor():
     assert _validate(_event(), [{"p1": (), "p2": ()}, {"p2": ()}]) == []
+
+
+@pytest.mark.parametrize("variant", ["v9-questions", "v10-questions"])
+def test_question_profile_preserves_unattended_object_state_without_inventing_a_person(variant):
+    verifier = TemporalVerifier.__new__(TemporalVerifier)
+    verifier.model_id = "test"
+    verifier.prompt_variant = variant
+    verifier.prompt_version = "test-questions"
+    verifier.last_metrics = {}
+    verifier.capabilities = {"clear_person_count": True}
+    payload = {"events": [{"kind": "bag_present", "start_frame": 0, "end_frame": 1,
+        "subjects": [], "actor": None, "recipient": None, "objects": []}],
+        "roles": [], "visible_people": [], "objects": [], "reflections": [],
+        "same_cash_batches": []}
+    verifier._infer = lambda *args: payload
+    artifacts = PerceptionArtifacts()
+    verifier.observe([(17., None), (18., None)], [], artifacts)
+    assert [(event.kind, event.subjects, event.actor_id) for event in artifacts.observations] == [
+        ("bag_present", [], None)]
+    assert artifacts.capabilities["clear_person_count"] is True
+    assert artifacts.semantic_windows_completed == 1
+    if variant == "v10-questions":
+        payload["_question_events"] = [{"kind": "bag_left_unattended", "start_sec": 17.,
+            "end_sec": 18., "subjects": [], "actor_id": None, "recipient_id": None}]
+        checked = PerceptionArtifacts()
+        verifier.observe([(17., None), (18., None)], [], checked)
+        event = next(item for item in checked.observations if item.kind == "bag_left_unattended")
+        assert event.subjects == [] and event.actor_id is None
+        assert len(event.frame_ids) >= 2
+    del payload["visible_people"]
+    with pytest.raises(RuntimeError, match="MODEL_OUTPUT_INVALID"):
+        verifier.observe([(17., None), (18., None)], [], PerceptionArtifacts())
 
 
 @pytest.mark.parametrize("kind", ["cash_in_both_hands", "cash_in_counter"])

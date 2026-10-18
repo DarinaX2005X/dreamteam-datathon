@@ -279,4 +279,19 @@ class QwenTemporalVerifier(TemporalVerifier):
         self.last_metrics.update({"raw_event_count": len(payload["events"]),
             "raw_role_count": len(payload.get("roles", [])),
             "raw_cash_batch_count": len(payload.get("same_cash_batches", []))})
+        if self.prompt_variant == "v10-questions":
+            from .questioning import verify_bag_questions
+
+            del inputs, output
+            self._question_call_count = getattr(self, "_question_call_count", 0) + 1
+            question_capture = (Path(capture_root) / f"questions-{self._question_call_count:03d}"
+                                if capture_root else None)
+            try:
+                question_events, question_metrics = verify_bag_questions(
+                    self.model, self.processor, frames, device=self.device, dtype=self.dtype,
+                    should_stop=should_stop, capture=question_capture)
+            except ValueError as error:
+                raise TemporalOutputError("MODEL_OUTPUT_INVALID: неверный ответ на проверочный вопрос.") from error
+            payload["_question_events"] = question_events
+            self.last_metrics.update(question_metrics)
         return payload

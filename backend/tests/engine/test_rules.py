@@ -149,6 +149,19 @@ def test_bag_opening_requires_visible_prior_damage():
     assert any(item.rule.rule_id == "V-BAG-OPENED-ALONE" for item in findings)
 
 
+def test_unattended_bag_needs_verified_event_and_its_own_capability():
+    rule = next(item for item in CATALOG if item.rule_id == "V-BAG-UNATTENDED")
+    bag = obs(1, "bag_present", 1, 19)
+    departed = obs(2, "person_left_zone", 15, 19, subjects=("p1",))
+    caps = {"unattended_bag_assessment": True}
+    assert not evaluate([bag, departed], [], {}, [rule], caps)[0]
+    verified = obs(3, "bag_left_unattended", 16, 19)
+    assert not evaluate([verified], [], {}, [rule], {})[0]
+    findings, _ = evaluate([verified], [], {}, [rule], caps)
+    assert len(findings) == 1 and findings[0].timecode_sec == 16
+    assert rule.norm_refs == ("CASE-20261018-unattended-bag",)
+
+
 def test_p42_excludes_client_receipt_and_unknown_is_not_outsider():
     observations = [
         obs(1, "cash_handover", 1, 3, actor="p2", recipient="p1"),

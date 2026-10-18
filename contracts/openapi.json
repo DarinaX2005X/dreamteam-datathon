@@ -909,7 +909,8 @@
               "camera_device_visible",
               "person_left_zone",
               "extra_person_present",
-              "identity_document_visible"
+              "identity_document_visible",
+              "bag_left_unattended"
             ],
             "title": "Kind",
             "type": "string"
@@ -3068,7 +3069,8 @@
           "camera_device_visible",
           "person_left_zone",
           "extra_person_present",
-          "identity_document_visible"
+          "identity_document_visible",
+          "bag_left_unattended"
         ],
         "type": "string"
       },

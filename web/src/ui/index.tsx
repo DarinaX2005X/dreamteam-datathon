@@ -148,6 +148,7 @@ const factNames: Record<string, string> = {
   counting_motion: "Пересчёт",
   phone_visible: "Телефон виден",
   bag_present: "Сумка в кадре",
+  bag_left_unattended: "Сумка оставлена без присмотра",
   bag_opened: "Сумка открыта",
   storage_open: "Хранилище открыто",
   visibility_low: "Низкая видимость",

@@ -82,7 +82,7 @@ def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...],
         "required": ["events", "roles", "same_cash_batches", "reflections"],
         "additionalProperties": False,
     }
-    if variant in {"v7-context", "v8-focused"}:
+    if variant in {"v7-context", "v8-focused", "v9-questions", "v10-questions"}:
         local_id = {"type": "string", "pattern": "^c[1-6]$"}
         event["properties"]["kind"]["enum"].extend(
             ["identity_document_visible", "cash_in_both_hands", "cash_in_counter"])
@@ -107,7 +107,7 @@ def build_schema(frame_count: int, known_track_ids: list[str] | tuple[str, ...],
             "required": ["id", "kind", "samples"], "additionalProperties": False,
         }, 6)
         schema["required"].extend(["visible_people", "objects"])
-        if variant == "v8-focused":
+        if variant in {"v8-focused", "v9-questions", "v10-questions"}:
             person = schema["properties"]["visible_people"]["items"]
             del person["properties"]["frames"]
             person["properties"].update(start_frame=frame_index, end_frame=frame_index)

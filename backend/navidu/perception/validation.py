@@ -12,6 +12,7 @@ from .configuration import snapshot_hash
 SEMANTIC_CAPABILITIES = frozenset({
     "cash_detection", "handover_direction", "counting_action", "bag_damage",
     "bag_opening", "personal_item_semantics", "cash_on_desk", "clear_person_count",
+    "unattended_bag_assessment",
 })
 
 

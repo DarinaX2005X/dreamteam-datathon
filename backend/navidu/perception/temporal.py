@@ -189,6 +189,74 @@ proof that a required action never happened.
 """
 
 
+_QUESTION_INSTRUCTIONS = """Examine this bank-counter video by answering the concrete questions below.
+Record observed facts with their supporting frame intervals, including routine actions.
+Do not decide whether a violation occurred. Yellow p-IDs are tracking identifiers;
+they do not determine roles, authorization, or whether a person is a reflection.
+
+1. WHO IS PHYSICALLY PRESENT? Which person works at the cashier's desk, and who
+   interacts from the client side? For each known p-ID, when is the actual person
+   clearly visible? Check people behind glass against visible physical sources;
+   a mirror image is not a second person. Use roles and visible_people.
+2. WHERE ARE THE BANKNOTES? At the beginning, at each change, and at the end,
+   are recognizable notes in a person's hand, both of that person's hands, on the
+   desk, or inside the counting machine's hopper/tray? Record each visible state
+   separately as cash_in_hands, cash_in_both_hands, cash_on_desk, cash_in_counter.
+   Distinguish actual notes from receipts, documents, wrappers and an empty machine.
+3. DID CONTROL CHANGE? Before a transfer, who holds the notes? After it, who holds
+   the SAME notes? Record cash_handover only for a visible change between DIFFERENT
+   people. Give the previous holder as actor and the new holder as recipient.
+   Reaching across the desk or moving cash within one person's hands is insufficient.
+4. HOW WERE NOTES PROCESSED? Are individual notes repeatedly separated by hand,
+   or visibly fed through a counting machine? That is counting_motion. Moving an
+   intact stack is not counting. Separating denominations or forming groups is
+   cash_sorting; visibly bundling/wrapping notes is cash_packing. Give distinct
+   intervals when these actions occur, including actions before/after a handover.
+5. WHAT HAPPENS TO EACH BATCH? Can the same physical notes be followed across
+   those actions? Link the supported event indices in same_cash_batches. When
+   clients change, check whether the earlier batch remains on the desk while
+   another batch is received. Do not merge batches just because locations match.
+6. WHAT IS DONE WITH A BAG? Is a recognizable bag/pouch present on the desk or
+   in a person's hands? Does it visibly open? Is actual damage to the bag or seal
+   visible BEFORE it opens? Use bag_present, bag_opened, bag_integrity_damage as
+   separate facts. A normal opening does not prove damage. Inspect the final
+   frames too: if a bag remains after a person leaves, report bag_present for the
+   visible remaining interval; the subjects can be [] when nobody is present.
+7. WHAT OTHER OBJECT IS ACTUALLY VISIBLE? Is an identity document visibly held
+   or presented? Use identity_document_visible and its box without reading personal
+   data. For phone_visible, personal_item_identified or camera_device_visible,
+   require the specific recognizable object; a calculator, desk telephone, unknown
+   rectangle, or an ordinary cash bag does not establish a personal camera device.
+
+Answer through this JSON object, not explanatory prose. Use all six arrays:
+- roles: {track,role}, role=cashier/client/unknown.
+- visible_people: {track,clear:true,physical:true,start_frame,end_frame}.
+  Split intervals at disappearance/occlusion. Only known p-IDs, actual physical people.
+- objects: {id,kind,samples:[{frame,box,view}]}. id=c1..c6; kind=cash or
+  identity_document; 2-6 tight samples; box=[x1,y1,x2,y2] on a 0-1000 scale.
+  view=full or detail when supplied. Reuse an ID only for visible object continuity.
+- events: {kind,start_frame,end_frame,subjects,actor,recipient,objects}.
+  Allowed kinds: cash_in_hands,cash_in_both_hands,cash_in_counter,cash_on_desk,
+  cash_handover,counting_motion,cash_sorting,cash_packing,bag_present,bag_opened,
+  bag_integrity_damage,identity_document_visible,phone_visible,
+  personal_item_identified,camera_device_visible. At most 10 events. Use p-IDs
+  for subjects/actor/recipient and c-IDs for objects. Actions need a visible actor;
+  cash_handover needs a different recipient. Other recipients are null. For a
+  stationary object state, actor can be null; do not attribute it to an absent person.
+- same_cash_batches: {events:[event indices],frames:[supporting frame indices]}.
+  At least two events and two frames, including support inside each linked event.
+- reflections: {reflected_track,source_track,frames}. Physical source and its
+  reflected image must both be visible in at least three consecutive frames.
+
+Use integer frame indices from THIS window, not seconds. Every event requires
+start_frame < end_frame and at least two supporting frames. Summarize continuing
+actions as intervals. Empty arrays mean no supported observation, not proof that
+an action never happened. Do not invent unseen transfers, hidden bag contents,
+damage, lock state, personal ownership, or authorization. Prioritize actual changes
+in handling and relevant object states over repeating identical states every frame.
+"""
+
+
 def prompt_profile(variant: str) -> tuple[str, str]:
     if variant == "v5":
         return PROMPT_VERSION, _INSTRUCTIONS
@@ -198,6 +266,10 @@ def prompt_profile(variant: str) -> tuple[str, str]:
         return "cash-actions-v7-grounded-context", _CONTEXT_INSTRUCTIONS
     if variant == "v8-focused":
         return "cash-actions-v8-focused-context", _FOCUSED_INSTRUCTIONS
+    if variant == "v9-questions":
+        return "cash-actions-v9-concrete-questions", _QUESTION_INSTRUCTIONS
+    if variant == "v10-questions":
+        return "cash-actions-v10-short-question-verification", _FOCUSED_INSTRUCTIONS
     raise RuntimeError("INVALID_CONFIG: unknown semantic prompt variant.")
 
 
@@ -397,7 +469,7 @@ def visual_request(frames: list[tuple], frame_tracks: list[dict], variant: str =
         f"0 through {len(frames) - 1}. Every start_frame, end_frame and frames entry "
         "must use these indices. Use start_frame < end_frame for every event. "
         "Combine a continuing action into one interval; do not emit one event per frame.\n"})
-    if variant == "v8-focused":
+    if variant in {"v8-focused", "v9-questions", "v10-questions"}:
         content[-1]["text"] += "Known person IDs in this window: " + ", ".join(
             sorted({person for people in frame_tracks for person in people})) + ".\n"
     return images, content
@@ -420,6 +492,8 @@ class TemporalVerifier:
         torch.set_num_threads(max(1, int(os.getenv("NAVIDU_CPU_THREADS", "6"))))
         self.model_id = entry["id"]
         self.prompt_variant = os.getenv("NAVIDU_SEMANTIC_PROMPT_VARIANT", "v5")
+        if self.prompt_variant == "v10-questions" and not self.model_id.startswith("qwen3-vl-"):
+            raise RuntimeError("INVALID_CONFIG: independent video questions require Qwen.")
         self.prompt_version, _ = prompt_profile(self.prompt_variant)
         self.window_frames = int(os.getenv("NAVIDU_SEMANTIC_WINDOW_FRAMES", "8"))
         self.sample_fps = float(os.getenv("NAVIDU_SEMANTIC_FPS", "1"))
@@ -572,7 +646,7 @@ class TemporalVerifier:
         finally:
             self._spatial_tracks = []
             self._object_bindings = {}
-        if self.prompt_variant in {"v7-context", "v8-focused"} and any(
+        if self.prompt_variant in {"v7-context", "v8-focused", "v9-questions", "v10-questions"} and any(
             not isinstance(payload.get(key), list)
             for key in ("events", "roles", "same_cash_batches", "reflections", "visible_people", "objects")
         ):
@@ -582,7 +656,7 @@ class TemporalVerifier:
         events, roles = validate_events(payload, frame_tracks, timestamps, diagnostics=event_validation)
         bind_cash_relations(payload, events, frame_tracks, timestamps, self.model_id)
         reflections = validate_reflections(payload, frame_tracks, timestamps)
-        if self.prompt_variant in {"v7-context", "v8-focused"}:
+        if self.prompt_variant in {"v7-context", "v8-focused", "v9-questions", "v10-questions"}:
             from .grounding import bind_grounded_events, ground_objects, visible_people
 
             objects = ground_objects(payload, timestamps, artifacts, self.model_id, self.prompt_version,
@@ -593,6 +667,10 @@ class TemporalVerifier:
                 "grounded_cash_objects": sum(track.object_class == "cash" for track, _ in objects.values()),
                 "grounded_identity_documents": sum(track.object_class == "identity_document" for track, _ in objects.values()),
                 "raw_visible_people": len(payload["visible_people"])})
+        if self.prompt_variant == "v10-questions":
+            # These are produced by the independent verifier, not accepted from
+            # the base model's free-form events or an untrusted marker field.
+            events.extend(payload.get("_question_events", []))
         self.last_metrics.update({"accepted_event_count": len(events), "accepted_role_count": len(roles),
                                   "accepted_reflection_count": len(reflections),
                                   "bound_cash_batch_count": len({event["relation_id"] for event in events
@@ -603,7 +681,7 @@ class TemporalVerifier:
         })
         artifacts.semantic_windows_completed += 1
         artifacts.capabilities.update(self.capabilities)
-        if self.prompt_variant not in {"v7-context", "v8-focused"}:
+        if self.prompt_variant not in {"v7-context", "v8-focused", "v9-questions", "v10-questions"}:
             artifacts.capabilities["clear_person_count"] = False
         for claim in reflections:
             artifacts.semantic_signals.append(SemanticSignal(

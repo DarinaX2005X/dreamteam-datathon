@@ -1,4 +1,5 @@
 import pytest
+
 from navidu.perception.grounding import ground_objects, visible_people
 from navidu.perception.qwen import detail_bounds
 from navidu.perception.structured_output import build_schema
@@ -36,8 +37,9 @@ def test_visibility_retains_only_actual_supported_frames_and_never_fills_detecto
     assert artifacts.semantic_signals == []
 
 
-def test_context_schema_has_explicit_bounded_objects_and_visibility():
-    schema = build_schema(64, ["p1", "p2"], "v7-context")
+@pytest.mark.parametrize("variant", ["v7-context", "v8-focused", "v9-questions", "v10-questions"])
+def test_context_schema_has_explicit_bounded_objects_and_visibility(variant):
+    schema = build_schema(64, ["p1", "p2"], variant)
     assert {"objects", "visible_people"}.issubset(schema["required"])
     assert schema["properties"]["events"]["maxItems"] == 10
     sample = schema["properties"]["objects"]["items"]["properties"]["samples"]["items"]
