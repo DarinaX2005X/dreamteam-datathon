@@ -90,6 +90,7 @@ def jury_check(args, client, state, started) -> None:
             if elapsed is None:
                 elapsed = time.time() - state["request_started_at_unix"]
             state["jury_result"] = {"status": status, "verdict": verdict, "violation_count": count,
+                "timecodes_sec": [item["timecode_sec"] for item in body["violations"]],
                 "evidence_frame_count": sum(len(item["evidence_frames"]) for item in body["violations"]),
                 "analysis_mode": response.headers.get("X-Analysis-Mode"),
                 "schema_and_jpeg_valid": True, "elapsed_seconds": round(elapsed, 3), "within_300_seconds": elapsed <= 300}

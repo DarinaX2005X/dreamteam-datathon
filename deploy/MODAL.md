@@ -76,9 +76,14 @@ Do not upgrade the GPU without measured need and user agreement.
 One L4 container owns API, worker and SQLite; min_containers=0, max_containers=1,
 90-second idle window. The website uses Qwen3-VL-8B-Instruct with native video,
 at most 32 sampled frames at 1 fps, object-focused detail views, and prompt
-v8-focused. `lado-objects-v7-composite` supplies separately trained hand, cash,
+v10-questions. Its base v8 observations are supplemented with separate factual
+questions over nine-frame windows for the unattended-bag case scenario.
+`lado-objects-v7-composite` supplies separately trained hand, cash,
 identity-document and money-counter boxes. The profile has an explicit experimental
-label: the eight-source development result is still TP1/TN4/FP0/FN3, and the identity
+label: the eight-source development result is TP2/TN4/FP0/FN2 (previously
+TP1/TN4/FP0/FN3), with all eight completing. This repeatedly used development
+set is not an independent final accuracy estimate; two positives remain missed.
+See `eval/reports/modal-question-verification.json`. The identity
 model has not established recall on separate development videos. A trained language
 adapter is not enabled automatically.
 `NAVIDU_ALLOW_EXPERIMENTAL_API=1` explicitly enables the current model's actual results
@@ -97,7 +102,12 @@ Verify API readiness, a synthetic upload, persistence and scale-to-zero through 
 and Modal task state. UI and visual checks belong exclusively to the user. These cloud
 lifecycle checks must actually pass before claiming successful deployment.
 
-The deployed 8B/object profile passed readiness and key checks: HTTP 200,
+The v10 update passed readiness and key checks. The previously missed bag case
+returned one finding at 16 seconds and one evidence frame in 174.085 seconds
+including cold startup. A short clean control returned no findings in 92.159 seconds.
+Both public jury responses matched the schema; UI visual testing remains with the user.
+
+Before the v10 update, the 8B/object profile passed readiness and key checks: HTTP 200,
 missing/invalid keys rejected with 401, and an authenticated unknown job returned 404.
 A 22.6-second positive development source completed with one finding and a valid JPEG
 in 191.654 seconds from a cold request. The 78.733-second clean source completed
@@ -109,6 +119,7 @@ The user explicitly stopped further work on this long-video limit. Do not presen
 timings from the older 4B profile as timings of the currently deployed object profile.
 
 Technical completion does not establish model quality. Current numeric evidence is
+in `eval/reports/modal-question-verification.json`; prior object-profile results are
 in `eval/reports/reviewed-spatial-objects.json`. The user-only credentials are in
 ignored `.env.jury`; never commit it. Status reads after idle shutdown can also
 require a cold start; the inspection helper allows up to 240 seconds for that GET
@@ -121,7 +132,7 @@ Code checks and processor checks run remotely after the user's local CPU restric
 ```powershell
 .modal-venv/Scripts/python.exe -X utf8 -m modal run -m deploy.modal_checks
 .modal-venv/Scripts/python.exe -X utf8 -m modal run -m deploy.modal_evaluation::cpu_preflight
-.modal-venv/Scripts/python.exe -X utf8 -m modal run -m deploy.modal_evaluation::main --run-id <unique-id> --model-id qwen3-vl-4b --prompt-variant v8-focused --input-mode video --window-frames 64 --max-sources 2
+.modal-venv/Scripts/python.exe -X utf8 -m modal run -m deploy.modal_evaluation::main --run-id <unique-id> --model-id qwen3-vl-8b --prompt-variant v10-questions --input-mode video --window-frames 32 --max-pixels 262144 --detail-view --object-model lado-objects-v7-composite --max-new-tokens 1536 --max-sources 8
 ```
 
 Use module mode (`-m deploy.modal_evaluation`) so Modal includes its package imports.
@@ -129,14 +140,15 @@ Keep image inputs unchanged until the build finishes. Only explicit source paths
 the image; private data remains in the authorized Volume. Native context and optional
 detail crops are experimental profiles, not evidence of improved model quality.
 
-The final v8 full development comparison completed all eight sources:
+The earlier 4B/native64/v8 development comparison completed all eight sources:
 1 TP / 4 TN / 0 FP / 3 FN, maximum 97.794 seconds per analyzed video. The new
 simultaneous-person criterion produced the finding; no cash events or object boxes
 were accepted. An earlier run had an additional false positive; excluding people
 with contradictory physical/reflection claims in the same frames removed it.
 Uncertainty does not hide detector boxes or transfer to the physical source.
-Qwen 8B fits the same L4 (20,491 MiB peak) but did not improve the
-two-source comparison and is not deployed. See `eval/reports/modal-context-comparison.json`.
+Qwen 8B fit the same L4 (20,491 MiB peak) but did not improve that earlier
+two-source comparison and was not selected then. See `eval/reports/modal-context-comparison.json`.
+The current 8B/object/v10 profile and its full comparison are described above.
 These repeatedly inspected development results are not an independent final estimate.
 Holdout remains local and unused.
 

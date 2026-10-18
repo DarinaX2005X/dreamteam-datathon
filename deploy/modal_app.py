@@ -52,7 +52,7 @@ image = (
             "NAVIDU_SEMANTIC_MAX_PATCHES": "4",
             "NAVIDU_SEMANTIC_DTYPE": "bf16",
             "NAVIDU_SEMANTIC_STRUCTURED_OUTPUT": "0",
-            "NAVIDU_SEMANTIC_PROMPT_VARIANT": "v8-focused",
+            "NAVIDU_SEMANTIC_PROMPT_VARIANT": "v10-questions",
             "NAVIDU_QWEN_INPUT_MODE": "video",
             "NAVIDU_QWEN_MAX_PIXELS": "262144",
             "NAVIDU_QWEN_DETAIL_VIEW": "1",

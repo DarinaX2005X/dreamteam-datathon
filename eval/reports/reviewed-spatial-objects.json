@@ -573,5 +573,6 @@
       },
       "further_latency_optimization": "Stopped at explicit user request; no deadline pass is claimed."
     }
-  }
+  },
+  "current_deployment_report": "eval/reports/modal-question-verification.json"
 }

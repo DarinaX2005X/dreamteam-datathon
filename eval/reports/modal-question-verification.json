@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "host": "Modal NVIDIA L4 24 GB",
+  "model_id": "qwen3-vl-8b",
+  "object_model_id": "lado-objects-v7-composite",
+  "holdout_used": false,
+  "quality_approved": false,
+  "baseline": {
+    "prompt_variant": "v8-focused",
+    "reference": "eval/reports/reviewed-spatial-objects.json",
+    "selected_sources": 8,
+    "completed_sources": 8,
+    "confusion": {
+      "tp": 1,
+      "tn": 4,
+      "fp": 0,
+      "fn": 3
+    }
+  },
+  "rejected_long_question_prompt": {
+    "run_id": "modal-v9-questions-eight-20261018",
+    "prompt_variant": "v9-questions",
+    "selected_sources": 8,
+    "completed_sources": 6,
+    "failed_sources": 2,
+    "failure_codes": {
+      "MODEL_OUTPUT_INVALID": 2
+    },
+    "completed_confusion": {
+      "tp": 1,
+      "tn": 3,
+      "fp": 0,
+      "fn": 2
+    },
+    "positive_recall_including_failures": 0.25,
+    "selected_accuracy_lower_bound": 0.5,
+    "selected_for_deployment": false
+  },
+  "short_question_protocol": {
+    "prompt_variant": "v10-questions",
+    "base_observations": "Unchanged v8-focused prompt with independent questions appended after inference.",
+    "window_frames": 9,
+    "stride_frames": 6,
+    "question_order": [
+      "bag_on_desk",
+      "worker_at_exit",
+      "same_bag_after_departure",
+      "workstation_unattended"
+    ],
+    "early_stop": "A no or unknown answer stops the remaining questions for that window.",
+    "acceptance": "All four answers must say yes with at least two common consecutive supporting frames, no gap over 2.1 seconds, and at least two earlier frames supporting bag presence.",
+    "inputs": "Uniform sweep over actual sampled source frames; no video identities, organizer labels, manual event times or per-video zones enter the questions.",
+    "rule_id": "V-BAG-UNATTENDED",
+    "source_kind": "Development case scenario, not a statutory requirement."
+  },
+  "targeted_pipeline_check": {
+    "run_id": "modal-v10-bag-integration-20261018",
+    "selected_sources": 1,
+    "completed_sources": 1,
+    "previously_missed_positive_detected": true,
+    "finding_timecode_sec": 16.0,
+    "finding_end_sec": 19.0,
+    "organizer_timecode_sec": 15.0,
+    "timing_error_sec": 1.0,
+    "analyze_seconds": 60.206434311,
+    "question_calls": 8,
+    "question_seconds": 17.8766,
+    "generalization_claim": false
+  },
+  "full_comparison": {
+    "run_id": "modal-v10-questions-eight-20261018",
+    "status": "completed",
+    "selected_sources": 8,
+    "completed_sources": 8,
+    "failed_sources": 0,
+    "pipeline_version": "0.1.0+runtime.d756af693ae122d44c91",
+    "fingerprint": "456c684f279d4d3ff2225655fbd73153e4bc5af8d9580f1973c3654db57b1e9e",
+    "verdict": {
+      "accuracy": 0.75,
+      "balanced_accuracy": 0.75,
+      "clean_evaluated": 4,
+      "denominator": "Completed unique sources only; failures and missing inputs are reported separately.",
+      "evaluated": 8,
+      "f1": 0.6666666666666666,
+      "false_positive_rate_clean": 0.0,
+      "fn": 2,
+      "fp": 0,
+      "positive_evaluated": 4,
+      "positive_recall_with_failures_as_misses": 0.5,
+      "precision": 1.0,
+      "recall": 0.5,
+      "selected_accuracy_lower_bound": 0.75,
+      "specificity": 1.0,
+      "tn": 4,
+      "tp": 2
+    },
+    "timing_error_sec": {
+      "ambiguous_policy": "Different timestamps on byte-identical copies are inconsistent annotations, not two confirmed events; exclude the entire source from headline timing.",
+      "correctly_detected_unambiguous_positive_sources": 2,
+      "count": 2,
+      "excluded_detected_ambiguous_positive_sources": 0,
+      "max": 4.0,
+      "median": 2.5,
+      "method": "Nearest actual finding to the sole organizer timestamp; only correctly detected unique positive sources with one unambiguous label. This is not one-to-one event matching and may favour videos with more findings.",
+      "missed_or_failed_positive_sources": 2,
+      "p90": 3.7
+    },
+    "latency_sec": {
+      "count": 8,
+      "max": 285.03896921500007,
+      "median": 65.53865382350006,
+      "p90": 267.9979666385,
+      "scope": "Actual per-video analyze wall time; warm model preparation measured separately; cache retrieval not counted."
+    },
+    "matched_source_count": 8,
+    "unchanged_verdicts": 7,
+    "changed_verdicts": [
+      {
+        "source_sha256": "69caf59620fcd80bedcb664514730ab38f2f800da27000a8e037d7440be5dc7a",
+        "before": "no_violation",
+        "after": "violation"
+      }
+    ],
+    "selected_for_deployment": true
+  },
+  "code_checks": {
+    "remote_backend_tests_passed": 365,
+    "remote_backend_tests_skipped": 3,
+    "holdout_related_tests_deselected": 3,
+    "remote_web_tests_passed": 27,
+    "web_build_and_typecheck": "passed",
+    "ui_visually_verified_by_agent": false
+  },
+  "limitations": [
+    "The same eight development-validation sources were used repeatedly to design and compare prompts; this is not an independent final accuracy estimate.",
+    "The candidate adds the scenario-based V-BAG-UNATTENDED rule alongside the question protocol; the verdict comparison is not a prompt-only ablation with an unchanged rule catalog.",
+    "The bag scenario comes from the organizer's positive label and the user's factual clarification. It does not establish a specific statutory violation, hidden contents, internal storage rules or off-camera responsibility transfer.",
+    "No ambiguous development examples or user descriptions were added to training, and the fixed training/validation partition was preserved.",
+    "Single-question and per-frame-position probes were not reliable enough alone; the production candidate uses the joint short-window protocol only.",
+    "No additional long-video latency optimization was performed."
+  ],
+  "deployment": {
+    "selected": true,
+    "http_verified": true,
+    "status": "deployed",
+    "url": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+    "prompt_variant": "v10-questions",
+    "pipeline_version": "0.1.0+runtime.4fe2ee5b201383b2267a",
+    "analysis_mode": "experimental",
+    "readiness": {
+      "ready": true,
+      "analysis_ready": true,
+      "model_status": "ready",
+      "analysis_mode": "experimental",
+      "pipeline_version": "0.1.0+runtime.4fe2ee5b201383b2267a",
+      "device": "cpu+cuda+cuda"
+    },
+    "auth": {
+      "missing_POST": 401,
+      "missing_GET": 401,
+      "invalid_POST": 401,
+      "invalid_GET": 401,
+      "valid_key_unknown_job": 404
+    },
+    "bag_positive": {
+      "source_duration_sec": 20.866667,
+      "cold_post_elapsed_sec": 95.297,
+      "status": "done",
+      "verdict": "violation",
+      "violation_count": 1,
+      "timecodes_sec": [
+        16.0
+      ],
+      "evidence_frame_count": 1,
+      "analysis_mode": "experimental",
+      "schema_and_jpeg_valid": true,
+      "elapsed_seconds": 174.085,
+      "within_300_seconds": true
+    },
+    "clean_control": {
+      "source_duration_sec": 31.7,
+      "post_elapsed_sec": 5.875,
+      "status": "done",
+      "verdict": "no_violation",
+      "violation_count": 0,
+      "timecodes_sec": [],
+      "evidence_frame_count": 0,
+      "analysis_mode": "experimental",
+      "schema_and_jpeg_valid": true,
+      "elapsed_seconds": 92.159,
+      "within_300_seconds": true
+    },
+    "ui_visually_verified_by_agent": false
+  },
+  "remaining_positive_misses": [
+    {
+      "source_id": "Х-13",
+      "accepted_events": 7,
+      "grounded_cash_objects": 6,
+      "recognized_states": [
+        "cash_in_hands",
+        "cash_on_desk"
+      ],
+      "rule_basis": "Organizer violation type remains unspecified; observed cash states alone do not establish a violation."
+    },
+    {
+      "source_id": "Х-46",
+      "accepted_events": 5,
+      "grounded_cash_objects": 1,
+      "recognized_states": [
+        "cash_in_hands",
+        "cash_on_desk"
+      ],
+      "rule_basis": "Organizer violation type remains unspecified; coffee or visible cash alone was not assigned a new violation rule."
+    }
+  ]
+}
