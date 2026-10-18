@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "feature_commit": "26cf177",
+  "presentation": {
+    "slides": 8,
+    "language": "Russian",
+    "aspect_ratio": "16:9",
+    "pptx_has_native_editable_text_and_shapes": true,
+    "speaker_note_slides": 8,
+    "pdf_pages": 8,
+    "original_imagegen_artwork": true,
+    "svg_source_assets": 5,
+    "structural_inspector_warnings": 0,
+    "bank_footage_used_in_artwork": false,
+    "aggregate_accuracy_claim_in_pitch": false
+  },
+  "publication": {
+    "base_url": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+    "artifacts": [
+      {
+        "path": "/presentation/lado-pitch.pdf",
+        "status": 200,
+        "content_type": "application/pdf",
+        "bytes": 324672,
+        "sha256": "d24ef727639065602e369b49880cceee9a92a840cf804f06c4eb9c43cb4ee470",
+        "matches_final_file": true
+      },
+      {
+        "path": "/presentation/lado-pitch.pptx",
+        "status": 200,
+        "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "bytes": 3749776,
+        "sha256": "af22fe8c76228efdfcf496c13c59fbd40c2514c0dd2612ee743240abd674bdc3",
+        "matches_final_file": true
+      }
+    ],
+    "browser_used": false,
+    "landing_link_targets_in_bundle": true,
+    "onset_label_in_bundle": true,
+    "landing_matches_available_review_controls": true
+  },
+  "health": {
+    "ready": true,
+    "analysis_ready": true,
+    "model_status": "ready",
+    "analysis_mode": "experimental",
+    "pipeline_version": "0.1.0+runtime.8c9d7c63c4316105a12e",
+    "device": "cpu+cuda+cuda"
+  },
+  "auth": {
+    "missing_POST": 401,
+    "missing_GET": 401,
+    "invalid_POST": 401,
+    "invalid_GET": 401,
+    "valid_key_unknown_job": 404
+  },
+  "positive_api_check": {
+    "status": "done",
+    "verdict": "violation",
+    "violation_count": 1,
+    "timecodes_sec": [
+      16.0
+    ],
+    "evidence_frame_count": 1,
+    "analysis_mode": "experimental",
+    "schema_and_jpeg_valid": true,
+    "elapsed_seconds": 169.989,
+    "within_300_seconds": true
+  },
+  "onset_description_check": {
+    "timecode_sec": 16.0,
+    "description_uses_single_onset": true,
+    "support_interval_not_displayed": true,
+    "pipeline_version": "0.1.0+runtime.8c9d7c63c4316105a12e",
+    "ready": true
+  },
+  "checks": {
+    "backend_passed": 366,
+    "backend_skipped": 3,
+    "holdout_related_tests_deselected": 3,
+    "web_tests_passed": 27,
+    "build": "passed",
+    "typecheck": "passed",
+    "contracts_typecheck": "passed"
+  },
+  "ml_decision": {
+    "production_profile_retained": "qwen3-vl-8b / v10-questions / native 32 frames at 1 fps / objects-v7",
+    "new_training": false,
+    "new_quality_gain_claimed": false,
+    "audit": "eval/reports/modal-temporal-window-audit.json",
+    "quality_approved": false
+  },
+  "agent_browser_or_visual_testing": false,
+  "visual_review_owner": "user"
+}
