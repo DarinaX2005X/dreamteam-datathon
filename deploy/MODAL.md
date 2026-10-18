@@ -61,6 +61,16 @@ checkpoint was selected. This did not improve production recall. The private
 feature cache can support further bounded CPU analysis without video decoding.
 See `eval/reports/modal-qwen-onset-probe.json` for the measured result.
 
+Two fixed linear refinements reused that exact private cache on CPU only:
+signed/absolute temporal differences, and the full pre/post/difference features.
+Both fitted their training folds well but failed source-grouped OOF calibration;
+neither met specificity >= 0.75 and recall >= 0.50 at any threshold. The run took
+8.827 seconds with two CPUs and no GPU. Validation was not scored and no weights
+were selected. `training/refine_qwen_onset_probe.py` and
+`deploy/modal_onset_refinement.py` preserve the recipe; the numeric result is in
+`eval/reports/modal-qwen-onset-refinement.json`. These experiments did not change
+the deployed 2 TP / 4 TN / 0 FP / 2 FN development result.
+
 Checkpoints are written before validation, committed to a private Volume, and copied
 automatically to ignored `training/runs/<run-id>` on the local computer, including after
 an ordinary training failure. Interrupted client connections may require manual export:

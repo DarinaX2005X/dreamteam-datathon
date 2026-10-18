@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "run_id": "modal-qwen-onset-refinement-20261018-a1",
+  "app_id": "ap-rtCjKvLW9mR38rdVV2ZVCj",
+  "role": "binary_proposer_not_normative_verdict",
+  "host": {
+    "cpu_count": 2,
+    "profile": "modal-cpu",
+    "gpu_allocated": false,
+    "memory_mib": 8192
+  },
+  "train_sources": 24,
+  "train_positive": 12,
+  "train_negative": 12,
+  "cache_sha256": "3d447b713cd2c87bad3a58bc8805498ad92ac61a28e5024787661379444bf883",
+  "recipe": {
+    "bag": "normalized_log_mean_exp_tau_0.25",
+    "epochs": 30,
+    "learning_rate": 0.001,
+    "oof_guard": {
+      "recall": 0.5,
+      "specificity": 0.75
+    },
+    "optimizer": "AdamW",
+    "positive_supervision": "onset_support_only_radius_1.5_sigma_1.0",
+    "scaler": "fit-fold-only standardization",
+    "schema_version": 1,
+    "seed": 1729,
+    "selection": "OOF balanced_accuracy then specificity then recall; A wins ties",
+    "variants": [
+      "delta_only_linear",
+      "full_transition_linear"
+    ],
+    "weight_decay": 0.1
+  },
+  "elapsed_seconds": 8.827,
+  "outcome": "rejected",
+  "reason": "neither fixed variant has a feasible OOF threshold",
+  "variant_results": [
+    {
+      "variant": "delta_only_linear",
+      "feasible": false,
+      "diagnostic_metrics_at_0_5": {
+        "balanced_accuracy": 0.4583333333333333,
+        "fn": 1,
+        "fp": 12,
+        "recall": 0.9166666666666666,
+        "specificity": 0.0,
+        "tn": 0,
+        "tp": 11
+      },
+      "per_fold": [
+        {
+          "final_loss": 0.24310237169265747,
+          "fit_sources": 16,
+          "fold": 1,
+          "held_sources": 8,
+          "initial_loss": 0.974815845489502,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.375,
+            "fn": 1,
+            "fp": 4,
+            "recall": 0.75,
+            "specificity": 0.0,
+            "tn": 0,
+            "tp": 3
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 1.0,
+            "fn": 0,
+            "fp": 0,
+            "recall": 1.0,
+            "specificity": 1.0,
+            "tn": 8,
+            "tp": 8
+          }
+        },
+        {
+          "final_loss": 0.3118118345737457,
+          "fit_sources": 16,
+          "fold": 2,
+          "held_sources": 8,
+          "initial_loss": 1.097489356994629,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.5,
+            "fn": 0,
+            "fp": 4,
+            "recall": 1.0,
+            "specificity": 0.0,
+            "tn": 0,
+            "tp": 4
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 0.9375,
+            "fn": 0,
+            "fp": 1,
+            "recall": 1.0,
+            "specificity": 0.875,
+            "tn": 7,
+            "tp": 8
+          }
+        },
+        {
+          "final_loss": 0.2679579257965088,
+          "fit_sources": 16,
+          "fold": 3,
+          "held_sources": 8,
+          "initial_loss": 1.1028891801834106,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.5,
+            "fn": 0,
+            "fp": 4,
+            "recall": 1.0,
+            "specificity": 0.0,
+            "tn": 0,
+            "tp": 4
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 0.9375,
+            "fn": 0,
+            "fp": 1,
+            "recall": 1.0,
+            "specificity": 0.875,
+            "tn": 7,
+            "tp": 8
+          }
+        }
+      ],
+      "threshold": null,
+      "rejection_reason": "no OOF threshold satisfies anti-all-positive guards"
+    },
+    {
+      "variant": "full_transition_linear",
+      "feasible": false,
+      "diagnostic_metrics_at_0_5": {
+        "balanced_accuracy": 0.375,
+        "fn": 4,
+        "fp": 11,
+        "recall": 0.6666666666666666,
+        "specificity": 0.08333333333333333,
+        "tn": 1,
+        "tp": 8
+      },
+      "per_fold": [
+        {
+          "final_loss": 0.03544050455093384,
+          "fit_sources": 16,
+          "fold": 1,
+          "held_sources": 8,
+          "initial_loss": 0.9523732662200928,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.125,
+            "fn": 3,
+            "fp": 4,
+            "recall": 0.25,
+            "specificity": 0.0,
+            "tn": 0,
+            "tp": 1
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 1.0,
+            "fn": 0,
+            "fp": 0,
+            "recall": 1.0,
+            "specificity": 1.0,
+            "tn": 8,
+            "tp": 8
+          }
+        },
+        {
+          "final_loss": 0.1505439430475235,
+          "fit_sources": 16,
+          "fold": 2,
+          "held_sources": 8,
+          "initial_loss": 1.1426796913146973,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.5,
+            "fn": 0,
+            "fp": 4,
+            "recall": 1.0,
+            "specificity": 0.0,
+            "tn": 0,
+            "tp": 4
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 1.0,
+            "fn": 0,
+            "fp": 0,
+            "recall": 1.0,
+            "specificity": 1.0,
+            "tn": 8,
+            "tp": 8
+          }
+        },
+        {
+          "final_loss": 0.1121598556637764,
+          "fit_sources": 16,
+          "fold": 3,
+          "held_sources": 8,
+          "initial_loss": 1.1558092832565308,
+          "oof_metrics_at_0_5": {
+            "balanced_accuracy": 0.5,
+            "fn": 1,
+            "fp": 3,
+            "recall": 0.75,
+            "specificity": 0.25,
+            "tn": 1,
+            "tp": 3
+          },
+          "train_metrics_at_0_5": {
+            "balanced_accuracy": 1.0,
+            "fn": 0,
+            "fp": 0,
+            "recall": 1.0,
+            "specificity": 1.0,
+            "tn": 8,
+            "tp": 8
+          }
+        }
+      ],
+      "threshold": null,
+      "rejection_reason": "no OOF threshold satisfies anti-all-positive guards"
+    }
+  ],
+  "chosen_variant": null,
+  "selected": false,
+  "classifier_validation_run": false,
+  "validation_metrics": null,
+  "checkpoint_created": false,
+  "holdout_used": false,
+  "deployed": false,
+  "quality_improvement_claimed": false,
+  "checks": {
+    "remote_tests_passed": 2,
+    "remote_ruff": "passed",
+    "cache_sha_verified": true
+  },
+  "interpretation": "Both fixed linear heads fit their training folds well but failed on held-out training sources. Reducing head capacity and removing absolute scene features did not establish generalization. This does not prove that every temporal model would fail."
+}
