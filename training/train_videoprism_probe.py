@@ -33,6 +33,7 @@ from training.videoprism_probe import (  # noqa: E402
     letterbox_rgb,
     normalized_lme_numpy,
     onset_start,
+    pool_video_tokens,
     select_clip,
 )
 
@@ -42,8 +43,8 @@ MODEL_FILE = "flax_base_f16r288_repeated.npz"
 MODEL_SHA256 = "61fa62eedbe4f8d4ba76a99a8b79abd0137426a4931c48204ab70446b6411f29"
 CODE_REVISION = "c6eba0ece3dd49a24ffc44582966997a4a59f1d8"
 SEED = 1729
-HARD_WALL_SECONDS = 210
-ETA_LIMIT_SECONDS = 180
+HARD_WALL_SECONDS = 540
+ETA_LIMIT_SECONDS = 480
 REQUIRED_POSITIVE_IDS = {
     "69caf59620fcd80bedcb664514730ab38f2f800da27000a8e037d7440be5dc7a",
     "90607b0b0cb772fcf29b0c7e0e56fa6af36da6fac0efe93b8a616b5de94a156c",
@@ -100,7 +101,7 @@ def _strict_gate(rows: list[dict[str, Any]]) -> bool:
 
 def _decode(sample: Any) -> list[tuple[float, Any]]:
     from navidu.ingest import iter_frames
-    frames = [(float(frame.timestamp_sec), frame.rgb)
+    frames = [(float(frame.timestamp_sec), letterbox_rgb(frame.rgb))
               for frame in iter_frames(sample.video_path, analysis_fps=FPS)]
     if len(frames) < 16:
         raise ProbeError(f"insufficient frames: {sample.sample_id}")
@@ -126,19 +127,18 @@ def _embed_sources(samples: list[Any], mode: str, forward: Any, state: Any,
         vectors, actual_bounds = [], []
         for start in starts:
             selected = select_clip(frames, start)
-            clip = np.stack([letterbox_rgb(rgb) for _, rgb in selected])
+            clip = np.stack([rgb for _, rgb in selected])
             actual_bounds.append((float(selected[0][0]), float(selected[-1][0])))
-            outputs = forward(state, jnp.asarray(clip[None]), train=False)
-            array = np.asarray(outputs[0] if isinstance(outputs, tuple) else outputs)
-            if array.shape != (1, 4096, 768):
-                raise ProbeError(f"unexpected VideoPrism output {array.shape}")
-            # Official output is 16 time steps x 16 x 16 spatial tokens.
-            vectors.append(array.reshape(1, 16, 16, 16, 768).mean(axis=(2, 3)).mean(axis=1)[0])
+            array = np.asarray(forward(state, jnp.asarray(clip[None])))
+            if array.shape != (1, 768) or not np.isfinite(array).all():
+                raise ProbeError("unexpected or non-finite VideoPrism pooled features")
+            vectors.append(array[0])
             counter["clips"] += 1
             if counter["clips"] == 32:
                 elapsed = time.monotonic() - counter["started"]
-                projected = elapsed / 32 * counter["planned_total"]
+                projected = counter["setup_elapsed"] + elapsed / 32 * counter["planned_total"] + 15
                 counter["eta"] = {"first_32_seconds": round(elapsed, 3),
+                                  "setup_seconds": round(counter["setup_elapsed"], 3),
                                   "planned_clips": counter["planned_total"],
                                   "projected_all_seconds": round(projected, 3)}
                 write_json(counter["progress"], {"state": "embedding", "eta": counter["eta"]})
@@ -149,6 +149,11 @@ def _embed_sources(samples: list[Any], mode: str, forward: Any, state: Any,
         items.append({"sample_id": sample.sample_id, "truth": bool(sample.has_violation),
                       "starts": starts, "actual_bounds": actual_bounds,
                       "x": np.stack(vectors).astype(np.float32)})
+        progress = {"state": "embedding", "phase": mode, "sources_completed": len(items),
+                    "sources_total": len(samples), "clips_encoded": counter["clips"],
+                    "elapsed_seconds": round(time.monotonic() - counter["wall_started"], 3)}
+        write_json(counter["progress"], progress)
+        print(json.dumps(progress), flush=True)
     return items
 
 
@@ -261,10 +266,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "holdout_used": False}
     model = vp.get_model("videoprism_public_v1_base")
     state = vp.load_pretrained_weights("videoprism_public_v1_base", str(args.weights))
-    forward = jax.jit(model.apply, static_argnames=("train",))
+    def encode(variables: Any, inputs: Any) -> Any:
+        tokens, _ = model.apply(variables, inputs, train=False)
+        return pool_video_tokens(tokens)
+
+    forward = jax.jit(encode)
+    warmup = np.asarray(forward(state, jnp.zeros((1, 16, 288, 288, 3), dtype=jnp.float32)))
+    if warmup.shape != (1, 768) or not np.isfinite(warmup).all():
+        raise ProbeError("GPU warmup produced invalid features")
     planned = sum(len(_planned_starts(x, "coverage")) + len(_planned_starts(x, "fit")) for x in train)
     planned += sum(len(_planned_starts(x, "coverage")) for x in validation)
     counter = {"clips": 0, "started": time.monotonic(), "wall_started": wall_started,
+               "setup_elapsed": time.monotonic() - wall_started,
                "planned_total": planned, "progress": args.output_dir / "progress.json", "eta": None}
     # Fit clips and held clips are separate by construction; held schedules never consult labels.
     fit_items = _embed_sources(train, "fit", forward, state, jnp, counter)

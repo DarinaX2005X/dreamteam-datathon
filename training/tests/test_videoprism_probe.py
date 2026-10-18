@@ -17,6 +17,13 @@ SPEC.loader.exec_module(probe)
 
 
 class VideoPrismProbeTests(unittest.TestCase):
+    def test_pooling_preserves_channel_values_and_checks_native_shape(self):
+        channels = np.arange(768, dtype=np.float32)
+        tokens = np.broadcast_to(channels, (1, 4096, 768))
+        np.testing.assert_array_equal(probe.pool_video_tokens(tokens), channels[None])
+        with self.assertRaisesRegex(ValueError, "shape"):
+            probe.pool_video_tokens(np.zeros((1, 256, 768)))
+
     def test_coverage_includes_tail_without_labels(self):
         self.assertEqual(probe.coverage_starts(7.5), [0.0])
         self.assertEqual(probe.coverage_starts(18.0), [0.0, 4.0, 8.0, 10.5])

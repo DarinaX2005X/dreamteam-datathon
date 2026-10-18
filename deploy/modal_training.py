@@ -37,6 +37,8 @@ image = (
           "HF_HUB_DISABLE_TELEMETRY": "1", "TOKENIZERS_PARALLELISM": "false"})
     .workdir("/workspace")
 )
+# Model-specific dependencies can be layered before frequently edited experiment code.
+dependency_image = image
 for directory in ("training", "eval"):
     for source in sorted((ROOT / directory).glob("*.py")):
         image = image.add_local_file(source, f"/workspace/{directory}/{source.name}", copy=True)

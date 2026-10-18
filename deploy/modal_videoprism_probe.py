@@ -13,7 +13,7 @@ from pathlib import Path
 import modal
 
 from deploy.modal_training import ROOT, models, private
-from deploy.modal_training import image as base_image
+from deploy.modal_training import dependency_image as base_image
 
 CODE_REVISION = "c6eba0ece3dd49a24ffc44582966997a4a59f1d8"
 MODEL_REVISION = "be719a406d563b66f0ac969e7c94bab8e997c81a"
@@ -29,6 +29,9 @@ image = (base_image
                       "scikit-learn==1.6.1", "einshape==1.0", "einops==0.8.1",
                       "sentencepiece==0.2.0",
                       f"git+https://github.com/google-deepmind/videoprism.git@{CODE_REVISION}")
+         .add_local_file(ROOT / "eval/__init__.py", "/workspace/eval/__init__.py", copy=True)
+         .add_local_file(ROOT / "eval/dataset.py", "/workspace/eval/dataset.py", copy=True)
+         .add_local_file(ROOT / "eval/training.py", "/workspace/eval/training.py", copy=True)
          .add_local_file(ROOT / "training/videoprism_probe.py",
                          "/workspace/training/videoprism_probe.py", copy=True)
          .add_local_file(ROOT / "training/train_videoprism_probe.py",
@@ -57,8 +60,11 @@ def prepare() -> dict:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     import jax
     import jax.numpy as jnp
+    import numpy as np
     from huggingface_hub import hf_hub_download
     from videoprism import models as vp
+
+    from training.videoprism_probe import pool_video_tokens
 
     directory = Path("/models/videoprism-base-f16r288")
     path = Path(hf_hub_download(repo_id="google/videoprism-base-f16r288",
@@ -74,15 +80,19 @@ def prepare() -> dict:
     array = output[0] if isinstance(output, tuple) else output
     if tuple(array.shape) != (1, 4096, 768):
         raise RuntimeError(f"synthetic forward shape mismatch: {array.shape}")
+    pooled = pool_video_tokens(np.asarray(array))
+    if pooled.shape != (1, 768) or not np.isfinite(pooled).all():
+        raise RuntimeError("synthetic pooled features are not finite")
     subprocess.run([sys.executable, "-m", "unittest",
                     "training/tests/test_videoprism_probe.py"], check=True, timeout=120)
     models.commit()
     return {"gpu_allocated": False, "weights_sha256": MODEL_SHA256,
             "model_revision": MODEL_REVISION, "code_revision": CODE_REVISION,
-            "synthetic_shape": list(array.shape)}
+            "synthetic_shape": list(array.shape), "pooled_shape": list(pooled.shape),
+            "pooled_finite": True}
 
 
-@app.function(image=image, gpu="L4", cpu=(4, 4), memory=(24576, 24576), timeout=270,
+@app.function(image=image, gpu="L4", cpu=(4, 4), memory=(24576, 24576), timeout=600,
               retries=0, max_containers=1, min_containers=0, scaledown_window=2,
               volumes={"/models": models, "/private": private})
 def train(run_id: str) -> dict:
@@ -103,7 +113,7 @@ def train(run_id: str) -> dict:
            "CUDA_VISIBLE_DEVICES": "0", "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
            "XLA_PYTHON_CLIENT_MEM_FRACTION": "0.90", "OMP_NUM_THREADS": "4"}
     try:
-        result = subprocess.run(command, env=env, timeout=240)
+        result = subprocess.run(command, env=env, timeout=570)
     finally:
         private.commit()
     if result.returncode:

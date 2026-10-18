@@ -12,6 +12,13 @@ INFERENCE_STRIDE_SEC = 4.0
 TEMPERATURE = 0.25
 
 
+def pool_video_tokens(tokens: Any) -> Any:
+    """Pool official B x (16 x 16 x 16) x 768 tokens in NumPy or JAX."""
+    if tokens.ndim != 3 or tuple(tokens.shape[1:]) != (4096, 768):
+        raise ValueError("unexpected VideoPrism token shape")
+    return tokens.reshape(-1, 16, 16, 16, 768).mean(axis=(2, 3)).mean(axis=1)
+
+
 def letterbox_rgb(frame: Any, size: int = 288) -> Any:
     """Aspect-preserving, label-blind RGB adaptation with zero padding."""
     import numpy as np
