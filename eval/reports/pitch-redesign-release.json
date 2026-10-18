@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "presentation": {
+    "slides": 8,
+    "pdf_pages": 8,
+    "speaker_note_slides": 8,
+    "language": "Russian",
+    "aspect_ratio": "16:9",
+    "native_editable_text_and_shapes": true,
+    "distinct_slide_compositions": 8,
+    "original_conceptual_images": 2,
+    "bank_footage_used_in_artwork": false,
+    "aggregate_accuracy_claim_in_pitch": false,
+    "pdf_minimum_font_size_pt": 18,
+    "pdf_minimum_by_slide_pt": [
+      20.01,
+      18,
+      20.21,
+      18,
+      20.41,
+      20.01,
+      18.2,
+      20.01
+    ],
+    "structural_inspector_warnings": 0,
+    "visual_acceptance": "pending_user_review",
+    "pptx_sha256": "28f9a89cf148657ee2f809800758d59d8a32da72a90c1b420357307e2584b306",
+    "pdf_sha256": "982450193d5e71cb778ed271d1751a4bf0e934a61aebf74e96f2874ca6c8f7c6",
+    "changes": [
+      "Distinct cover, onset example, result spread, event timeline, perception macro, rule table, private-processing boundary and typographic close",
+      "Repeated cards, decorative ribbons, orbits, small labels and closing hero removed",
+      "PDF text font sizes inspected without rendering slides"
+    ]
+  },
+  "github_button_fix": {
+    "cause": "The .nv-landing a color:inherit rule had greater specificity than the former one-class button foreground.",
+    "change": "Scope both project-button and GitHub variant selectors under .nv-landing; the GitHub foreground uses the white action token and the SVG inherits currentColor.",
+    "visual_acceptance": "pending_user_review"
+  },
+  "checks": {
+    "backend_passed": 367,
+    "backend_skipped": 3,
+    "holdout_related_deselected": 3,
+    "web_tests_passed": 27,
+    "build": "passed",
+    "typecheck": "passed",
+    "contracts_typecheck": "passed"
+  },
+  "question_clock": {
+    "runtime": "0.1.0+runtime.12cc82a195efa0d45a8d",
+    "completed": 8,
+    "failed": 0,
+    "tp": 2,
+    "tn": 4,
+    "fp": 0,
+    "fn": 2,
+    "all_verdicts_preserved": true,
+    "all_finding_onsets_preserved": true,
+    "recall_improvement_claimed": false,
+    "report": "eval/reports/modal-action-question-audit.json",
+    "evaluation_runtime": "0.1.0+runtime.7385183d0e9323319e3a",
+    "evaluation_production_parity": {
+      "same_models_rules_code_packages": true,
+      "differences": [
+        "diagnostic evaluation flag versus experimental service flag",
+        "equivalent FPS environment strings 1.0 versus 1"
+      ]
+    }
+  },
+  "holdout_used": false,
+  "browser_used": false,
+  "slides_rendered_for_visual_inspection": false,
+  "publication": {
+    "base_url": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+    "artifacts": [
+      {
+        "path": "/presentation/lado-pitch.pdf",
+        "status": 200,
+        "content_type": "application/pdf",
+        "bytes": 520754,
+        "sha256": "982450193d5e71cb778ed271d1751a4bf0e934a61aebf74e96f2874ca6c8f7c6",
+        "matches_final_file": true
+      },
+      {
+        "path": "/presentation/lado-pitch.pptx",
+        "status": 200,
+        "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "bytes": 4547310,
+        "sha256": "28f9a89cf148657ee2f809800758d59d8a32da72a90c1b420357307e2584b306",
+        "matches_final_file": true
+      }
+    ],
+    "browser_used": false,
+    "landing_link_targets_in_bundle": true,
+    "onset_label_in_bundle": true,
+    "landing_matches_available_review_controls": true,
+    "github_white_foreground_css_present": true,
+    "pipeline_version": "0.1.0+runtime.12cc82a195efa0d45a8d",
+    "ready": true
+  },
+  "deployment": {
+    "status": "published",
+    "runtime": "0.1.0+runtime.12cc82a195efa0d45a8d",
+    "ready": true
+  }
+}

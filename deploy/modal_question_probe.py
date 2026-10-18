@@ -30,6 +30,18 @@ DEPARTURE_QUESTIONS = {
     "workstation_unattended": "After the initial worker walks from the cash work area to or through the ROOM EXIT DOORWAY, is the work desk visibly left without any physical person attending it? Do not count a mirror/glass reflection as a person. Someone still using the adjacent cash cabinet/safe is still working in the area, not absent. For yes, list only frames with the worker at/through the room exit and no other visible physical person at the work desk. Use unknown if that area is obscured.",
 }
 
+# Factual diagnostics only: these answers never enter the rule engine directly.
+OPERATION_QUESTIONS = {
+    "manual_counting": "Are recognizable banknotes visibly counted by hand, with repeated separation or flipping of individual notes? Distinguish repeated counting from picking up, straightening, carrying or moving an intact stack. Mark only the repeated note-separation action, not every frame in which money is held.",
+    "machine_counting": "Does a banknote-counting machine actually process recognizable notes during this video, with visible feeding/movement of notes through the machine? A machine merely standing on the desk, an idle hopper, or placing a stack beside it is insufficient. Mark only the visible processing action.",
+    "cash_sorting": "Are recognizable banknotes visibly separated into distinct piles or groups? Merely moving one intact stack, touching paper, or straightening its edges is insufficient. Mark the frames where notes are actually separated into groups.",
+    "cash_handover": "Do recognizable banknotes visibly pass from ONE physical person's possession into a DIFFERENT physical person's possession? Moving notes between the same person's hands, a reflection, an empty reach, or hidden contact is insufficient. Mark only frames showing the actual transfer and the receiving person's possession.",
+    "cash_into_storage": QUESTIONS["cash_into_storage"],
+    "phone_in_hand": "Does the worker visibly hold or operate a recognizable handheld mobile telephone? Distinguish it from a cup, banknotes, identity card, calculator, fixed desk telephone and a dark unidentifiable rectangle. Require recognizable phone structure, not its assumed purpose. Mark frames in which it is recognizable.",
+    "bag_opening": "Does a recognizable fabric cash-collection bag or pouch visibly change from closed to open as someone opens its fastening or mouth? A cabinet or safe is not a bag. A bag already open throughout or simple movement of the bag is insufficient. Mark only the visible opening action.",
+    "cash_after_exit": QUESTIONS["cash_after_exit"],
+}
+
 TIMELINE_QUESTION = """For EVERY supplied video frame, answer these three concrete questions:
 1. Where is the actual worker who initially works behind the cash desk?
    at_desk = physically working at/reaching from that desk;
@@ -65,7 +77,7 @@ def probe(run_id: str, selections: str, mode: str = "questions"):
 
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run identifier")
-    if mode not in {"questions", "timeline", "departure", "positions"}:
+    if mode not in {"questions", "timeline", "departure", "positions", "operations"}:
         raise ValueError("Invalid diagnostic mode")
     choices = selections.split(",")
     if not 1 <= len(choices) <= 3 or any(not re.fullmatch(r"\d:\d+(?:\.\d+)?:\d+(?:\.\d+)?", c) for c in choices):
@@ -81,8 +93,9 @@ def probe(run_id: str, selections: str, mode: str = "questions"):
         if int(source_index) >= len(sources):
             raise ValueError("Unknown development source")
         source = sources[int(source_index)]
-        if not all(map(math.isfinite, (start, end))) or not 0 <= start < end <= source.duration_sec or end - start > 31:
-            raise ValueError("The diagnostic interval must fit within 31 seconds of its source")
+        max_seconds = 120 if mode == "operations" else 31
+        if not all(map(math.isfinite, (start, end))) or not 0 <= start < end <= source.duration_sec or end - start > max_seconds:
+            raise ValueError("The diagnostic interval exceeds its source or mode limit")
         requests.append((source, start, end))
     output = Path("/private/question-diagnostics") / run_id
     output.mkdir(parents=True, exist_ok=False)
@@ -95,11 +108,15 @@ def probe(run_id: str, selections: str, mode: str = "questions"):
         metadata = probe_video(source.video_path)
         frames = [frame for frame in iter_frames(source.video_path, analysis_fps=1., probe=metadata)
                   if start <= frame.timestamp_sec <= end]
+        if mode == "operations" and len(frames) > 32:
+            # Preserve a bounded whole-clip context without fabricating uniform PTS.
+            indices = sorted({round(i * (len(frames) - 1) / 31) for i in range(32)})
+            frames = [frames[index] for index in indices]
         if not 2 <= len(frames) <= 32:
             raise ValueError("Invalid sampled interval")
         times = [frame.timestamp_sec for frame in frames]
         clock = [round((t - times[0]) * 1000) for t in times]
-        mapping = ", ".join(f"{i}={t:.3f}s" for i, t in enumerate(times))
+        mapping = ", ".join(f"{i}={t - times[0]:.3f}s" for i, t in enumerate(times))
         video = np.stack([frame.rgb for frame in frames])
         answers = {}
         started = time.monotonic()
@@ -138,14 +155,17 @@ def probe(run_id: str, selections: str, mode: str = "questions"):
             private.commit()
             continue
         questions = (QUESTIONS if mode == "questions" else DEPARTURE_QUESTIONS
-                     if mode == "departure" else {"timeline": TIMELINE_QUESTION})
+                     if mode == "departure" else OPERATION_QUESTIONS
+                     if mode == "operations" else {"timeline": TIMELINE_QUESTION})
         for code, question in questions.items():
             prompt_text = (question + "\nAnswer only the question from visible evidence. "
                 'Return ONLY JSON: {"answer":"yes|no|unknown","frames":[0,1]}. '
                 "Use unknown when visibility is insufficient; absence of evidence is not no. "
                 "For yes, list 2-5 distinct supporting frame indices. For no or unknown, use []. "
                 if mode != "timeline" else question)
-            prompt_text += f"\nAllowed indices: 0 through {len(frames)-1}. Do not use video seconds. Mapping: " + mapping
+            prompt_text += ("\nVideo timestamps are relative to this window and start at zero. "
+                f"Allowed indices: 0 through {len(frames)-1}. Return frame indices, not seconds. "
+                "Index-to-video-time mapping: " + mapping)
             prompt = processor.apply_chat_template([{"role": "user", "content": [
                 {"type": "video"}, {"type": "text", "text": prompt_text}]}],
                 add_generation_prompt=True, tokenize=False)
@@ -191,6 +211,7 @@ def probe(run_id: str, selections: str, mode: str = "questions"):
             answers[code] = {"answer": answer, "support_sec": support}
             del inputs, generated
         reports.append({"source_sha256": source.source_sha256, "frames": len(frames),
+            "source_interval_sec": [start, end], "sampled_source_times_sec": times,
             "answers": answers, "inference_sec": round(time.monotonic() - started, 2),
             "quality_approved": False})
         (output / "results.json").write_text(json.dumps(reports, indent=2) + "\n")

@@ -73,10 +73,10 @@
 .nv-landing-hero h1 span { display: inline-block; padding: 0 .1em .06em; border: .075em solid var(--nv-action); border-radius: .2em; line-height: .88; }
 .nv-landing-lead { max-width: 50ch; margin: var(--nv-space-8) 0 var(--nv-space-10); color: var(--nv-text-secondary); font-size: 19px; line-height: 30px; }
 .nv-landing-project-links { display: flex; flex-wrap: wrap; gap: var(--nv-space-3); margin-top: var(--nv-space-5); }
-.nv-landing-project-button { min-height: var(--nv-size-control); display: inline-flex; align-items: center; gap: var(--nv-space-2); padding: var(--nv-space-2) var(--nv-space-4); border: 1px solid var(--nv-border); border-radius: var(--nv-radius-control); color: var(--nv-text-secondary); background: var(--nv-surface-inset); font: inherit; font-size: var(--nv-type-body-s-size); font-weight: 700; text-decoration: none; }
+.nv-landing .nv-landing-project-button { min-height: var(--nv-size-control); display: inline-flex; align-items: center; gap: var(--nv-space-2); padding: var(--nv-space-2) var(--nv-space-4); border: 1px solid var(--nv-border); border-radius: var(--nv-radius-control); color: var(--nv-text-secondary); background: var(--nv-surface-inset); font: inherit; font-size: var(--nv-type-body-s-size); font-weight: 700; text-decoration: none; }
 .nv-landing-project-button:hover { border-color: var(--nv-action); }
 .nv-landing-project-button:focus-visible { outline: 3px solid var(--nv-action); outline-offset: 3px; }
-.nv-landing-project-button-github { border-color: var(--nv-raw-stage-900); color: var(--nv-text-on-action); background: var(--nv-raw-stage-900); }
+.nv-landing .nv-landing-project-button-github { border-color: var(--nv-raw-stage-900); color: var(--nv-text-on-action); background: var(--nv-raw-stage-900); }
 .nv-landing-github-icon { width: 20px; height: 20px; }
 
 .nv-landing-scene {

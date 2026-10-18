@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "host": "Modal NVIDIA L4 24 GB",
+  "holdout_used": false,
+  "training_performed": false,
+  "quality_approved": false,
+  "scope": "Independent factual action questions on development examples, not a violation classifier or new accuracy estimate.",
+  "protocol": {
+    "model": "qwen3-vl-8b",
+    "input": "Native video with actual sampled PTS, max 32 frames, 451584 pixels per frame",
+    "answers": "yes/no/unknown with bounded supporting indices; no verdict or external AI API",
+    "questions": [
+      "manual_counting",
+      "machine_counting",
+      "cash_sorting",
+      "cash_handover",
+      "cash_into_storage",
+      "phone_in_hand",
+      "bag_opening",
+      "cash_after_exit"
+    ]
+  },
+  "whole_clip_context": [
+    {
+      "source_id": "X-46",
+      "source_interval_sec": [
+        0.0,
+        19.0
+      ],
+      "frames": 20,
+      "inference_sec": 24.69,
+      "answers": {
+        "manual_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    },
+    {
+      "source_id": "X-13",
+      "source_interval_sec": [
+        0.0,
+        65.0
+      ],
+      "frames": 32,
+      "inference_sec": 39.49,
+      "answers": {
+        "manual_counting": {
+          "answer": "yes",
+          "support_sec": [
+            2.0,
+            6.0,
+            10.0,
+            15.0,
+            19.0,
+            23.0,
+            27.0,
+            31.0,
+            36.0,
+            40.0,
+            44.0,
+            48.0,
+            52.0,
+            57.0,
+            61.0,
+            65.0
+          ]
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "yes",
+          "support_sec": [
+            25.0,
+            29.0,
+            34.0,
+            38.0,
+            42.0
+          ]
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    },
+    {
+      "source_id": "X-25",
+      "source_interval_sec": [
+        0.0,
+        31.0
+      ],
+      "frames": 32,
+      "inference_sec": 34.01,
+      "answers": {
+        "manual_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    }
+  ],
+  "short_window_verification": [
+    {
+      "source_id": "X-13",
+      "source_interval_sec": [
+        0.0,
+        8.0
+      ],
+      "frames": 9,
+      "inference_sec": 15.56,
+      "answers": {
+        "manual_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "yes",
+          "support_sec": [
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0
+          ]
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    },
+    {
+      "source_id": "X-13",
+      "source_interval_sec": [
+        24.0,
+        32.0
+      ],
+      "frames": 9,
+      "inference_sec": 14.53,
+      "answers": {
+        "manual_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "yes",
+          "support_sec": [
+            24.0,
+            25.0,
+            26.0,
+            27.0,
+            28.0,
+            29.0,
+            30.0,
+            31.0,
+            32.0
+          ]
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    },
+    {
+      "source_id": "X-13",
+      "source_interval_sec": [
+        54.0,
+        62.0
+      ],
+      "frames": 9,
+      "inference_sec": 13.59,
+      "answers": {
+        "manual_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "machine_counting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_sorting": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_handover": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_into_storage": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "phone_in_hand": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "bag_opening": {
+          "answer": "no",
+          "support_sec": []
+        },
+        "cash_after_exit": {
+          "answer": "no",
+          "support_sec": []
+        }
+      }
+    }
+  ],
+  "decision": {
+    "selected_for_production": false,
+    "reason": "Long-context manual-counting support extended into every tested subinterval, but all three independent short-window checks answered no. Bag-opening answers overlap only partly and have no independently verified action labels or complete statutory prerequisites. These diagnostic answers are not promoted to findings."
+  },
+  "question_clock_fix": {
+    "issue": "Short question video metadata used relative time while prompt mappings printed absolute source time. Returned index-to-source mapping was correct; model context was inconsistent.",
+    "change": "Both model-facing time references now start at zero for each window. Returned frame indices still map to the original source PTS.",
+    "regression_test": "A model-free processor capture checks 0..8 s metadata/text for source PTS 12..20 s, and confirms that joint frames 4 and 5 produce source time 16..17 s.",
+    "remote_code_checks": {
+      "passed": 367,
+      "skipped": 3,
+      "holdout_related_deselected": 3
+    },
+    "full_eight_comparison": {
+      "run_id": "modal-v10-clock-eight-20261018",
+      "status": "completed",
+      "completed_sources": 8,
+      "failed_sources": 0,
+      "pipeline_version": "0.1.0+runtime.7385183d0e9323319e3a",
+      "fingerprint": "14615fc0ae969be5edc828f5101cb0a283e195119d231c2e540f2f088a737d5e",
+      "verdict": {
+        "accuracy": 0.75,
+        "balanced_accuracy": 0.75,
+        "clean_evaluated": 4,
+        "denominator": "Completed unique sources only; failures and missing inputs are reported separately.",
+        "evaluated": 8,
+        "f1": 0.6666666666666666,
+        "false_positive_rate_clean": 0.0,
+        "fn": 2,
+        "fp": 0,
+        "positive_evaluated": 4,
+        "positive_recall_with_failures_as_misses": 0.5,
+        "precision": 1.0,
+        "recall": 0.5,
+        "selected_accuracy_lower_bound": 0.75,
+        "specificity": 1.0,
+        "tn": 4,
+        "tp": 2
+      },
+      "timing_error_sec": {
+        "ambiguous_policy": "Different timestamps on byte-identical copies are inconsistent annotations, not two confirmed events; exclude the entire source from headline timing.",
+        "correctly_detected_unambiguous_positive_sources": 2,
+        "count": 2,
+        "excluded_detected_ambiguous_positive_sources": 0,
+        "max": 4.0,
+        "median": 2.5,
+        "method": "Nearest actual finding to the sole organizer timestamp; only correctly detected unique positive sources with one unambiguous label. This is not one-to-one event matching and may favour videos with more findings.",
+        "missed_or_failed_positive_sources": 2,
+        "p90": 3.7
+      },
+      "latency_sec": {
+        "count": 8,
+        "max": 290.900112617,
+        "median": 67.52219156899997,
+        "p90": 269.783782634,
+        "scope": "Actual per-video analyze wall time; warm model preparation measured separately; cache retrieval not counted."
+      },
+      "matched_sources": [
+        {
+          "source_sha256": "66fc5d28c2371592f9260305589bdc86636fdd2ebe7a7ec976eec00a23d43df4",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        },
+        {
+          "source_sha256": "69caf59620fcd80bedcb664514730ab38f2f800da27000a8e037d7440be5dc7a",
+          "previous_verdict": "violation",
+          "current_verdict": "violation",
+          "previous_timecodes_sec": [
+            16.0
+          ],
+          "current_timecodes_sec": [
+            16.0
+          ]
+        },
+        {
+          "source_sha256": "901f61cf1a1b8754dda56466308c19fc203a1a4c0e85d1e7827849d34e2d52f0",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        },
+        {
+          "source_sha256": "90607b0b0cb772fcf29b0c7e0e56fa6af36da6fac0efe93b8a616b5de94a156c",
+          "previous_verdict": "violation",
+          "current_verdict": "violation",
+          "previous_timecodes_sec": [
+            16.0
+          ],
+          "current_timecodes_sec": [
+            16.0
+          ]
+        },
+        {
+          "source_sha256": "a37930cf119bb691be77d8624b18333b04d9c67066a7f4627d63e3208dfa6057",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        },
+        {
+          "source_sha256": "ac4cf04844c0aa08a5e19f5f7fe984f1477943294922d6ef77bdc5b88b97160e",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        },
+        {
+          "source_sha256": "deeeee54539fb894b17447296bd7f0807b9dc662bad9af4dcd27f4fbdd677187",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        },
+        {
+          "source_sha256": "efd876a04224cac781ac64bf5d6e107ded67340b7b7715fd9ca3408b240a1075",
+          "previous_verdict": "no_violation",
+          "current_verdict": "no_violation",
+          "previous_timecodes_sec": [],
+          "current_timecodes_sec": []
+        }
+      ],
+      "all_eight_verdicts_preserved": true,
+      "finding_times_preserved": true
+    },
+    "deployed": true,
+    "selected_for_deployment": true,
+    "selection_reason": "Corrects inconsistent model-facing clocks; all eight verdicts and finding onset timestamps are preserved. No recall improvement is claimed.",
+    "production_runtime": "0.1.0+runtime.12cc82a195efa0d45a8d",
+    "runtime_parity": {
+      "evaluation_runtime": "0.1.0+runtime.7385183d0e9323319e3a",
+      "production_runtime": "0.1.0+runtime.12cc82a195efa0d45a8d",
+      "same_models_rules_code_packages": true,
+      "differences": [
+        "diagnostic_only=true to false",
+        "experimental_analysis=false to true",
+        "equivalent fps string 1.0 to 1"
+      ]
+    }
+  },
+  "known_label_limit": "Organizer annotations are binary with onset timestamps and contain no event type labels. The fixed training/validation partition is unchanged."
+}

@@ -93,7 +93,7 @@ def verify_bag_questions(model, processor, frames, *, device, dtype,
         timestamps = [item[0] for item in window]
         clock = [round((t - timestamps[0]) * 1000) for t in timestamps]
         video = np.stack([item[1] for item in window])
-        mapping = ", ".join(f"{i}={t:.3f}s" for i, t in enumerate(timestamps))
+        mapping = ", ".join(f"{i}={t - timestamps[0]:.3f}s" for i, t in enumerate(timestamps))
         answers = {}
         for name, question in QUESTION_PROMPTS.items():
             if should_stop():
@@ -102,7 +102,9 @@ def verify_bag_questions(model, processor, frames, *, device, dtype,
                     'Return ONLY JSON: {"answer":"yes|no|unknown","frames":[0,1]}. '
                     "Use unknown when visibility is insufficient; absence of evidence is not no. "
                     "For yes, list 2-5 distinct supporting frame indices. For no or unknown, use []. "
-                    f"\nAllowed indices: 0 through {len(window)-1}. Do not use video seconds. Mapping: " + mapping)
+                    "\nVideo timestamps are relative to this window and start at zero. "
+                    f"Allowed indices: 0 through {len(window)-1}. Return frame indices, not seconds. "
+                    "Index-to-video-time mapping: " + mapping)
             prompt = processor.apply_chat_template([{"role": "user", "content": [
                 {"type": "video"}, {"type": "text", "text": text}]}],
                 add_generation_prompt=True, tokenize=False)

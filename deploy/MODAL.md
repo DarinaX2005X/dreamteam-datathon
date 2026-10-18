@@ -83,6 +83,16 @@ identity-document and money-counter boxes. The profile has an explicit experimen
 label: the eight-source development result is TP2/TN4/FP0/FN2 (previously
 TP1/TN4/FP0/FN3), with all eight completing. This repeatedly used development
 set is not an independent final accuracy estimate; two positives remain missed.
+
+The 2026-10-18 question-clock correction uses window-relative timestamps in both
+native video metadata and question text, while returned indices still map to source
+PTS. A complete eight-source comparison preserved all verdicts and finding onsets;
+it is a consistency fix, not a recall improvement. The published runtime is
+`0.1.0+runtime.12cc82a195efa0d45a8d`. See
+`eval/reports/modal-action-question-audit.json` for the rejected action-question
+diagnostics and full comparison, and `eval/reports/pitch-redesign-release.json`
+for the redesigned PDF/PPTX and GitHub-button HTTP checks. Browser and slide
+visual review remain user-owned.
 See `eval/reports/modal-question-verification.json`. A later paired diagnostic
 tested 16-frame windows at 2 fps with an 8-frame stride on the two remaining
 positive misses. Neither was recovered; both runs became slower, so that profile
