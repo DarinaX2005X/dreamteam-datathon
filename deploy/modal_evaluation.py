@@ -29,7 +29,12 @@ def repair_projection(run_id: str) -> dict:
     from navidu.contracts.domain import AnalysisRun, FindingSet, VideoMeta
 
     from eval.dataset import load_sources
-    from eval.run_pipeline import RunStore, _artifact_projection, read_json, write_report
+    from eval.run_pipeline import (
+        RunStore,
+        _artifact_projection,
+        read_json,
+        write_report,
+    )
 
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run ID")
@@ -99,7 +104,11 @@ def cpu_preflight() -> dict:
     from navidu.service.config import Settings
     from navidu.service.store import Store
     from peft import LoraConfig, get_peft_model
-    from transformers import AutoProcessor, Qwen3VLConfig, Qwen3VLForConditionalGeneration
+    from transformers import (
+        AutoProcessor,
+        Qwen3VLConfig,
+        Qwen3VLForConditionalGeneration,
+    )
 
     processor = AutoProcessor.from_pretrained("/models/qwen3-vl-4b", local_files_only=True)
     frames = [(float(index), np.zeros((720, 1280, 3), dtype=np.uint8)) for index in range(3)]
@@ -166,7 +175,7 @@ def cpu_preflight() -> dict:
               scaledown_window=2, volumes={"/models": models, "/private": private})
 def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels: int = 451584,
              input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
-             detail_view: bool = False) -> dict:
+             detail_view: bool = False, object_model: str = "") -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run ID")
     if model_id not in {"internvl3_5-4b", "qwen3-vl-4b", "qwen3-vl-8b"} or prompt_variant not in {"v5", "v6-evidence", "v7-context", "v8-focused"}:
@@ -179,6 +188,8 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
         raise ValueError("Native video requires Qwen")
     if not 3 <= window_frames <= (64 if input_mode == "video" else 16):
         raise ValueError("Invalid frame budget")
+    if object_model and not re.fullmatch(r"lado-objects-[a-z0-9-]{1,40}", object_model):
+        raise ValueError("Invalid object model profile")
     from eval.dataset import load_sources
 
     dataset = Path("/private/dataset")
@@ -204,6 +215,7 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
            "NAVIDU_QWEN_MAX_PIXELS": str(max_pixels), "NAVIDU_SEMANTIC_PROMPT_VARIANT": prompt_variant,
            "NAVIDU_QWEN_INPUT_MODE": input_mode,
            "NAVIDU_QWEN_DETAIL_VIEW": "1" if detail_view else "0",
+           "NAVIDU_OBJECT_MODEL": object_model,
            "NAVIDU_MODEL_INPUT_CAPTURE_DIR": str(output / "private-model-inputs"),
            "NAVIDU_CPU_THREADS": "4", "NAVIDU_PROPOSAL_ADAPTER": ""}
     command = [sys.executable, "eval/run_pipeline.py", "run", "--device", "auto",
@@ -247,10 +259,10 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
 @app.local_entrypoint()
 def main(run_id: str, model_id: str = "qwen3-vl-4b", prompt_variant: str = "v5", max_pixels: int = 451584,
          input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
-         detail_view: bool = False):
+         detail_view: bool = False, object_model: str = ""):
     try:
         print(json.dumps(evaluate.remote(run_id, model_id, prompt_variant, max_pixels,
-                                         input_mode, window_frames, max_sources, detail_view)))
+                                         input_mode, window_frames, max_sources, detail_view, object_model)))
     finally:
         destination = ROOT / "eval/runs/modal" / run_id
         destination.parent.mkdir(parents=True, exist_ok=True)

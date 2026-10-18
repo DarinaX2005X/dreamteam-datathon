@@ -559,7 +559,14 @@ class TemporalVerifier:
     def observe(self, frames: list[tuple], tracks: list[Track], artifacts: PerceptionArtifacts,
                 *, should_stop: Callable[[], bool] = lambda: False) -> None:
         frame_tracks = [_samples_at(tracks, timestamp) for timestamp, _ in frames]
-        payload = self._infer(frames, frame_tracks, should_stop)
+        self._spatial_tracks = [track for track in tracks if track.kind == "object"]
+        self._object_bindings = {}
+        try:
+            payload = self._infer(frames, frame_tracks, should_stop)
+            detected_objects = self._object_bindings
+        finally:
+            self._spatial_tracks = []
+            self._object_bindings = {}
         if self.prompt_variant in {"v7-context", "v8-focused"} and any(
             not isinstance(payload.get(key), list)
             for key in ("events", "roles", "same_cash_batches", "reflections", "visible_people", "objects")
@@ -573,7 +580,8 @@ class TemporalVerifier:
         if self.prompt_variant in {"v7-context", "v8-focused"}:
             from .grounding import bind_grounded_events, ground_objects, visible_people
 
-            objects = ground_objects(payload, timestamps, artifacts, self.model_id, self.prompt_version)
+            objects = ground_objects(payload, timestamps, artifacts, self.model_id, self.prompt_version,
+                                     detected_objects=detected_objects)
             bind_grounded_events(payload, events, objects)
             visible_people(payload, frame_tracks, timestamps, artifacts, self.model_id, self.prompt_version)
             self.last_metrics.update({"grounded_objects": len(objects),

@@ -644,6 +644,108 @@
           "size_bytes": 2776833
         }
       ]
+    },
+    {
+      "id": "grounding-dino-base",
+      "name": "Grounding DINO base open-vocabulary object detector",
+      "runtime": "transformers-grounding-dino",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/IDEA-Research/GroundingDINO/blob/main/LICENSE",
+      "weights_license_url": "https://huggingface.co/IDEA-Research/grounding-dino-base/blob/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/README.md",
+      "source": "https://huggingface.co/IDEA-Research/grounding-dino-base",
+      "repo": "IDEA-Research/grounding-dino-base",
+      "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+      "local_dir": "grounding-dino-base",
+      "files": [
+        {
+          "path": "grounding-dino-base/README.md",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/README.md",
+          "sha256": "a0d03193076262a585dcb1edfe4b3b72fac678055008b688feb188cceb7f977d",
+          "size_bytes": 2580
+        },
+        {
+          "path": "grounding-dino-base/config.json",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/config.json",
+          "sha256": "eda416dae6f49419ff831b1c190ec430a060b19aae688dbaf2425a075b650608",
+          "size_bytes": 1737
+        },
+        {
+          "path": "grounding-dino-base/model.safetensors",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors",
+          "sha256": "5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21",
+          "size_bytes": 933400872
+        },
+        {
+          "path": "grounding-dino-base/preprocessor_config.json",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/preprocessor_config.json",
+          "sha256": "8454179ba95e2ad22947835aad7b45862a601fc0055ab88bf1ee70892d3aea60",
+          "size_bytes": 457
+        },
+        {
+          "path": "grounding-dino-base/special_tokens_map.json",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/special_tokens_map.json",
+          "sha256": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+          "size_bytes": 125
+        },
+        {
+          "path": "grounding-dino-base/tokenizer.json",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/tokenizer.json",
+          "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+          "size_bytes": 711396
+        },
+        {
+          "path": "grounding-dino-base/tokenizer_config.json",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/tokenizer_config.json",
+          "sha256": "d40ab645b68211910b9170d22433d43186a6ec8ee6fd10ba170524b25bf4fb56",
+          "size_bytes": 1237
+        },
+        {
+          "path": "grounding-dino-base/vocab.txt",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/vocab.txt",
+          "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+          "size_bytes": 231508
+        }
+      ],
+      "status": "experimental"
+    },
+    {
+      "id": "rtdetr-v2-r18",
+      "name": "RT-DETRv2 R18 COCO initialization for hand and object training",
+      "runtime": "transformers-rt-detr-v2",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE",
+      "weights_license_url": "https://huggingface.co/PekingU/rtdetr_v2_r18vd/blob/5650961749fa93567c0d46fc7f43ea4f9e914107/README.md",
+      "source": "https://huggingface.co/PekingU/rtdetr_v2_r18vd",
+      "repo": "PekingU/rtdetr_v2_r18vd",
+      "revision": "5650961749fa93567c0d46fc7f43ea4f9e914107",
+      "local_dir": "rtdetr-v2-r18",
+      "files": [
+        {
+          "path": "rtdetr-v2-r18/README.md",
+          "url": "https://huggingface.co/PekingU/rtdetr_v2_r18vd/resolve/5650961749fa93567c0d46fc7f43ea4f9e914107/README.md",
+          "sha256": "4a26a3a6de73500f181e4edbc75b3f3f19ca6dde0fdaceeeb78167f223973305",
+          "size_bytes": 3542
+        },
+        {
+          "path": "rtdetr-v2-r18/config.json",
+          "url": "https://huggingface.co/PekingU/rtdetr_v2_r18vd/resolve/5650961749fa93567c0d46fc7f43ea4f9e914107/config.json",
+          "sha256": "ed051ec77cb41c5d9d5e3af21a979b1e890599dfd68434d7636ff82ded4c1527",
+          "size_bytes": 5437
+        },
+        {
+          "path": "rtdetr-v2-r18/model.safetensors",
+          "url": "https://huggingface.co/PekingU/rtdetr_v2_r18vd/resolve/5650961749fa93567c0d46fc7f43ea4f9e914107/model.safetensors",
+          "sha256": "d18309d0d7ea57048138885c4c6ecfcb1e24506fc6153b94ad484f8ab62c7115",
+          "size_bytes": 80904640
+        },
+        {
+          "path": "rtdetr-v2-r18/preprocessor_config.json",
+          "url": "https://huggingface.co/PekingU/rtdetr_v2_r18vd/resolve/5650961749fa93567c0d46fc7f43ea4f9e914107/preprocessor_config.json",
+          "sha256": "cd38cd59999e7a95d68e487fbe5132df3d4e5c32a0836add57e6126ba0c4eaf1",
+          "size_bytes": 444
+        }
+      ],
+      "status": "experimental"
     }
   ]
 }

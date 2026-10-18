@@ -120,18 +120,21 @@ def _iou(left, right):
     return intersection / union if union > 0 else 0
 
 
-def ground_objects(payload, timestamps, artifacts, model_id, prompt_version):
+def ground_objects(payload, timestamps, artifacts, model_id, prompt_version, *, detected_objects=None):
     """Return window-local to persistent object IDs, with actual source boxes."""
-    mapping = {}
+    mapping = dict(detected_objects or {})
+    declared = set()
     previous_tracks = list(artifacts.tracks)
+    spatial_tracks = {track.track_id: (track, samples) for track, samples in mapping.values()}
     claimed = set()
     next_id = max((int(track.track_id[1:]) for track in artifacts.tracks
                    if track.kind == "object"), default=1000000) + 1
     for item in payload.get("objects", [])[:12]:
         if not isinstance(item, dict) or item.get("kind") not in {"cash", "identity_document"} \
                 or not isinstance(item.get("id"), str) or not 1 <= len(item["id"]) <= 16 \
-                or item["id"] in mapping or not isinstance(item.get("samples"), list):
+                or item["id"] in declared or not isinstance(item.get("samples"), list):
             continue
+        declared.add(item["id"])
         samples = {}
         for sample in item["samples"][:16]:
             if not isinstance(sample, dict) or type(sample.get("frame")) is not int \
@@ -151,13 +154,22 @@ def ground_objects(payload, timestamps, artifacts, model_id, prompt_version):
                 continue
             if box is not None:
                 samples[timestamps[sample["frame"]]] = box
+        if item["id"] in mapping:
+            track, detected_samples = mapping[item["id"]]
+            common = set(samples) & set(detected_samples)
+            # Repeating source boxes is optional. If a verifier does repeat
+            # them, contradictory class or location claims cannot bind events.
+            if track.object_class != item["kind"] or (samples and (len(common) < 2 or any(
+                    _iou(samples[timestamp], detected_samples[timestamp]) < .25 for timestamp in common))):
+                mapping.pop(item["id"])
+            continue
         if len(samples) < 2:
             continue
         # Cash boxes covering a whole person or desk are not useful grounding.
         if any((box[2] - box[0]) * (box[3] - box[1]) > .25 for box in samples.values()):
             continue
         candidates = []
-        for track in previous_tracks:
+        for track in previous_tracks + [track for track, _ in spatial_tracks.values()]:
             if track.kind != "object" or track.object_class != item["kind"] or track.track_id in claimed:
                 continue
             common = [sample for sample in track.samples if sample.t in samples]
@@ -165,6 +177,12 @@ def ground_objects(payload, timestamps, artifacts, model_id, prompt_version):
                 candidates.append(track)
         # Ambiguous identities remain separate, never pick a convenient one.
         track = candidates[0] if len(candidates) == 1 else None
+        if track is not None and track.track_id in spatial_tracks:
+            # A verifier may use a fresh local ID for an already detected object.
+            # Preserve the detector's sampled positions and unmodified scores.
+            mapping[item["id"]] = spatial_tracks[track.track_id]
+            claimed.add(track.track_id)
+            continue
         if track is None:
             track = Track(track_id=f"o{next_id}", kind="object", object_class=item["kind"],
                           first_sec=min(samples), last_sec=max(samples))
@@ -203,7 +221,8 @@ def bind_grounded_events(payload, events, objects):
                 continue
             if event["kind"] == "identity_document_visible" and track.object_class != "identity_document":
                 continue
-            supported.append(track)
+            if not any(previous.track_id == track.track_id for previous in supported):
+                supported.append(track)
         event["subjects"] = list(dict.fromkeys(event["subjects"] + [track.track_id for track in supported]))
         cash = [track for track in supported if track.object_class == "cash"]
         if len(cash) == 1:

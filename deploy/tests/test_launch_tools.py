@@ -27,6 +27,24 @@ run_local = load("lado_run_local", "scripts/run_local.py")
 fetch_models = load("lado_fetch_models", "scripts/fetch_models.py")
 
 
+def test_private_model_can_be_verified_but_never_downloaded(tmp_path, monkeypatch):
+    content = b"private-model-test"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"schema_version": 1, "models": [{"id": "private-test",
+        "local_dir": "private-test", "distribution": "private", "files": [{
+            "path": "private-test/model.bin", "size_bytes": len(content),
+            "sha256": hashlib.sha256(content).hexdigest()}]}]}))
+    arguments = ["--manifest", str(manifest), "--models-dir", str(tmp_path), "--model", "private-test"]
+    monkeypatch.setattr(fetch_models, "download_file", lambda *args, **kwargs: pytest.fail("Private weights requested over network"))
+    assert fetch_models.main([*arguments, "--verify-only"]) == 1
+    with pytest.raises(fetch_models.FetchError, match="authorized training export"):
+        fetch_models.main(arguments)
+    (tmp_path / "private-test").mkdir(exist_ok=True)
+    (tmp_path / "private-test/model.bin").write_bytes(content)
+    assert fetch_models.main([*arguments, "--verify-only"]) == 0
+    assert fetch_models.main(arguments) == 0
+
+
 def jpeg_base64():
     buffer = io.BytesIO()
     Image.new("RGB", (2, 2), "white").save(buffer, format="JPEG")

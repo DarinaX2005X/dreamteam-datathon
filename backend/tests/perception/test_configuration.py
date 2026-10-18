@@ -99,3 +99,15 @@ def test_opt_in_adapter_and_task_metadata_require_their_own_quality_profile(tmp_
     first = configuration_snapshot(config, [entry], require_semantic=True)
     changed = configuration_snapshot(config, [{**entry, "task": {"fps": 1.}}], require_semantic=True)
     assert validation_binding(first) != validation_binding(changed)
+
+
+def test_object_weights_and_thresholds_invalidate_cached_analysis(tmp_path, monkeypatch):
+    config = PipelineConfig(check_id="0123456789ab", rules_dir=tmp_path)
+    monkeypatch.delenv("NAVIDU_OBJECT_MODEL", raising=False)
+    original = configuration_snapshot(config, [], require_semantic=True)
+    monkeypatch.setenv("NAVIDU_OBJECT_MODEL", "reviewed")
+    assert original != configuration_snapshot(config, [], require_semantic=True)
+    entry = {"id": "reviewed", "files": [], "detection_thresholds": {"cash": .35}}
+    first = configuration_snapshot(config, [entry], require_semantic=True)
+    changed = configuration_snapshot(config, [{**entry, "detection_thresholds": {"cash": .5}}], require_semantic=True)
+    assert validation_binding(first) != validation_binding(changed)

@@ -46,7 +46,9 @@ def _selected_ids(detector_id: str, semantic_id: str, require_semantic: bool) ->
     adapter_id = os.getenv("NAVIDU_PROPOSAL_ADAPTER", "").strip()
     if adapter_id and not require_semantic:
         raise ModelAssetsError("INVALID_CONFIG: адаптер предложений требует базовую временную модель.")
-    return [detector_id] + ([semantic_id] if require_semantic else []) + ([adapter_id] if adapter_id else [])
+    objects_id = os.getenv("NAVIDU_OBJECT_MODEL", "").strip()
+    return ([detector_id] + ([semantic_id] if require_semantic else []) + ([adapter_id] if adapter_id else [])
+            + ([objects_id] if objects_id else []))
 
 
 class LocalPerceptionRuntime:
@@ -151,6 +153,14 @@ class LocalPerceptionRuntime:
                 from .detector import RfDetrOnnx
 
                 detector = RfDetrOnnx(config.models_dir, detector_entry, config.device)
+                objects_id = os.getenv("NAVIDU_OBJECT_MODEL", "").strip()
+                objects_entry = model_entry(manifest, objects_id) if objects_id else None
+                if objects_entry:
+                    from .object_detector import CombinedDetector, ReviewedObjectDetector
+
+                    versions[objects_id] = verify_model(config.models_dir, objects_entry)
+                    detector = CombinedDetector(detector, ReviewedObjectDetector(
+                        config.models_dir, objects_entry, config.device))
                 semantic = None
                 if semantic_entry:
                     from .temporal import TemporalVerifier
@@ -161,6 +171,8 @@ class LocalPerceptionRuntime:
 
                         verifier = QwenTemporalVerifier
                     semantic = verifier(config.models_dir, semantic_entry, config.device)
+                    if objects_entry:
+                        semantic.spatial_thresholds = dict(detector.objects.thresholds)
                     if adapter_entry:
                         from .proposal import ProposalVerifier
 
@@ -168,7 +180,7 @@ class LocalPerceptionRuntime:
                                                             semantic_entry, versions[semantic_id])
                 snapshot = configuration_snapshot(config,
                     [detector_entry] + ([semantic_entry] if semantic_entry else [])
-                    + ([adapter_entry] if adapter_entry else []),
+                    + ([adapter_entry] if adapter_entry else []) + ([objects_entry] if objects_entry else []),
                     require_semantic=require_semantic)
                 devices = {"detector": detector.device,
                            "semantic": semantic.device if semantic is not None else "disabled",
@@ -297,8 +309,10 @@ class LocalPerceptionRuntime:
                         )
                     tracker = trackers[class_id]
                     source_indices = np.flatnonzero(mask)
+                    association_scores = (detector.association_scores(class_id, scores[mask])
+                                          if hasattr(detector, "association_scores") else scores[mask])
                     detections = sv.Detections(xyxy=boxes[mask] * dimensions,
-                                              confidence=scores[mask], class_id=class_ids[mask],
+                                              confidence=association_scores, class_id=class_ids[mask],
                                               data={"source_index": source_indices})
                     active = tracker.update_with_detections(detections)
                     assigned_ids = {}
@@ -323,12 +337,14 @@ class LocalPerceptionRuntime:
                                 role=TrackRole(value="unknown") if kind == "person" else None)
                         track = tracks[track_id]
                         track.last_sec = time_sec
-                        track.samples.append(TrackSample(t=time_sec, bbox=tuple(float(x) for x in (box / dimensions).clip(0, 1)), score=float(confidence)))
+                        track.samples.append(TrackSample(t=time_sec, bbox=tuple(float(x) for x in (box / dimensions).clip(0, 1)),
+                                                        score=float(scores[int(source_index)])))
                     for source_index, box, confidence in zip(source_indices, boxes[mask], scores[mask]):
                         artifacts.raw_detections.append(RawDetection(
                             timestamp_sec=round(timestamp, 3), class_name=label,
                             bbox=tuple(float(x) for x in box), score=float(confidence),
-                            model_id=detector.model_id, track_id=assigned_ids.get(int(source_index)),
+                            model_id=(detector.source_model(class_id) if hasattr(detector, "source_model")
+                                      else detector.model_id), track_id=assigned_ids.get(int(source_index)),
                         ))
                 # Keep the ordinary base-model sweep even when an optional
                 # learned proposer requests denser context around a candidate.

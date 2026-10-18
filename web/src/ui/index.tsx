@@ -129,6 +129,8 @@ export function SegmentedChoice({
 const objectNames: Record<string, string> = {
   cash: "Деньги",
   identity_document: "Удостоверение",
+  hand: "Кисть руки",
+  money_counter: "Счётчик банкнот",
   phone: "Телефон",
   bag: "Сумка",
 };

@@ -28,6 +28,7 @@ _OPTIONS = {
     "NAVIDU_QWEN_DETAIL_VIEW": "0",
     "NAVIDU_SEMANTIC_PROMPT_VARIANT": "v5",
     "NAVIDU_PROPOSAL_ADAPTER": "",
+    "NAVIDU_OBJECT_MODEL": "",
 }
 _PACKAGES = ("numpy", "pillow", "av", "supervision", "onnxruntime", "onnxruntime-gpu",
              "torch", "torchvision", "transformers", "safetensors", "tokenizers", "peft", "accelerate",
@@ -76,6 +77,7 @@ def configuration_snapshot(config: PipelineConfig, entries: list[dict], *, requi
         "models": [{"id": item["id"], "runtime": item.get("runtime"),
                     "revision": item.get("revision"),
                     "base_model": item.get("base_model"), "task": item.get("task"),
+                    "detection_thresholds": item.get("detection_thresholds"),
                     "files": [{key: file[key] for key in ("path", "size_bytes", "sha256")}
                               for file in sorted(item["files"], key=lambda file: file["path"])]}
                    for item in entries],

@@ -136,6 +136,8 @@ def configured_model_ids(device: str) -> list[str]:
         "no",
     }:
         model_ids.append(os.getenv("NAVIDU_SEMANTIC_MODEL", "internvl3_5-1b"))
+    if os.getenv("NAVIDU_OBJECT_MODEL", "").strip():
+        model_ids.append(os.environ["NAVIDU_OBJECT_MODEL"].strip())
     return model_ids
 
 

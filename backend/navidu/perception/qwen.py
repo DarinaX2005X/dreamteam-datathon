@@ -1,6 +1,7 @@
 """Local Qwen3-VL candidate using the unchanged temporal evidence contract."""
 from __future__ import annotations
 
+import json
 import os
 import time
 from collections.abc import Callable
@@ -29,12 +30,66 @@ def detail_bounds(frame_tracks):
         min(1., x2 + width * .65), min(1., y2 + height * .15)
 
 
+def spatial_candidates(tracks, timestamps, thresholds=None):
+    """Keep only repeated spatial detections at this window's exact source times."""
+    indices = {timestamp: index for index, timestamp in enumerate(timestamps)}
+    priority = {"cash": 0, "identity_document": 1, "hand": 2, "money_counter": 3}
+    candidates = []
+    for track in tracks:
+        if track.object_class not in priority:
+            continue
+        samples = [sample for sample in track.samples if sample.t in indices and sample.score is not None
+                   and sample.score >= (thresholds or {}).get(track.object_class, .35)]
+        if len(samples) >= 2:
+            candidates.append((track, samples))
+    candidates.sort(key=lambda item: (priority[item[0].object_class], -len(item[1])))
+    return candidates[:10]
+
+
+def spatial_bindings(tracks, timestamps, thresholds=None):
+    objects = [(track, samples) for track, samples in spatial_candidates(tracks, timestamps, thresholds)
+               if track.object_class in {"cash", "identity_document"}][:6]
+    return {f"c{index + 1}": (track, {sample.t: sample.bbox for sample in samples})
+            for index, (track, samples) in enumerate(objects)}
+
+
+def spatial_context(tracks, timestamps, thresholds=None):
+    """Bounded detector hints and a crop derived only from this window's samples."""
+    indices = {timestamp: index for index, timestamp in enumerate(timestamps)}
+    candidates = spatial_candidates(tracks, timestamps, thresholds)
+    ids = {track.track_id: local_id for local_id, (track, _) in spatial_bindings(tracks, timestamps, thresholds).items()}
+    boxes = [sample.bbox for _, samples in candidates for sample in samples]
+    detail = None
+    if boxes:
+        x1, y1 = min(box[0] for box in boxes), min(box[1] for box in boxes)
+        x2, y2 = max(box[2] for box in boxes), max(box[3] for box in boxes)
+        if .015 < x2 - x1 < .95 and .015 < y2 - y1 < .65:
+            detail = max(0., x1 - .05), max(0., y1 - .04), min(1., x2 + .05), min(1., y2 + .04)
+    hints = []
+    for track, samples in candidates:
+        selected = [samples[round(index * (len(samples) - 1) / 3)] for index in range(4)]
+        selected = {sample.t: sample for sample in selected}
+        hints.append({"kind": track.object_class, **({"id": ids[track.track_id]} if track.track_id in ids else {}),
+            "samples": [{"frame": indices[sample.t],
+            "box": [round(value * 1000) for value in sample.bbox]} for sample in selected.values()]})
+    text = ("\nSpatial detector candidates in FULL-scene coordinates (0..1000), not verified facts: " +
+            json.dumps(hints, separators=(",", ":")) +
+            ". Inspect the pixels to accept or reject each candidate. A hand overlapping money "
+            "does not by itself prove holding or handover. Follow the same notes over time; compare "
+            "money on the desk, held in one or both hands, and entering or leaving the counting machine. "
+            "Use provided c-IDs in events when visually confirmed. You may omit their repeated boxes "
+            "from the objects array; their source boxes are already retained. Give new objects unused c-IDs. "
+            "A machine's presence alone is not a counting action. Return only visibly supported events.\n") if hints else ""
+    return detail, text
+
+
 def prepare_qwen_inputs(processor, frames, frame_tracks, *, variant, max_pixels, mode,
-                        detail=None):
+                        detail=None, object_hints=""):
     """Preserve source PTS and bound the native video processor's total pixel budget."""
     import numpy as np
 
     images, content = visual_request(frames, frame_tracks, variant)
+    content[-1]["text"] += object_hints
     if mode == "images":
         prompt = processor.apply_chat_template([{"role": "user", "content": content}],
                                                add_generation_prompt=True, tokenize=False)
@@ -122,9 +177,16 @@ class QwenTemporalVerifier(TemporalVerifier):
             def __call__(self, input_ids, scores, **kwargs):
                 return should_stop()
 
-        detail = detail_bounds(frame_tracks) if self.detail_view else None
+        object_detail, object_hints = spatial_context(getattr(self, "_spatial_tracks", []),
+                                                     [timestamp for timestamp, _ in frames],
+                                                     getattr(self, "spatial_thresholds", None))
+        self._object_bindings = spatial_bindings(getattr(self, "_spatial_tracks", []),
+                                                [timestamp for timestamp, _ in frames],
+                                                getattr(self, "spatial_thresholds", None))
+        detail = (object_detail or detail_bounds(frame_tracks)) if self.detail_view else None
         inputs, images, prompt = prepare_qwen_inputs(self.processor, frames, frame_tracks,
-            variant=self.prompt_variant, max_pixels=self.max_pixels, mode=self.input_mode, detail=detail)
+            variant=self.prompt_variant, max_pixels=self.max_pixels, mode=self.input_mode, detail=detail,
+            object_hints=object_hints)
         capture = None
         capture_root = os.getenv("NAVIDU_MODEL_INPUT_CAPTURE_DIR")
         if capture_root and self._capture_count < 4:

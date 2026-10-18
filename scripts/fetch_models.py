@@ -14,9 +14,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = PROJECT_ROOT / "models" / "manifest.json"
@@ -93,17 +93,18 @@ def load_pins(manifest_path: Path, selected_ids: Iterable[str]) -> list[FilePin]
         for item in entry.get("files", []):
             path = item.get("path")
             url = item.get("url")
+            private_artifact = entry.get("distribution") == "private" and url is None
             digest = item.get("sha256")
             size = item.get("size_bytes")
             if not isinstance(path, str) or PurePosixPath(path).parts[:1] != (local_dir,):
                 raise FetchError(f"file path is outside model local_dir for {model_id}: {path!r}")
-            if not isinstance(url, str) or not url.startswith("https://"):
+            if not private_artifact and (not isinstance(url, str) or not url.startswith("https://")):
                 raise FetchError(f"model URL must use HTTPS: {url!r}")
             if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
                 raise FetchError(f"invalid SHA-256 pin for {path!r}")
             if not isinstance(size, int) or isinstance(size, bool) or size < 0:
                 raise FetchError(f"invalid size pin for {path!r}")
-            pins.append(FilePin(model_id, path, url, digest, size))
+            pins.append(FilePin(model_id, path, "" if private_artifact else url, digest, size))
     return pins
 
 
@@ -264,6 +265,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{'OK' if ok else 'MISSING_OR_INVALID'} {pin.model_id} {pin.path}")
             failures += not ok
             continue
+        if not pin.url:
+            if verified(target, pin):
+                print(f"VERIFIED {pin.model_id} {pin.path}")
+                continue
+            raise FetchError(f"private model must be provisioned from the authorized training export: {pin.model_id}")
         result = download_file(
             pin,
             models_dir,
