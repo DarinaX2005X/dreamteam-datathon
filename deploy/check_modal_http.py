@@ -44,9 +44,12 @@ def jury_check(args, client, state, started) -> None:
             raise RuntimeError("Already submitted; use jury-inspect instead")
         sources = load_sources(ROOT / "research/dataset/inventory.csv",
                                ROOT / "eval/labels.csv", ROOT / "eval/folds.csv")
-        source = max((item for item in sources if item.fold != 0
-                      and bool(item.has_violation) == (args.source_kind == "positive")),
-                     key=lambda item: item.duration_sec)
+        candidates = [item for item in sources if item.fold != 0
+                      and bool(item.has_violation) == (args.source_kind == "positive")
+                      and (args.source_sha256 is None or item.sha256 == args.source_sha256)]
+        if not candidates:
+            raise RuntimeError("No authorized development source matches the selection")
+        source = max(candidates, key=lambda item: item.duration_sec)
         path = source.video_path(ROOT / "data/dataset")
         if file_sha256(path) != source.sha256:
             raise RuntimeError("Source identity changed")
@@ -108,6 +111,7 @@ def main() -> None:
     parser.add_argument("--state", type=Path, default=ROOT / "eval/runs/modal-http.json")
     parser.add_argument("--key-file", type=Path, default=ROOT / ".env.jury")
     parser.add_argument("--source-kind", choices=("clean", "positive"), default="clean")
+    parser.add_argument("--source-sha256", help="Exact development source SHA; holdout remains excluded")
     parser.add_argument("--timeout", type=float, default=300)
     args = parser.parse_args()
     state = json.loads(args.state.read_text()) if args.state.exists() else {}

@@ -1,4 +1,5 @@
 import multiprocessing
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
@@ -9,7 +10,7 @@ from navidu.contracts.errors import AnalysisError
 from navidu.service.exceptions import LeaseLost
 from navidu.service.queue import JobQueue
 from navidu.service.store import Store
-from navidu.service.worker import Worker
+from navidu.service.worker import Worker, _bounded_stop_check
 
 from .fakes import FakePipeline
 
@@ -91,6 +92,45 @@ def test_queue_cancellation_invalidates_active_lease(settings):
     assert not queue.owns(job["id"], job["lease_token"])
     queue.release(job["id"], job["lease_token"])
     assert store.get(job["id"])["status"] == "cancelled"
+
+
+def test_decoded_frames_share_lease_check_and_observe_cancellation_within_half_second(settings):
+    store = Store(settings)
+    enqueue(store, "000000000001")
+    queue = JobQueue(store)
+    job = queue.acquire()
+    now = [10.0]
+    calls = []
+
+    def owns_lease():
+        calls.append(now[0])
+        return queue.owns(job["id"], job["lease_token"])
+
+    stopped = threading.Event()
+    lost = threading.Event()
+    should_stop = _bounded_stop_check(stopped, lost, owns_lease, clock=lambda: now[0])
+    assert not any(should_stop() for _ in range(1000))
+    assert len(calls) == 1
+    store.cancel(job["id"])
+    now[0] += 0.5
+    assert should_stop() and lost.is_set()
+    assert len(calls) == 2
+    assert should_stop() and len(calls) == 2
+    with pytest.raises(LeaseLost):
+        queue.renew(job["id"], job["lease_token"])
+
+
+@pytest.mark.parametrize("signal", ["stop", "lease"])
+def test_stop_signals_interrupt_cached_lease_immediately(signal):
+    stopped = threading.Event()
+    lost = threading.Event()
+    checks = []
+    should_stop = _bounded_stop_check(stopped, lost, lambda: checks.append(1) or True,
+                                     clock=lambda: 10.0)
+    assert not should_stop()
+    (stopped if signal == "stop" else lost).set()
+    assert should_stop()
+    assert len(checks) == 1
 
 
 def test_stale_attempt_cannot_overwrite_retried_result(settings):

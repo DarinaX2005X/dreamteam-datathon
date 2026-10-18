@@ -74,9 +74,13 @@ Do not upgrade the GPU without measured need and user agreement.
 ```
 
 One L4 container owns API, worker and SQLite; min_containers=0, max_containers=1,
-90-second idle window. The website currently uses original Qwen3-VL-4B-Instruct with
-native video, at most 64 sampled frames at 1 fps, and prompt v8-focused, with an
-explicit experimental label. A trained adapter is not enabled automatically.
+90-second idle window. The website uses Qwen3-VL-8B-Instruct with native video,
+at most 32 sampled frames at 1 fps, object-focused detail views, and prompt
+v8-focused. `lado-objects-v7-composite` supplies separately trained hand, cash,
+identity-document and money-counter boxes. The profile has an explicit experimental
+label: the eight-source development result is still TP1/TN4/FP0/FN3, and the identity
+model has not established recall on separate development videos. A trained language
+adapter is not enabled automatically.
 `NAVIDU_ALLOW_EXPERIMENTAL_API=1` explicitly enables the current model's actual results
 through the required jury routes. The exact response JSON stays unchanged;
 `X-Analysis-Mode: experimental` identifies the unvalidated quality status. Diagnostic,
@@ -93,21 +97,22 @@ Verify API readiness, a synthetic upload, persistence and scale-to-zero through 
 and Modal task state. UI and visual checks belong exclusively to the user. These cloud
 lifecycle checks must actually pass before claiming successful deployment.
 
-Confirmed: readiness HTTP 200, missing/invalid jury keys rejected with 401, valid
-key accepted, full 65.3-second development video completed through API in 131.857
-seconds. That positive video was missed. Technical completion does not establish
-model quality. The user-only credentials are in ignored `.env.jury`; never commit it.
+The deployed 8B/object profile passed readiness and key checks: HTTP 200,
+missing/invalid keys rejected with 401, and an authenticated unknown job returned 404.
+A 22.6-second positive development source completed with one finding and a valid JPEG
+in 191.654 seconds from a cold request. The 78.733-second clean source completed
+without findings but exceeded 300 seconds. After bounding database lease checks,
+the repeat also exceeded that limit: perception took 323.5135 seconds, and the first
+observed completed response was at 479.431 seconds including a cold POST of 104.797
+seconds. The observation time is an upper bound, not an exact completion timestamp.
+The user explicitly stopped further work on this long-video limit. Do not present
+timings from the older 4B profile as timings of the currently deployed object profile.
 
-The final native-video v8 profile processed the 78.733-second clean development
-source through the jury API in 230.439 seconds including a cold start. The response
-was `done/no_violation`, with the exact required schema and experimental mode header.
-The earlier version produced an extra-person false positive on this same source;
-the physical/reflection consistency guard removed it. The measured time is below
-the 300-second deadline for this request; it is not a guarantee for arbitrary videos.
-HTTP readiness after another cold start took 63.875 seconds. A result and its JPEG
-from the previous deployment remained readable after replacing the container.
-Status reads after idle shutdown can also require a cold start; the inspection helper
-allows up to 240 seconds for that GET within its overall 300-second budget.
+Technical completion does not establish model quality. Current numeric evidence is
+in `eval/reports/reviewed-spatial-objects.json`. The user-only credentials are in
+ignored `.env.jury`; never commit it. Status reads after idle shutdown can also
+require a cold start; the inspection helper allows up to 240 seconds for that GET
+within its overall budget.
 
 ## References
 

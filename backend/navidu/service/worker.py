@@ -20,6 +20,24 @@ from .structured_log import configure_logging, log_exception
 logger = logging.getLogger("lado.worker")
 
 
+def _bounded_stop_check(stop_event, lease_lost, owns_lease, *, clock=time.monotonic):
+    """Keep cancellation responsive without querying SQLite for every decoded frame."""
+    next_lease_check = 0.0
+
+    def should_stop():
+        nonlocal next_lease_check
+        if stop_event.is_set() or lease_lost.is_set():
+            return True
+        if clock() >= next_lease_check:
+            if not owns_lease():
+                lease_lost.set()
+                return True
+            next_lease_check = clock() + 0.5
+        return False
+
+    return should_stop
+
+
 class Worker:
     def __init__(self, settings: Settings, pipeline=None):
         settings.validate()
@@ -106,8 +124,9 @@ class Worker:
                     lease_lost.set()
                     return
 
-        def should_stop():
-            return self.stop_event.is_set() or lease_lost.is_set() or not self.queue.owns(check_id, token)
+        should_stop = _bounded_stop_check(
+            self.stop_event, lease_lost, lambda: self.queue.owns(check_id, token)
+        )
 
         def emit(event):
             nonlocal phase, processed

@@ -15,10 +15,18 @@ app = modal.App("lado-action-diagnostic")
 
 ACTIONS = frozenset({"drinking", "eating", "food_package", "cash_on_desk",
     "cash_in_hands", "cash_to_storage", "cash_into_clothing", "storage_opened",
-    "storage_closed", "storage_key_left", "person_exit", "smartphone_use"})
+    "storage_closed", "storage_key_left", "person_exit", "smartphone_use",
+    "collection_bag_on_desk", "collection_bag_left_unattended"})
 INSTRUCTIONS = """Inspect the visible actions in this bank workplace video.
 Report observable facts, not violations, intentions or permissions. Include
 non-cash actions as well as cash handling. Allowed labels:
+collection_bag_on_desk: a recognizable collection pouch/bag lies on the work desk;
+collection_bag_left_unattended: the worker visibly walks away through the doorway
+while the SAME collection pouch stays on the desk, and no other visible physical
+worker takes over its supervision. Require the visible departure AND the bag
+remaining after departure. A book, personal handbag, empty desk, a worker merely
+standing up, or a bag already put away does not establish this event. Reflections
+in glass are images of the worker, not a second supervising person;
 drinking: a visible cup/bottle is brought to the person's mouth;
 eating: recognizable food is brought to the mouth;
 food_package: recognizable food packaging, not banknotes or paper;
@@ -84,7 +92,9 @@ def probe(run_id: str, selections: str):
         times = [frame.timestamp_sec for frame in frames]
         clock = [round((t - times[0]) * 1000) for t in times]
         mapping = ", ".join(f"{i}={t:.3f}s" for i, t in enumerate(times))
-        content = [{"type": "video"}, {"type": "text", "text": INSTRUCTIONS + "\nFrame-to-source-time mapping: " + mapping}]
+        content = [{"type": "video"}, {"type": "text", "text": INSTRUCTIONS +
+            f"\nThis clip has {len(frames)} frames. Allowed indices: 0 through {len(frames) - 1}. " +
+            "Frame-to-source-time mapping: " + mapping}]
         prompt = processor.apply_chat_template([{"role": "user", "content": content}], add_generation_prompt=True, tokenize=False)
         inputs = processor(videos=[np.stack([frame.rgb for frame in frames])], text=prompt, return_tensors="pt",
             videos_kwargs={"do_sample_frames": False, "video_metadata": [{"fps": 1000.,

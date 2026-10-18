@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "spatial_candidate_complete_violation_quality_unresolved",
+  "status": "experimental_spatial_deployed_violation_quality_unresolved",
   "selected_model": "lado-objects-v7-composite",
   "quality_approved": false,
   "annotation_origin": "assistant_manual_review",
@@ -523,6 +523,55 @@
     "cold_model_prepare_sec": 81.291,
     "violation_accuracy_improved": false,
     "quality_approved": false,
-    "deployed": false
+    "deployed": true
+  },
+  "deployment": {
+    "url": "https://darinax2005x--lado-ladoservice-web.us-east.modal.run",
+    "analysis_mode": "experimental",
+    "pipeline_version": "0.1.0+runtime.43798f5fc69cec775808",
+    "object_model_id": "lado-objects-v7-composite",
+    "backend_tests_passed": 348,
+    "web_tests_passed": 27,
+    "ui_visually_verified_by_agent": false,
+    "http_positive_before_poll_fix": {
+      "video_duration_sec": 22.6,
+      "status": "done",
+      "verdict": "violation",
+      "violation_count": 1,
+      "evidence_jpeg_count": 1,
+      "cold_post_elapsed_sec": 61.265,
+      "request_to_result_sec": 191.654,
+      "within_300_sec": true,
+      "schema_and_jpeg_valid": true
+    },
+    "http_clean_before_poll_fix": {
+      "video_duration_sec": 78.733021,
+      "status": "done",
+      "verdict": "no_violation",
+      "violation_count": 0,
+      "within_300_sec": false,
+      "first_done_observed_sec": 388.14,
+      "timing_scope": "Polling exceeded 300 seconds. Later inspection observed completion; 388.14 is an upper bound, not exact processing latency.",
+      "perception_sec": 328.97201608299997,
+      "schema_valid": true
+    },
+    "service_poll_fix": {
+      "description": "Bound database lease checks to two per second instead of checking every decoded frame. Stop signals remain immediate; publication retains the transactional lease check.",
+      "deployed": true,
+      "cold_http_recheck_status": "done",
+      "cold_http_recheck": {
+        "video_duration_sec": 78.733021,
+        "status": "done",
+        "verdict": "no_violation",
+        "violation_count": 0,
+        "cold_post_elapsed_sec": 104.797,
+        "first_done_observed_sec": 479.431,
+        "timing_scope": "The polling deadline elapsed before completion was observed. The first_done_observed value is an upper bound, not exact processing latency.",
+        "perception_sec": 323.5135,
+        "within_300_sec": false,
+        "schema_valid": true
+      },
+      "further_latency_optimization": "Stopped at explicit user request; no deadline pass is claimed."
+    }
   }
 }
