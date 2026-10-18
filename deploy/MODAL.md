@@ -51,6 +51,16 @@ The completed Qwen run `modal-qwen-l4-lr5e5-r3-20261017` fits L4 (16,573 MiB pea
 but did not improve validation: 4 TP / 0 TN / 4 FP / 0 FN. No adapter was selected.
 See `eval/reports/modal-qwen-proposal-l4.json`. Its private checkpoint is retained.
 
+The separate frozen-vision onset-transition probe is implemented in
+`training/train_qwen_onset_probe.py` and `deploy/modal_onset_probe.py`. It has a
+25-minute L4 ceiling, source-balanced losses, point-only positive supervision,
+and a threshold selected from three training folds. Its first completed pilot
+encoded 1,785 frames in a total of 132.138 seconds, but no OOF threshold met the
+specificity/recall guard. Classifier validation was therefore skipped and no
+checkpoint was selected. This did not improve production recall. The private
+feature cache can support further bounded CPU analysis without video decoding.
+See `eval/reports/modal-qwen-onset-probe.json` for the measured result.
+
 Checkpoints are written before validation, committed to a private Volume, and copied
 automatically to ignored `training/runs/<run-id>` on the local computer, including after
 an ordinary training failure. Interrupted client connections may require manual export:
