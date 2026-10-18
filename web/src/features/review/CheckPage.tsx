@@ -489,7 +489,7 @@ function FindingCard({
           {String(index + 1).padStart(2, "0")}
         </span>
         <span>
-          <time>{formatTimecode(finding.timecode_sec)}</time>
+          <time aria-label={`Начало эпизода ${formatTimecode(finding.timecode_sec)}`}>Начало · {formatTimecode(finding.timecode_sec)}</time>
           <strong>{finding.type_label}</strong>
         </span>
         <Chip tone={finding.strength === "strong" ? "alert" : "neutral"}>

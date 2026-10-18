@@ -496,13 +496,15 @@ class TemporalVerifier:
             raise RuntimeError("INVALID_CONFIG: independent video questions require Qwen.")
         self.prompt_version, _ = prompt_profile(self.prompt_variant)
         self.window_frames = int(os.getenv("NAVIDU_SEMANTIC_WINDOW_FRAMES", "8"))
+        self.stride_frames = int(os.getenv("NAVIDU_SEMANTIC_STRIDE_FRAMES", "0")) or self.window_frames - 2
         self.sample_fps = float(os.getenv("NAVIDU_SEMANTIC_FPS", "1"))
         self.max_new_tokens = int(os.getenv("NAVIDU_SEMANTIC_MAX_NEW_TOKENS", "512"))
         self.max_patches = int(os.getenv("NAVIDU_SEMANTIC_MAX_PATCHES", "1"))
         self.structured_output = os.getenv("NAVIDU_SEMANTIC_STRUCTURED_OUTPUT", "0").lower() in {
             "1", "true", "yes",
         }
-        if not 3 <= self.window_frames <= self.max_window_frames or not 0.5 <= self.sample_fps <= 5 \
+        if not 3 <= self.window_frames <= self.max_window_frames or not 1 <= self.stride_frames < self.window_frames \
+                or not 0.5 <= self.sample_fps <= 5 \
                 or not 64 <= self.max_new_tokens <= 2048 or not 1 <= self.max_patches <= 4:
             raise RuntimeError("INVALID_CONFIG: неверный размер временного окна или бюджет модели.")
         if device == "cuda" and not torch.cuda.is_available():

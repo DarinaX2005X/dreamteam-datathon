@@ -15,14 +15,9 @@ def _clock(seconds: float) -> str:
 
 def describe(pending: PendingFinding, observations: dict[str, Observation]) -> tuple[str, str, str]:
     basis = [observations[item] for item in pending.basis if item in observations]
-    duration = max(0.0, pending.window.end_sec - pending.window.start_sec)
-    duration_text = f"{duration:.1f}".replace(".", ",")
-    factual = (
-        f"{pending.rule.what_seen} Интервал {_clock(pending.window.start_sec)}–"
-        f"{_clock(pending.window.end_sec)}, длительность {duration_text} с."
-    ) if duration else (
-        f"{pending.rule.what_seen} Момент {_clock(pending.window.start_sec)}."
-    )
+    # The support window may include preceding actions and merged evidence.
+    # Only the rule's anchor is the reported onset of the possible violation.
+    factual = f"{pending.rule.what_seen} Начало эпизода — {_clock(pending.timecode_sec)}."
     if basis:
         kinds = ", ".join(dict.fromkeys(item.kind for item in basis))
         factual += f" Основание: {kinds}."

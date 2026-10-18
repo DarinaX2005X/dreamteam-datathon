@@ -70,7 +70,7 @@ Do not upgrade the GPU without measured need and user agreement.
 
 ```powershell
 .modal-venv/Scripts/python.exe -X utf8 -m modal run -m deploy.modal_web_checks
-.modal-venv/Scripts/python.exe -X utf8 -m modal deploy deploy/modal_app.py
+.modal-venv/Scripts/python.exe -X utf8 -m modal deploy -m deploy.modal_app
 ```
 
 One L4 container owns API, worker and SQLite; min_containers=0, max_containers=1,
@@ -83,7 +83,26 @@ identity-document and money-counter boxes. The profile has an explicit experimen
 label: the eight-source development result is TP2/TN4/FP0/FN2 (previously
 TP1/TN4/FP0/FN3), with all eight completing. This repeatedly used development
 set is not an independent final accuracy estimate; two positives remain missed.
-See `eval/reports/modal-question-verification.json`. The identity
+See `eval/reports/modal-question-verification.json`. A later paired diagnostic
+tested 16-frame windows at 2 fps with an 8-frame stride on the two remaining
+positive misses. Neither was recovered; both runs became slower, so that profile
+was rejected. The deployed 32-frame profile is retained. Details and source-time
+handling are recorded in `eval/reports/modal-temporal-window-audit.json`.
+`NAVIDU_SEMANTIC_STRIDE_FRAMES=0` preserves the historical two-frame overlap;
+an explicit stride is included in the runtime fingerprint.
+
+Finding descriptions now show one onset time from the rule anchor. The complete
+supporting interval remains available internally for evidence and sequence checks.
+The deployed API confirmed the bag case at 16.0 seconds with the onset description.
+
+The presentation is built from `presentation/pitch/source/build_deck.js`. Its final
+PDF and editable PPTX are copied into `web/public/presentation/` before the remote
+web build. The service exposes only `lado-pitch.pdf` and `lado-pitch.pptx` through
+`/presentation/{filename}`; the source art and working documents are not published
+through that route. PDF opens inline and PPTX downloads as an attachment. Verify
+the actual response bytes against the final files, not only the HTTP status.
+
+The identity
 model has not established recall on separate development videos. A trained language
 adapter is not enabled automatically.
 `NAVIDU_ALLOW_EXPERIMENTAL_API=1` explicitly enables the current model's actual results

@@ -19,9 +19,9 @@ image = image.run_commands("npm ci --ignore-scripts --no-audit --no-fund")
 # already pinned in that lock; do not update Rollup or esbuild themselves.
 image = image.run_commands("npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund "
                            "@rollup/rollup-linux-x64-gnu@4.64.7 @esbuild/linux-x64@0.21.5")
-for name in ("web/src", "web/tests", "landing/src", "landing/dev", "contracts/ts"):
+for name in ("web/src", "web/tests", "web/public", "landing/src", "landing/dev", "contracts/ts"):
     image = image.add_local_dir(ROOT / name, "/workspace/" + name, copy=True)
-for name in ("web/tsconfig.json", "web/vite.config.ts", "web/index.html", "web/public/favicon.svg",
+for name in ("web/tsconfig.json", "web/vite.config.ts", "web/index.html",
              "landing/tsconfig.json", "landing/tsconfig.build.json", "landing/vite.config.ts",
              "contracts/product.json", "identity/logo/lado-logo.svg",
              "identity/logo/lado-mark-on-stage.svg", "identity/art/desk-scene.svg",

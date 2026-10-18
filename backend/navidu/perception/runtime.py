@@ -356,7 +356,9 @@ class LocalPerceptionRuntime:
                         next_semantic_t += 1.0 / self._semantic.sample_fps
                     if len(semantic_frames) >= self._semantic.window_frames:
                         observe_window(semantic_frames)
-                        semantic_frames = semantic_frames[-2:]
+                        overlap = self._semantic.window_frames - getattr(
+                            self._semantic, "stride_frames", self._semantic.window_frames - 2)
+                        semantic_frames = semantic_frames[-overlap:]
                 if proposal is not None and timestamp + 1e-7 >= next_proposal_t:
                     dense_frame = (round(timestamp, 3), rgb.copy())
                     dense_frames.append(dense_frame)

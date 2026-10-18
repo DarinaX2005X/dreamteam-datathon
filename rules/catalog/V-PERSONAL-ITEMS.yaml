@@ -12,7 +12,7 @@
     {"observation": {"kind": "personal_item_identified", "role": "cashier"}},
     {"observation": {"kind": "camera_device_visible", "role": "cashier"}}
   ]},
-  "timecode_policy": "max_evidence",
+  "timecode_policy": "onset",
   "what_seen": "У кассира наблюдается предмет с семантическим признаком личного средства связи или камеры.",
   "why_may_violate": "Личные вещи хранятся вне кассового узла; для средств связи есть исключение без фото- и видеофиксации.",
   "not_claimed": "Принадлежность, назначение и функция камеры требуют подтверждения человеком.",

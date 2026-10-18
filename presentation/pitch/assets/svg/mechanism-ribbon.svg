@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="340" viewBox="0 0 1440 340" role="img" aria-labelledby="title desc">
+  <title id="title">Непрерывная доказательная цепочка</title>
+  <desc id="desc">Пять крупных узлов связаны одной линией: наблюдение переходит в проверку правила, доказательство и решение человека.</desc>
+  <defs>
+    <linearGradient id="ribbon" x1="80" y1="170" x2="1360" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF6A3D"/><stop offset="0.46" stop-color="#FC9385"/><stop offset="0.78" stop-color="#A31551"/><stop offset="1" stop-color="#61CFFF"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+  <path d="M90 176 C260 58 390 282 560 168 S850 64 1010 172 S1210 276 1350 154" fill="none" stroke="#A31551" stroke-opacity="0.22" stroke-width="52" stroke-linecap="round" filter="url(#soft)"/>
+  <path d="M90 176 C260 58 390 282 560 168 S850 64 1010 172 S1210 276 1350 154" fill="none" stroke="url(#ribbon)" stroke-width="14" stroke-linecap="round"/>
+  <g fill="#1E0711" stroke-width="7">
+    <circle cx="90" cy="176" r="30" stroke="#FF6A3D"/>
+    <circle cx="390" cy="209" r="30" stroke="#FC9385"/>
+    <circle cx="700" cy="118" r="30" stroke="#E8604F"/>
+    <circle cx="1010" cy="172" r="30" stroke="#A31551"/>
+    <circle cx="1350" cy="154" r="36" stroke="#61CFFF"/>
+  </g>
+  <g fill="none" stroke="#F7EDF1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M75 161h30v30H75zM81 155h18"/>
+    <path d="M376 213l9 9 19-24"/>
+    <path d="M687 118h26M700 105v26"/>
+    <path d="M996 158h28v22h-18l-7 8v-8h-3z"/>
+    <circle cx="1350" cy="144" r="9"/><path d="M1332 174c4-15 32-15 36 0"/>
+  </g>
+</svg>

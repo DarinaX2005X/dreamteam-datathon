@@ -9,6 +9,9 @@ Lado помогает внутреннему контролю разбирать
 
 **[Открыть приложение](https://darinax2005x--lado-ladoservice-web.us-east.modal.run/app)**
 · [Правила](https://darinax2005x--lado-ladoservice-web.us-east.modal.run/app/norms)
+· [Презентация · PDF](https://darinax2005x--lado-ladoservice-web.us-east.modal.run/presentation/lado-pitch.pdf)
+· [Редактируемая презентация · PPTX](https://darinax2005x--lado-ladoservice-web.us-east.modal.run/presentation/lado-pitch.pptx)
+· [GitHub](https://github.com/DarinaX2005X/dreamteam-datathon)
 · [Контракты API](contracts/openapi.json)
 · [Развёртывание в Modal](deploy/MODAL.md)
 
@@ -128,8 +131,10 @@ Qwen3-VL получает последовательность кадров, и�
 
 ### 5. Доказательства и решение
 
-Для находки сохраняются таймкод, объяснение, ссылки на основания и кадры
+Для находки сохраняются таймкод начала эпизода, объяснение, ссылки на основания и кадры
 из исходной записи. Рамки накладываются отдельно от оригинального изображения.
+В описании и листе проверки показывается один момент начала; внутренний интервал
+доказательств сохраняет контекст действий до и после него.
 Решение проверяющего хранится как отдельная ревизия и не подменяет исходные
 автоматические наблюдения.
 

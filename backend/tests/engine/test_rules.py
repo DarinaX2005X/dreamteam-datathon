@@ -216,6 +216,11 @@ def test_old_cash_on_desk_requires_new_client_same_cashier_and_same_old_batch():
     rule = next(rule for rule in CATALOG if rule.rule_id == "V-CASH-UNSECURED")
     findings, _ = evaluate(observations, [], roles, [rule], caps, zones)
     assert len(findings) == 1 and findings[0].timecode_sec == 7
+    from navidu.rules.describe import describe
+
+    factual, _, description = describe(findings[0], {item.obs_id: item for item in observations})
+    assert "Начало эпизода — 00:07,0." in factual
+    assert "Интервал" not in description and "длительность" not in description
     for changes in ({"actor_id": "p2"}, {"recipient_id": "p4"}, {"start_sec": 10, "end_sec": 11}):
         changed = observations[:3] + [observations[3].model_copy(update=changes)]
         assert not evaluate(changed, [], roles, [rule], caps, zones)[0]

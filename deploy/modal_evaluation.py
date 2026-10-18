@@ -176,7 +176,7 @@ def cpu_preflight() -> dict:
 def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels: int = 451584,
              input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
              detail_view: bool = False, object_model: str = "", source_sha256: str = "",
-             semantic_fps: float = 1., max_new_tokens: int = 2048) -> dict:
+             semantic_fps: float = 1., max_new_tokens: int = 2048, stride_frames: int = 0) -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", run_id):
         raise ValueError("Invalid run ID")
     if model_id not in {"internvl3_5-4b", "qwen3-vl-4b", "qwen3-vl-8b"} or prompt_variant not in {"v5", "v6-evidence", "v7-context", "v8-focused", "v9-questions", "v10-questions"}:
@@ -191,6 +191,8 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
         raise ValueError("Native video requires Qwen")
     if not 3 <= window_frames <= (64 if input_mode == "video" else 16):
         raise ValueError("Invalid frame budget")
+    if stride_frames and not 1 <= stride_frames < window_frames:
+        raise ValueError("Invalid temporal stride")
     if object_model and not re.fullmatch(r"lado-objects-[a-z0-9-]{1,40}", object_model):
         raise ValueError("Invalid object model profile")
     if source_sha256 and not re.fullmatch(r"[a-f0-9]{64}", source_sha256):
@@ -220,6 +222,7 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
     env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
            "NAVIDU_DETECTOR_MODEL": "rfdetr-nano-onnx", "NAVIDU_SEMANTIC_MODEL": model_id,
            "NAVIDU_SEMANTIC_WINDOW_FRAMES": str(window_frames), "NAVIDU_SEMANTIC_FPS": str(semantic_fps),
+           "NAVIDU_SEMANTIC_STRIDE_FRAMES": str(stride_frames),
            "NAVIDU_SEMANTIC_MAX_NEW_TOKENS": str(max_new_tokens),
            "NAVIDU_SEMANTIC_MAX_PATCHES": "4",
            "NAVIDU_SEMANTIC_DTYPE": "bf16", "NAVIDU_SEMANTIC_STRUCTURED_OUTPUT": "0",
@@ -271,11 +274,11 @@ def evaluate(run_id: str, model_id: str, prompt_variant: str = "v5", max_pixels:
 def main(run_id: str, model_id: str = "qwen3-vl-4b", prompt_variant: str = "v5", max_pixels: int = 451584,
          input_mode: str = "images", window_frames: int = 16, max_sources: int = 8,
          detail_view: bool = False, object_model: str = "", source_sha256: str = "",
-         semantic_fps: float = 1., max_new_tokens: int = 2048):
+         semantic_fps: float = 1., max_new_tokens: int = 2048, stride_frames: int = 0):
     try:
         print(json.dumps(evaluate.remote(run_id, model_id, prompt_variant, max_pixels,
                                          input_mode, window_frames, max_sources, detail_view, object_model,
-                                         source_sha256, semantic_fps, max_new_tokens)), flush=True)
+                                         source_sha256, semantic_fps, max_new_tokens, stride_frames)), flush=True)
     finally:
         destination = ROOT / "eval/runs/modal" / run_id
         destination.parent.mkdir(parents=True, exist_ok=True)

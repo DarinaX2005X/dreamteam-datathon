@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="900" viewBox="0 0 800 900" role="img" aria-labelledby="title desc">
+  <title id="title">Оранжево-красно-розовое поле Lado</title>
+  <desc id="desc">Насыщенный линейный градиент от оранжевого через красный к розовому.</desc>
+  <defs>
+    <linearGradient id="close" x1="0" y1="0" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF6A3D"/>
+      <stop offset="0.5" stop-color="#E3484A"/>
+      <stop offset="1" stop-color="#C21F69"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#close)"/>
+</svg>

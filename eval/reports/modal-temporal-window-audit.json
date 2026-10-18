@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "host": "Modal NVIDIA L4 24 GB",
+  "holdout_used": false,
+  "training_performed": false,
+  "quality_approved": false,
+  "scope": "Paired diagnostic on the two remaining positive misses, not a new full-validation accuracy estimate.",
+  "unchanged": {
+    "model": "qwen3-vl-8b",
+    "prompt": "v10-questions",
+    "objects": "lado-objects-v7-composite",
+    "input_mode": "native_video",
+    "detail_view": true,
+    "max_pixels_per_view_frame": 262144,
+    "max_new_tokens": 1536,
+    "rule_conditions": "unchanged"
+  },
+  "baseline": {
+    "window_frames": 32,
+    "semantic_fps": 1,
+    "stride_frames": 30,
+    "full_validation_reference": "eval/reports/modal-question-verification.json"
+  },
+  "candidate": {
+    "window_frames": 16,
+    "semantic_fps": 2,
+    "stride_frames": 8,
+    "selected_for_deployment": false
+  },
+  "cases": [
+    {
+      "source_id": "Х-46",
+      "organizer_positive": true,
+      "run_id": "modal-dense16-x46-20261018",
+      "baseline": {
+        "status": "done",
+        "verdict": "no_violation",
+        "latency_sec": 65.649,
+        "semantic_windows": 1,
+        "accepted_events": 5,
+        "question_calls": 3,
+        "event_kind_counts": {
+          "cash_on_desk": 1,
+          "cash_in_hands": 4
+        }
+      },
+      "candidate": {
+        "status": "done",
+        "verdict": "no_violation",
+        "latency_sec": 113.66,
+        "semantic_windows": 4,
+        "accepted_events": 8,
+        "question_calls": 13,
+        "event_kind_counts": {
+          "cash_in_hands": 3,
+          "cash_in_counter": 1,
+          "cash_on_desk": 2,
+          "bag_present": 2
+        }
+      }
+    },
+    {
+      "source_id": "Х-13",
+      "organizer_positive": true,
+      "run_id": "modal-dense16-x13-20261018",
+      "baseline": {
+        "status": "done",
+        "verdict": "no_violation",
+        "latency_sec": 260.695,
+        "semantic_windows": 3,
+        "accepted_events": 7,
+        "question_calls": 17,
+        "event_kind_counts": {
+          "uncertain_person": 15,
+          "cash_in_hands": 4,
+          "cash_on_desk": 1,
+          "bag_present": 2
+        }
+      },
+      "candidate": {
+        "status": "done",
+        "verdict": "no_violation",
+        "latency_sec": 471.418,
+        "semantic_windows": 16,
+        "accepted_events": 34,
+        "question_calls": 79,
+        "event_kind_counts": {
+          "uncertain_person": 8,
+          "bag_present": 28,
+          "cash_in_hands": 3,
+          "cash_on_desk": 3
+        }
+      }
+    }
+  ],
+  "decision": "Reject this dense short-window profile: neither miss was recovered and both runs became slower. Preserve the previously measured 32-frame production profile; no unsupported new violation rule was introduced.",
+  "input_audit": {
+    "source_pts_preserved": true,
+    "native_resampling_disabled": true,
+    "full_and_detail_views_share_times": true,
+    "sampling_detail": "At analysis_fps=3 and requested semantic_fps=2, actual selected PTS can alternate gaps of approximately 0.667 and 0.333 seconds. These actual PTS, not a fabricated uniform clock, are passed to the video processor.",
+    "stride_parameter": "Now explicit and fingerprinted; default retains the old two-frame overlap. The tested candidate uses half-window overlap.",
+    "typed_labels": "The organizer provided binary labels and times, not independently verified violation types for these two cases. More recognized cash states alone do not establish a rule violation."
+  },
+  "onset_correction": {
+    "cause": "Descriptions displayed the entire support window, which can include preceding actions and merged evidence.",
+    "change": "Report pending.timecode_sec only. Keep the supporting interval internally. Personal-item findings also use observed onset rather than interval midpoint.",
+    "http_verified": true,
+    "verified_timecode_sec": 16.0,
+    "pipeline_version": "0.1.0+runtime.8c9d7c63c4316105a12e"
+  },
+  "references": [
+    "https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_vl/processing_qwen3_vl.py",
+    "https://github.com/QwenLM/Qwen3-VL/blob/main/evaluation/VideoMME/README.md"
+  ],
+  "ui_visually_verified_by_agent": false
+}

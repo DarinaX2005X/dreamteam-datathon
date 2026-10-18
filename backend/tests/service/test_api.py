@@ -81,6 +81,18 @@ def test_late_frontend_build_and_asset_boundaries(settings):
         assert asset.status_code == 200 and "immutable" in asset.headers["cache-control"]
         assert client.get("/assets/..%5Cindex.html").status_code == 404
         assert client.get("/favicon.svg").status_code == 200
+        (settings.web_dist / "presentation").mkdir()
+        (settings.web_dist / "presentation/lado-pitch.pdf").write_bytes(b"%PDF-pitch")
+        (settings.web_dist / "presentation/lado-pitch.pptx").write_bytes(b"PK-pitch")
+        pdf = client.get("/presentation/lado-pitch.pdf")
+        assert pdf.status_code == 200 and pdf.content == b"%PDF-pitch"
+        assert pdf.headers["content-type"] == "application/pdf"
+        assert pdf.headers["content-disposition"].startswith("inline;")
+        pptx = client.get("/presentation/lado-pitch.pptx")
+        assert pptx.status_code == 200 and pptx.content == b"PK-pitch"
+        assert pptx.headers["content-disposition"].startswith("attachment;")
+        assert client.get("/presentation/prompt.txt").status_code == 404
+        assert client.get("/presentation/..%5Cindex.html").status_code == 404
 
 
 def test_end_to_end_jury_exact_response(client, app):

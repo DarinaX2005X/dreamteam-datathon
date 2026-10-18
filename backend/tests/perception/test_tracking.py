@@ -89,8 +89,8 @@ def test_late_person_is_confirmed_on_two_detections_before_moderate_motion(monke
 
 @pytest.mark.skipif(importlib.util.find_spec("numpy") is None or importlib.util.find_spec("supervision") is None,
                     reason="The optional inference environment is required")
-@pytest.mark.parametrize("frame_count, expected_windows", [(4, 1), (5, 2), (6, 2)])
-def test_semantic_tail_requires_new_frames_and_emits_real_partial_results(monkeypatch, frame_count, expected_windows):
+@pytest.mark.parametrize("frame_count, expected_windows, stride", [(4, 1, 2), (5, 2, 2), (6, 2, 2), (7, 4, 1)])
+def test_semantic_tail_requires_new_frames_and_emits_real_partial_results(monkeypatch, frame_count, expected_windows, stride):
     import numpy as np
 
     class Detector:
@@ -104,6 +104,7 @@ def test_semantic_tail_requires_new_frames_and_emits_real_partial_results(monkey
     class Semantic:
         sample_fps = 1
         window_frames = 4
+        stride_frames = stride
 
         def __init__(self):
             self.windows = []
@@ -124,6 +125,8 @@ def test_semantic_tail_requires_new_frames_and_emits_real_partial_results(monkey
                              emit=lambda event: events.append(event.model_copy(deep=True)), should_stop=lambda: False)
     assert len(runtime._semantic.windows) == expected_windows
     assert runtime._semantic.windows[-1][-1] == frame_count - 1
+    for before, after in zip(runtime._semantic.windows, runtime._semantic.windows[1:]):
+        assert before[stride:] == after[:len(before) - stride]
     assert len(result.observations) == expected_windows
     partial = [event for event in events[:-1] if event.observations_delta]
     assert len(partial) == expected_windows

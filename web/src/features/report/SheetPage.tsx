@@ -135,7 +135,7 @@ export function SheetPage() {
               <header>
                 <span>{index + 1}</span>
                 <div>
-                  <time>{formatTimecode(finding.timecode_sec)}</time>
+                  <time>Начало · {formatTimecode(finding.timecode_sec)}</time>
                   <h2>{finding.type_label}</h2>
                 </div>
                 <strong>

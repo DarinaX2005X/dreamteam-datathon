@@ -165,6 +165,21 @@ def create_app(settings: Settings | None = None, *, pipeline=None, probe=probe_v
             raise ServiceError(404, "NOT_FOUND", "Значок не найден.")
         return FileResponse(path, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600"})
 
+    @app.get("/presentation/{filename}")
+    def presentation(filename: str):
+        public_files = {
+            "lado-pitch.pdf": "application/pdf",
+            "lado-pitch.pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        }
+        if filename not in public_files:
+            raise ServiceError(404, "NOT_FOUND", "Презентация не найдена.")
+        path = settings.web_dist / "presentation" / filename
+        if not path.is_file():
+            raise ServiceError(404, "NOT_FOUND", "Презентация не найдена.")
+        return FileResponse(path, media_type=public_files[filename], filename=filename,
+            content_disposition_type="inline" if filename.endswith(".pdf") else "attachment",
+            headers={"Cache-Control": "public, max-age=0, must-revalidate"})
+
     @app.get("/")
     @app.get("/app")
     @app.get("/app/{path:path}")
