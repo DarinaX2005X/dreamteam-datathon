@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "candidate_selected_full_pipeline_pending",
+  "status": "spatial_candidate_complete_violation_quality_unresolved",
   "selected_model": "lado-objects-v7-composite",
   "quality_approved": false,
   "annotation_origin": "assistant_manual_review",
@@ -469,5 +469,60 @@
       },
       "quality_approved": false
     }
+  },
+  "end_to_end": {
+    "run_id": "modal-objects-v7-eight-20261018",
+    "model_id": "qwen3-vl-8b",
+    "object_model_id": "lado-objects-v7-composite",
+    "sources": 8,
+    "partition": "development-validation",
+    "verdict": {
+      "accuracy": 0.625,
+      "balanced_accuracy": 0.625,
+      "clean_evaluated": 4,
+      "denominator": "Completed unique sources only; failures and missing inputs are reported separately.",
+      "evaluated": 8,
+      "f1": 0.4,
+      "false_positive_rate_clean": 0.0,
+      "fn": 3,
+      "fp": 0,
+      "positive_evaluated": 4,
+      "positive_recall_with_failures_as_misses": 0.25,
+      "precision": 1.0,
+      "recall": 0.25,
+      "selected_accuracy_lower_bound": 0.625,
+      "specificity": 1.0,
+      "tn": 4,
+      "tp": 1
+    },
+    "classification": {
+      "accuracy": null,
+      "available": false,
+      "reason": "No independently verified type annotations are provided.",
+      "rows_with_type_annotations": 0
+    },
+    "timing_error_sec": {
+      "ambiguous_policy": "Different timestamps on byte-identical copies are inconsistent annotations, not two confirmed events; exclude the entire source from headline timing.",
+      "correctly_detected_unambiguous_positive_sources": 1,
+      "count": 1,
+      "excluded_detected_ambiguous_positive_sources": 0,
+      "max": 4.0,
+      "median": 4.0,
+      "method": "Nearest actual finding to the sole organizer timestamp; only correctly detected unique positive sources with one unambiguous label. This is not one-to-one event matching and may favour videos with more findings.",
+      "missed_or_failed_positive_sources": 3,
+      "p90": 4.0
+    },
+    "latency_sec": {
+      "count": 8,
+      "max": 272.627079559,
+      "median": 61.95094418300005,
+      "p90": 247.90149837869998,
+      "scope": "Actual per-video analyze wall time; warm model preparation measured separately; cache retrieval not counted."
+    },
+    "completion_rate": 1.0,
+    "cold_model_prepare_sec": 81.291,
+    "violation_accuracy_improved": false,
+    "quality_approved": false,
+    "deployed": false
   }
 }
